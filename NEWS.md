@@ -23,8 +23,17 @@
   Tuerlinckx (2007), and `rule_none()` as a pass-through baseline. Each carries
   its defining reference.
 
-* `rule_mixture()` validates and describes itself, but applying it is not yet
-  implemented.
+* `rule_mixture()` fits a uniform-contaminant mixture by expectation
+  maximisation and returns a genuine per-trial posterior probability — the case
+  `.prob` exists for. Cores available are the ex-Gaussian, lognormal, and
+  inverse Gaussian. The EM reproduces `bmm:::.fit_rt_mixture()`, which
+  `tests/testthat/test-equivalence.R` checks across several fixtures, with two
+  deliberate differences: the M-steps for the lognormal and inverse Gaussian
+  use the exact weighted maximum likelihood estimator where `bmm` optimises
+  numerically, and a failed fit keeps the data rather than returning `NA`.
+
+* `use_accuracy = TRUE` is accepted by `rule_mixture()` but not yet
+  implemented; it errors.
 
 ## Notes
 
@@ -39,3 +48,13 @@
 * Numeric `response` must be coded 0/1. `bmm` coerces with `as.logical()`, which
   reads a 1 = error / 2 = correct column as perfect accuracy; `rtprep` refuses
   it instead.
+
+* Which mixture core you choose matters. On a tight block of fast guesses the
+  ex-Gaussian absorbs the block by widening its Gaussian part and driving `tau`
+  to zero, reporting no contamination, where the lognormal and inverse Gaussian
+  find it. `bmm` behaves identically, so this is a property of the model rather
+  than of either implementation.
+
+* Warnings about failed fits and about contaminant bounds that exclude observed
+  trials are raised once per call, naming how many groups were affected, rather
+  than once per group. Per-group detail is in `attr(x, "fits")`.

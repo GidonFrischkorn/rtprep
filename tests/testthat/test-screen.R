@@ -240,17 +240,23 @@ test_that("rule_none() keeps everything", {
   expect_true(all(is.na(out$.reason)))
 })
 
-test_that("the mixture rule is not applicable until milestone 2", {
-  # flipped by milestone 2, which implements apply_rule.rtprep_rule_mixture()
-  expect_error(
-    rt_screen(rt_fixture(), rule = rule_mixture()),
-    "not yet implemented"
+test_that("a rule with no apply_rule() method fails loudly", {
+  # and fails before any group is touched, so an empty group cannot hide it
+  unknown <- structure(
+    list(label = "invented"),
+    class = c("rtprep_rule_invented", "rtprep_rule")
   )
-  # and it must fail even when there is nothing to apply it to
+  expect_error(rt_screen(rt_fixture(), rule = unknown), "not yet implemented")
   expect_error(
-    rt_screen(c(NA_real_, NA_real_), rule = rule_mixture()),
-    "not yet implemented"
+    rt_screen(c(NA_real_, NA_real_), rule = unknown), "not yet implemented"
   )
+})
+
+test_that("a group with no usable trials is skipped, not fitted", {
+  out <- rt_screen(c(NA_real_, NA_real_), rule = rule_mixture())
+  expect_false(any(out$.keep))
+  expect_equal(out$.reason, c("missing", "missing"))
+  expect_equal(attr(out, "fits")$n_trials, 0L)
 })
 
 test_that("a missing response is treated as a missing trial", {

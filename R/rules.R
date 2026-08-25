@@ -297,12 +297,32 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' than 0 and 1, and the reason [rt_screen()] separates the probability from the
 #' keep decision at all.
 #'
-#' `use_accuracy = TRUE` is **experimental**. It puts accuracy inside the
-#' mixture likelihood rather than using it only afterwards, on the reasoning
-#' that a fast trial that is *correct* is less likely to be a guess than a fast
-#' trial that is an error. It assumes contaminants respond at `chance`, which
-#' holds for guessing but not for a delayed start-up, where the decision process
-#' still runs and accuracy is intact.
+#' The bounds of the uniform component are buffered outward from the observed
+#' range by half its width. Without that buffer the uniform's edges sit exactly
+#' on data points and the mixture is barely identifiable.
+#'
+#' Which core distribution you choose matters more than it looks. On a tight
+#' block of fast guesses the ex-Gaussian can absorb the block by widening its
+#' Gaussian part and driving `tau` to zero, reporting no contamination at all,
+#' where the lognormal and inverse Gaussian cores find it. The same thing
+#' happens in `bmm`'s implementation, so it is a property of the model rather
+#' than of either package — but it is a reason to check
+#' `attr(x, "fits")$contaminant_prop` against what you expected rather than
+#' trusting the default.
+#'
+#' When the EM does not converge, or a group has fewer than five trials inside
+#' the bounds, **nothing is flagged** and `attr(x, "fits")$converged` is
+#' `FALSE`. `rt_screen()` warns once for the whole call, naming how many groups
+#' failed, rather than once per group. Note that `bmm` returns `NA`
+#' probabilities in this situation; `rtprep` keeps the data, because an `NA`
+#' would propagate into `.keep`.
+#'
+#' `use_accuracy = TRUE` is **experimental** and not yet implemented. It puts
+#' accuracy inside the mixture likelihood rather than using it only afterwards,
+#' on the reasoning that a fast trial that is *correct* is less likely to be a
+#' guess than a fast trial that is an error. It assumes contaminants respond at
+#' `chance`, which holds for guessing but not for a delayed start-up, where the
+#' decision process still runs and accuracy is intact.
 #'
 #' @references
 #' Ratcliff, R., & Tuerlinckx, F. (2002). Estimating parameters of the diffusion

@@ -31,8 +31,11 @@
 #'       decision process, that is **P(valid)**. Deterministic rules return 0 or
 #'       1. Note that `bmm::flag_contaminant_rts()` returns the complement.}
 #'     \item{`.rule`}{character; the rule's label.}
-#'     \item{`.reason`}{character; `NA` when the trial is kept, otherwise
-#'       `"too_fast"`, `"too_slow"`, `"contaminant"`, or `"missing"`.}
+#'     \item{`.reason`}{character; why the **rule** flagged the trial —
+#'       `"too_fast"`, `"too_slow"`, `"contaminant"`, or `"missing"`. `NA`
+#'       whenever the rule did not flag it, which includes trials the keep
+#'       policy dropped anyway (at `threshold = 1`, or on a probabilistic draw
+#'       against a fractional `.prob`). A kept trial never carries a reason.}
 #'   }
 #'
 #'   Per-group fit diagnostics are attached as `attr(x, "fits")`: one row per
@@ -93,6 +96,8 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
       class(rule)[1], "'."
     )
   )
+  unsupported <- .rule_unsupported(rule)
+  .stopif(!is.null(unsupported), unsupported)
 
   needs_response <- .needs_response(rule)
   if (!is.null(response)) {
@@ -154,8 +159,52 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
     .reason = reason,
     stringsAsFactors = FALSE
   )
-  attr(out, "fits") <- .assemble_fits(groups, key$id, observed, .keep, fits)
+  fits_table <- .assemble_fits(groups, key$id, observed, .keep, fits)
+  .warn_bounds(fits_table)
+  .warn_unconverged(fits_table)
+  attr(out, "fits") <- fits_table
   out
+}
+
+# Report failed fits once for the whole call rather than once per group.
+# Warning inside the group loop -- which is what bmm does -- would emit one
+# warning per subject, and a SimDesign replication has thousands of them. The
+# per-group detail stays in attr(x, "fits").
+.warn_unconverged <- function(fits) {
+  if (is.null(fits) || !"converged" %in% names(fits)) {
+    return(invisible(NULL))
+  }
+  # groups that were never fitted have NA here and belong in neither count
+  fitted <- !is.na(fits$converged)
+  n_failed <- sum(!fits$converged[fitted])
+  .warnif(n_failed > 0L, paste0(
+    "The model fit did not converge for ", n_failed, " of ", sum(fitted),
+    " fitted group(s); those trials were all kept. ",
+    "See attr(x, \"fits\") for which."
+  ))
+  invisible(NULL)
+}
+
+# Bounds are resolved once per group, so a rule that reports them flags the two
+# conditions worth mentioning and lets the engine say them once.
+.warn_bounds <- function(fits) {
+  if (is.null(fits) || !"bound_inverted" %in% names(fits)) {
+    return(invisible(NULL))
+  }
+  n_inverted <- sum(fits$bound_inverted, na.rm = TRUE)
+  .warnif(n_inverted > 0L, paste0(
+    "Contaminant bounds resolved to lower >= upper for ", n_inverted,
+    " group(s); the buffered data range was used instead."
+  ))
+
+  n_narrow <- sum(fits$bound_excludes_fast | fits$bound_excludes_slow,
+    na.rm = TRUE
+  )
+  .warnif(n_narrow > 0L, paste0(
+    "Contaminant bounds exclude observed trials in ", n_narrow,
+    " group(s); those trials cannot be classified as contaminants."
+  ))
+  invisible(NULL)
 }
 
 # One row per group, in group-key order, with the shared bookkeeping columns
@@ -226,6 +275,13 @@ apply_rule.default <- function(rule, rt, response = NULL) {
     call. = FALSE
   )
 }
+
+# A rule whose constructor is valid but whose configuration is not yet
+# implemented. Returns NULL when the rule can run, otherwise the message.
+# Checked before the group loop so it fires even when there is nothing to fit.
+.rule_unsupported <- function(rule) UseMethod(".rule_unsupported")
+
+.rule_unsupported.default <- function(rule) NULL
 
 # Which rules cannot run on response times alone.
 .needs_response <- function(rule) UseMethod(".needs_response")

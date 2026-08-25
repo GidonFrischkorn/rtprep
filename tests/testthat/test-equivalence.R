@@ -119,9 +119,196 @@ test_that("the frozen reference still matches the installed trimr", {
   )
 })
 
-test_that("mixture EM matches bmm::flag_contaminant_rts()", {
+# --- against bmm ------------------------------------------------------------
+
+# The claim these carry: the companion DDM tutorial recommends bmm's defaults on
+# the strength of results computed by rtprep's EM, and that citation is only
+# honest while the two agree.
+#
+# rtprep's .prob is P(valid); bmm's flag_contaminant_rts() returns
+# P(contaminant). The mapping is 1 - .prob and is asserted here rather than
+# assumed anywhere else.
+#
+# Every comparison runs over a set of seeds rather than one fixture. A
+# single-fixture equivalence test insures nothing: the two implementations use
+# different M-steps for two of the three distributions, so they stop at slightly
+# different points, and how much that matters varies with the draw.
+bmm_seeds <- c(31, 39, 1025, 2019, 3037, 7, 101, 404)
+
+bmm_fixture <- function(seed) {
+  set.seed(seed)
+  c(
+    rtprep:::.rexgauss(400, mu = 0.45, sigma = 0.05, tau = 0.15),
+    runif(40, 0.10, 0.20)
+  )
+}
+
+test_that("mixture EM reaches the same keep decisions as bmm", {
+  # The claim that has to hold downstream. rtprep uses the exact weighted
+  # maximiser where bmm optimises numerically, so the fitted parameters differ
+  # by the optimiser's own tolerance. Decisions may then differ only for trials
+  # whose posterior sits essentially on the 0.5 cut, where the decision is
+  # arbitrary under either implementation.
   skip_if_not_installed("bmm")
-  skip("not yet implemented")
+
+  for (seed in bmm_seeds) {
+    rt <- bmm_fixture(seed)
+    for (dist in c("exgaussian", "lognormal", "invgaussian")) {
+      theirs <- suppressWarnings(
+        as.numeric(
+          bmm::flag_contaminant_rts(rt, distribution = dist, maxit = 500)
+        )
+      )
+      ours <- suppressWarnings(
+        rt_screen(rt, rule = rule_mixture(dist, maxit = 500))
+      )
+      label <- paste(dist, "seed", seed)
+
+      disagree <- ours$.keep != (theirs < 0.5)
+      expect_true(
+        all(abs(theirs[disagree] - 0.5) < 0.01),
+        info = paste(label, "- decisions differ away from the 0.5 cut")
+      )
+      expect_lt(max(abs((1 - ours$.prob) - theirs)), 0.02, label = label)
+    }
+  }
+})
+
+test_that("the exact M-steps never fit worse than bmm's numerical ones", {
+  # Per M-step, on identical weights and an identical starting point: a
+  # closed-form maximiser of the weighted likelihood cannot be beaten by
+  # L-BFGS-B on the same objective. If this ever reverses, the closed form is
+  # wrong.
+  #
+  # Note this does NOT extend to the mixture log-likelihood at the stopping
+  # iteration, which depends on which run trips `tol` first -- that is what the
+  # loose bound in the next test allows for.
+  skip_if_not_installed("bmm")
+
+  for (seed in bmm_seeds[1:4]) {
+    x <- bmm_fixture(seed)
+    set.seed(seed)
+    w <- runif(length(x), 1e-8, 1)
+
+    for (dist in c("lognormal", "invgaussian")) {
+      init <- rtprep:::.init_dist_params(x, dist)
+      nll <- function(par) {
+        -sum(w * rtprep:::.rt_density(x, par, dist, log = TRUE))
+      }
+      closed <- rtprep:::.m_step(x, dist, w, init)
+      numeric_par <- bmm:::.fit_dist_params(x, dist, w, init)
+      expect_lte(nll(closed), nll(numeric_par) + 1e-8,
+        label = paste(dist, "seed", seed)
+      )
+    }
+  }
+})
+
+test_that("the fitted mixture matches bmm's diagnostics", {
+  skip_if_not_installed("bmm")
+
+  for (seed in bmm_seeds) {
+    rt <- bmm_fixture(seed)
+    for (dist in c("exgaussian", "lognormal", "invgaussian")) {
+      theirs <- attr(
+        suppressWarnings(
+          bmm::flag_contaminant_rts(rt, distribution = dist, maxit = 500)
+        ),
+        "diagnostics"
+      )
+      ours <- attr(
+        suppressWarnings(rt_screen(rt, rule = rule_mixture(dist, maxit = 500))),
+        "fits"
+      )
+      label <- paste(dist, "seed", seed)
+
+      expect_equal(ours$converged, theirs$converged, info = label)
+      expect_lt(
+        abs(ours$contaminant_prop - theirs$contaminant_prop), 0.02,
+        label = label
+      )
+      expect_lt(abs(ours$loglik - theirs$loglik), 0.05, label = label)
+      # rtprep counts the trials it fitted, bmm every non-missing trial; with
+      # the default buffered bounds nothing falls outside, so they coincide
+      in_bounds <- sum(rt >= ours$bound_lower & rt <= ours$bound_upper)
+      expect_equal(ours$n_fitted, in_bounds, info = label)
+      expect_equal(theirs$n_trials, length(rt), info = label)
+    }
+  }
+})
+
+test_that("n_fitted counts in-bounds trials, unlike bmm's n_trials", {
+  # the two only coincide because the default bounds are buffered past the data
+  skip_if_not_installed("bmm")
+  rt <- bmm_fixture(31)
+
+  ours <- attr(
+    suppressWarnings(
+      rt_screen(rt, rule = rule_mixture("lognormal", bound = c(0.3, 1.0)))
+    ),
+    "fits"
+  )
+  expect_lt(ours$n_fitted, length(rt))
+  expect_equal(ours$n_fitted, sum(rt >= 0.3 & rt <= 1.0))
+})
+
+test_that("the resolved contaminant bounds match bmm's", {
+  skip_if_not_installed("bmm")
+
+  for (seed in bmm_seeds) {
+    rt <- bmm_fixture(seed)
+    expect_equal(
+      rtprep:::.resolve_bounds(c("min", "max"), rt)$bound,
+      unname(bmm:::.resolve_contaminant_bounds(c("min", "max"), rt)),
+      info = paste("seed", seed)
+    )
+    expect_equal(
+      rtprep:::.resolve_bounds(c(0.05, 3), rt)$bound,
+      unname(suppressWarnings(
+        bmm:::.resolve_contaminant_bounds(c(0.05, 3), rt)
+      )),
+      info = paste("seed", seed)
+    )
+  }
+})
+
+test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
+  # the one arm where both use the same numerical M-step, so any divergence is
+  # in the loop itself: the pre-M-step convergence check, the warm start, or the
+  # clipping. rtprep clamps optim()'s box-projection rounding where bmm does
+  # not, which is the only remaining source of difference.
+  skip_if_not_installed("bmm")
+
+  for (seed in bmm_seeds) {
+    rt <- bmm_fixture(seed)
+    bound <- rtprep:::.resolve_bounds(c("min", "max"), rt)$bound
+
+    ours <- rtprep:::.fit_rt_mixture(
+      rt, "exgaussian", bound,
+      init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-6
+    )
+    theirs <- bmm:::.fit_rt_mixture(
+      rt, "exgaussian", bound, 0.05, 0.5, 500, 1e-6
+    )
+    label <- paste("seed", seed)
+
+    expect_equal(ours$converged, theirs$converged, info = label)
+    expect_lt(
+      abs(ours$contaminant_prop - theirs$contaminant_prop), 1e-3,
+      label = label
+    )
+    expect_lt(abs(ours$loglik - theirs$loglik), 0.05, label = label)
+
+    # Compare the fitted distribution rather than the raw parameters. Once tau
+    # is at its lower bound the two are separated by optim()'s box-projection
+    # rounding, which is a relative difference of order 1 on a parameter of
+    # order 1e-6 and means nothing. The moments are what propagate downstream
+    # into rt_summary(method = "mixture"), so they are what has to agree.
+    ours_m <- rtprep:::.dist_moments(ours$par, "exgaussian")
+    theirs_m <- rtprep:::.dist_moments(theirs$params, "exgaussian")
+    expect_lt(abs(ours_m$mean - theirs_m$mean), 1e-3, label = label)
+    expect_lt(abs(ours_m$var - theirs_m$var), 1e-3, label = label)
+  }
 })
 
 test_that("EZ summary statistics match bmm::ezdm_summary_stats()", {

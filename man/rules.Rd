@@ -213,12 +213,32 @@ time component — the one rule in the package that returns something other
 than 0 and 1, and the reason \code{\link[=rt_screen]{rt_screen()}} separates the probability from the
 keep decision at all.
 
-\code{use_accuracy = TRUE} is \strong{experimental}. It puts accuracy inside the
-mixture likelihood rather than using it only afterwards, on the reasoning
-that a fast trial that is \emph{correct} is less likely to be a guess than a fast
-trial that is an error. It assumes contaminants respond at \code{chance}, which
-holds for guessing but not for a delayed start-up, where the decision process
-still runs and accuracy is intact.
+The bounds of the uniform component are buffered outward from the observed
+range by half its width. Without that buffer the uniform's edges sit exactly
+on data points and the mixture is barely identifiable.
+
+Which core distribution you choose matters more than it looks. On a tight
+block of fast guesses the ex-Gaussian can absorb the block by widening its
+Gaussian part and driving \code{tau} to zero, reporting no contamination at all,
+where the lognormal and inverse Gaussian cores find it. The same thing
+happens in \code{bmm}'s implementation, so it is a property of the model rather
+than of either package — but it is a reason to check
+\code{attr(x, "fits")$contaminant_prop} against what you expected rather than
+trusting the default.
+
+When the EM does not converge, or a group has fewer than five trials inside
+the bounds, \strong{nothing is flagged} and \code{attr(x, "fits")$converged} is
+\code{FALSE}. \code{rt_screen()} warns once for the whole call, naming how many groups
+failed, rather than once per group. Note that \code{bmm} returns \code{NA}
+probabilities in this situation; \code{rtprep} keeps the data, because an \code{NA}
+would propagate into \code{.keep}.
+
+\code{use_accuracy = TRUE} is \strong{experimental} and not yet implemented. It puts
+accuracy inside the mixture likelihood rather than using it only afterwards,
+on the reasoning that a fast trial that is \emph{correct} is less likely to be a
+guess than a fast trial that is an error. It assumes contaminants respond at
+\code{chance}, which holds for guessing but not for a delayed start-up, where the
+decision process still runs and accuracy is intact.
 }
 
 \section{No screening}{

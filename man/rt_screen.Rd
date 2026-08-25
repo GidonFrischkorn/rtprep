@@ -44,8 +44,11 @@ A \code{data.frame} with one row per element of \code{rt}, in input order:
 decision process, that is \strong{P(valid)}. Deterministic rules return 0 or
 1. Note that \code{bmm::flag_contaminant_rts()} returns the complement.}
 \item{\code{.rule}}{character; the rule's label.}
-\item{\code{.reason}}{character; \code{NA} when the trial is kept, otherwise
-\code{"too_fast"}, \code{"too_slow"}, \code{"contaminant"}, or \code{"missing"}.}
+\item{\code{.reason}}{character; why the \strong{rule} flagged the trial —
+\code{"too_fast"}, \code{"too_slow"}, \code{"contaminant"}, or \code{"missing"}. \code{NA}
+whenever the rule did not flag it, which includes trials the keep
+policy dropped anyway (at \code{threshold = 1}, or on a probabilistic draw
+against a fractional \code{.prob}). A kept trial never carries a reason.}
 }
 
 Per-group fit diagnostics are attached as \code{attr(x, "fits")}: one row per
