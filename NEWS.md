@@ -81,6 +81,28 @@
   accuracies of 0, 0.5, and 1. Exported, so the whole
   screen-aggregate-estimate pipeline runs with only `rtprep` installed.
 
+* `screen_compare()` applies a whole roster of rules at once and reports where
+  they disagree: per-trial keep, probability, and reason matrices, drop rates
+  per rule and group broken out by reason, and pairwise agreement alongside the
+  Jaccard overlap of the excluded sets. Both agreement measures are reported
+  because they diverge exactly where it matters — two rules that each drop 2%
+  of trials and never the same one agree on 96% of decisions and overlap not at
+  all. `print()`, `summary()`, and `plot()` methods; the plot uses `ggplot2`
+  when it is installed and falls back to base graphics when it is not.
+
+* `check_guessing()` tests whether the fast trials a rule removed really were
+  guesses, by a Beta-Binomial Savage–Dickey Bayes factor against the chance
+  rate. A port of `bmm::validate_fast_guesses()`, matching it exactly, but
+  taking `.keep` rather than a contaminant flag and returning a one-row data
+  frame rather than a list.
+
+* `r_contaminated()` generates response times with contaminants of known type,
+  from either a diffusion or a racing-accumulator decision process, with
+  leading-edge anticipations, delayed start-ups, informationless responses, or
+  a mixture. Contamination is invisible in real data, so ground truth is the
+  only way to find out whether a pipeline worked — which is why this is a
+  package rather than a wrapper.
+
 ## Notes
 
 * Bounds are inclusive throughout: a trial is flagged only when it falls
