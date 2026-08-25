@@ -35,6 +35,21 @@
 * `use_accuracy = TRUE` is accepted by `rule_mixture()` but not yet
   implemented; it errors.
 
+* `rt_summary()` aggregates surviving trials into the EZ-diffusion summary
+  statistics, three ways: the sample moments, robust moments (median with
+  IQR/1.349 or MAD), and the analytic moments of a fitted contaminant mixture.
+  A `weights` argument takes the `.prob` column of `rt_screen()` directly, so a
+  probabilistic screen can feed aggregation without being forced through a
+  threshold first. Matches `bmm::ezdm_summary_stats()`.
+
+* `adjust_accuracy()` corrects accuracy counts for estimated contamination, a
+  port of `bmm::adjust_ezdm_accuracy()`. Stochastic by design.
+
+* `ez_ddm()` inverts those statistics into drift, bound, and non-decision time
+  (Wagenmakers et al., 2007), including the published edge correction for
+  accuracies of 0, 0.5, and 1. Exported, so the whole
+  screen-aggregate-estimate pipeline runs with only `rtprep` installed.
+
 ## Notes
 
 * Bounds are inclusive throughout: a trial is flagged only when it falls
@@ -58,3 +73,12 @@
 * Warnings about failed fits and about contaminant bounds that exclude observed
   trials are raised once per call, naming how many groups were affected, rather
   than once per group. Per-group detail is in `attr(x, "fits")`.
+
+* `rt_summary()` defaults to `method = "simple"` where
+  `bmm::ezdm_summary_stats()` defaults to `"mixture"`. A tutorial about
+  preprocessing choices should not make one of the choices silently.
+
+* `ez_ddm()` uses `s = 1`; Wagenmakers et al. use `s = 0.1`. This is a units
+  convention — `drift` and `bound` scale linearly with `s` while `ndt` does
+  not — but it has to be stated, because a drift of 0.1 at `s = 0.1` and a
+  drift of 1.0 at `s = 1` describe the same process.

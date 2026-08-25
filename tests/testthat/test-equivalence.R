@@ -313,5 +313,106 @@ test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
 
 test_that("EZ summary statistics match bmm::ezdm_summary_stats()", {
   skip_if_not_installed("bmm")
-  skip("not yet implemented")
+
+  for (seed in bmm_seeds[1:4]) {
+    rt <- bmm_fixture(seed)
+    set.seed(seed)
+    correct <- rbinom(length(rt), 1, 0.8)
+
+    grid <- expand.grid(
+      method = c("simple", "robust", "mixture"),
+      version = c("3par", "4par"),
+      distribution = c("exgaussian", "lognormal", "invgaussian"),
+      stringsAsFactors = FALSE
+    )
+    for (row in seq_len(nrow(grid))) {
+      method <- grid$method[row]
+      version <- grid$version[row]
+      distribution <- grid$distribution[row]
+      local({
+        label <- paste(method, version, distribution, "seed", seed)
+        ours <- suppressWarnings(rt_summary(
+          rt, correct,
+          method = method, version = version,
+          distribution = distribution, maxit = 500
+        ))
+        theirs <- suppressWarnings(bmm::ezdm_summary_stats(
+          rt, correct,
+          method = method, version = version,
+          distribution = distribution, maxit = 500
+        ))
+
+        expect_equal(names(ours), names(theirs), info = label)
+        expect_equal(ours$n_trials, theirs$n_trials, info = label)
+        expect_equal(ours$n_upper, theirs$n_upper, info = label)
+
+        # the mixture arm inherits the M-step difference documented above, so
+        # it gets the same tolerance the probabilities do; the other two are
+        # exact
+        tol <- if (method == "mixture") 5e-3 else 1e-12
+        cols <- grep("^(mean|var|contaminant)", names(ours), value = TRUE)
+        for (col in cols) {
+          if (is.na(ours[[col]]) || is.na(theirs[[col]])) {
+            expect_equal(is.na(ours[[col]]), is.na(theirs[[col]]),
+              info = paste(label, col)
+            )
+          } else {
+            expect_lt(
+              abs(ours[[col]] - theirs[[col]]),
+              tol + tol * abs(theirs[[col]]),
+              label = paste(label, col)
+            )
+          }
+        }
+      })
+    }
+  }
+})
+
+test_that("robust aggregation matches bmm for both scale statistics", {
+  skip_if_not_installed("bmm")
+  rt <- bmm_fixture(31)
+  set.seed(31)
+  correct <- rbinom(length(rt), 1, 0.8)
+
+  for (scale in c("iqr", "mad")) {
+    ours <- rt_summary(rt, correct, method = "robust", robust_scale = scale)
+    theirs <- bmm::ezdm_summary_stats(
+      rt, correct,
+      method = "robust", robust_scale = scale
+    )
+    expect_equal(ours$mean_rt, theirs$mean_rt, info = scale)
+    expect_equal(ours$var_rt, theirs$var_rt, info = scale)
+  }
+})
+
+test_that("adjust_accuracy() matches bmm::adjust_ezdm_accuracy()", {
+  # both draw binomials, so the comparison is between distributions rather than
+  # between single calls
+  skip_if_not_installed("bmm")
+
+  draw <- function(f, n) {
+    vapply(seq_len(n), function(i) {
+      as.numeric(f(80, 100, 0.15, 0.5)[1, ])
+    }, numeric(2))
+  }
+
+  set.seed(71)
+  ours <- draw(adjust_accuracy, 3000)
+  set.seed(71)
+  theirs <- draw(bmm::adjust_ezdm_accuracy, 3000)
+
+  # same RNG stream, same two rbinom() calls in the same order
+  expect_equal(ours, theirs)
+})
+
+test_that("adjust_accuracy() leaves counts alone exactly as bmm does", {
+  skip_if_not_installed("bmm")
+  for (prop in list(NA, 0, -0.1)) {
+    expect_equal(
+      as.numeric(adjust_accuracy(80, 100, prop)[1, ]),
+      as.numeric(bmm::adjust_ezdm_accuracy(80, 100, prop)[1, ]),
+      info = paste("contaminant_prop =", prop)
+    )
+  }
 })

@@ -42,6 +42,17 @@
   invisible(NULL)
 }
 
+# A whole number of trials or responses. Unlike .check_count() this allows zero,
+# because an empty cell is a legitimate thing to summarise.
+.check_whole <- function(x, name) {
+  .stopif(
+    !is.numeric(x) || length(x) != 1L || is.na(x) || x < 0 ||
+      abs(x - round(x)) > .Machine$double.eps^0.5,
+    paste0("'", name, "' must be a single whole number of at least 0.")
+  )
+  invisible(NULL)
+}
+
 .check_count <- function(x, name) {
   .stopif(
     !is.numeric(x) || length(x) != 1L || is.na(x) || x < 1 ||
