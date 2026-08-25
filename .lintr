@@ -1,0 +1,11 @@
+linters: linters_with_defaults(
+    # `lambda` and `L` in rule_ewma() keep the notation of the control-chart
+    # literature the rule is taken from, so the code reads against the paper.
+    object_name_linter = NULL,
+    # Dot-prefixed internals defined in another file of the package read as
+    # undefined globals to lintr, which does not resolve the namespace.
+    # R CMD check runs the same codetools pass with the namespace loaded and
+    # reports nothing, so that is the authority here.
+    object_usage_linter = NULL
+  )
+encoding: "UTF-8"
