@@ -1,0 +1,29 @@
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user
+Rplots.pdf
+
+# Package build artefacts
+rtprep_*.tar.gz
+rtprep.Rcheck/
+src/*.o
+src/*.so
+
+# Quarto
+/.quarto/
+manuscript/*.tex
+manuscript/*_files/
+manuscript/*.pdf
+manuscript/*.docx
+
+# Untracked working material: literature PDFs, run logs, planning notes
+local/
+
+# Fitted objects and simulation results are large and regenerable
+output/
+
+# macOS
+.DS_Store

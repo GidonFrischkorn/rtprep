@@ -1,0 +1,40 @@
+Package: rtprep
+Title: Screening, Trimming, and Aggregating Response Time Data
+Version: 0.0.0.9000
+Authors@R:
+    person("Gidon T.", "Frischkorn", , "gidon.frischkorn@psychologie.uzh.ch",
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0002-5055-9764"))
+Description: A uniform interface to the response time preprocessing decisions
+    that precede fitting an evidence accumulation model. Screening rules from
+    incompatible families -- absolute cutoffs, standard deviation and median
+    absolute deviation criteria, recursive moving criteria, and model-based
+    mixture flagging -- all return the same per-trial object, so that the
+    consequences of a preprocessing choice can be compared rather than assumed.
+    Also provides aggregation into EZ-diffusion summary statistics, diagnostics
+    reporting what each rule removed and where rules disagree, and generators
+    for response time data with contaminants of known type, so that a chosen
+    pipeline can be tested against ground truth.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1.0)
+Imports:
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    bmm,
+    trimr,
+    rtdists,
+    SimDesign,
+    dplyr,
+    tibble,
+    ggplot2,
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+URL: https://github.com/GidonFrischkorn/rtprep
+BugReports: https://github.com/GidonFrischkorn/rtprep/issues
+Config/roxygen2/version: 8.1.0
