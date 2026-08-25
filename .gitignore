@@ -25,5 +25,9 @@ local/
 # Fitted objects and simulation results are large and regenerable
 output/
 
+# SimDesign drops a hostname-keyed tempfile in the launch directory; a stale
+# one from an interrupted run must never be committed
+SIMDESIGN-TEMPFILE_*
+
 # macOS
 .DS_Store
