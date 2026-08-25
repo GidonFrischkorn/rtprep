@@ -74,7 +74,9 @@
   parameters for either generator that hit a target (mean RT, RT variance,
   accuracy) subject to the constraint that the implied non-decision time
   stays inside the published range — and refuses unattainable targets rather
-  than silently approximating them.
+  than silently approximating them. Contamination is invisible in real data, so
+  ground truth is the only way to find out whether a pipeline worked — which is
+  why this is a package rather than a wrapper.
 
 * `ez_ddm()` inverts those statistics into drift, bound, and non-decision time
   (Wagenmakers et al., 2007), including the published edge correction for
@@ -95,13 +97,6 @@
   rate. A port of `bmm::validate_fast_guesses()`, matching it exactly, but
   taking `.keep` rather than a contaminant flag and returning a one-row data
   frame rather than a list.
-
-* `r_contaminated()` generates response times with contaminants of known type,
-  from either a diffusion or a racing-accumulator decision process, with
-  leading-edge anticipations, delayed start-ups, informationless responses, or
-  a mixture. Contamination is invisible in real data, so ground truth is the
-  only way to find out whether a pipeline worked — which is why this is a
-  package rather than a wrapper.
 
 ## Notes
 
