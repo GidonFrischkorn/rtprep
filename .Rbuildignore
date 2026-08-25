@@ -16,3 +16,4 @@
 ^rtprep_.*\.tar\.gz$
 ^\.DS_Store$
 ^\.lintr$
+^DESIGN\.md$
