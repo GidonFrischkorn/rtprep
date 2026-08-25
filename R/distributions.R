@@ -50,6 +50,24 @@
   stats::rnorm(n, mu, sigma) + stats::rexp(n, rate = 1 / tau)
 }
 
+# Shuster (1968): the inverse-Gaussian CDF in terms of the normal CDF. The
+# exp(2 * lambda / mu) factor can overflow for extreme shape/mean ratios, so it
+# is folded into pnorm's log scale.
+.pinvgauss <- function(q, mu, lambda) {
+  out <- numeric(length(q))
+  valid <- q > 0
+  if (any(valid)) {
+    qv <- q[valid]
+    a <- stats::pnorm(sqrt(lambda / qv) * (qv / mu - 1))
+    b <- exp(
+      2 * lambda / mu +
+        stats::pnorm(-sqrt(lambda / qv) * (qv / mu + 1), log.p = TRUE)
+    )
+    out[valid] <- pmin(a + b, 1)
+  }
+  out
+}
+
 # Michael, Schucany & Haas (1976): an exact transform, not an approximation, so
 # no rejection loop and no accuracy tuning.
 .rinvgauss <- function(n, mu, lambda) {

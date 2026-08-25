@@ -301,7 +301,7 @@ test_that("leading-edge anticipations anchor to the observed clean minimum", {
   expect_equal(mean(d$response[d$contaminant]), 0.5, tolerance = 0.07)
 })
 
-test_that("informationless responses are chance-accurate but not runaway slow", {
+test_that("informationless responses are at chance but not runaway slow", {
   set.seed(114)
   d <- r_contaminated(
     3000,

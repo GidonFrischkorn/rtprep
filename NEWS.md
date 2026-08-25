@@ -62,6 +62,20 @@
 * `adjust_accuracy()` corrects accuracy counts for estimated contamination, a
   port of `bmm::adjust_ezdm_accuracy()`. Stochastic by design.
 
+* `r_contaminated()` generates response time data with contaminants of known
+  type: an evidence accumulation core — a first-principles diffusion or a
+  racing diffusion with exact inverse-Gaussian draws — plus three
+  psychologically motivated contaminant processes (leading-edge anticipations
+  anchored to the observed clean minimum, delayed start-ups, and
+  informationless responses as evidence-quality lapses that scale the
+  evidence while holding the speed of processing fixed, because zero drift
+  has no racing analogue). Ground truth comes back with the data. The
+  internal matching solver (`rtprep:::.match_observables()`) returns
+  parameters for either generator that hit a target (mean RT, RT variance,
+  accuracy) subject to the constraint that the implied non-decision time
+  stays inside the published range — and refuses unattainable targets rather
+  than silently approximating them.
+
 * `ez_ddm()` inverts those statistics into drift, bound, and non-decision time
   (Wagenmakers et al., 2007), including the published edge correction for
   accuracies of 0, 0.5, and 1. Exported, so the whole
