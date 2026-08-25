@@ -106,9 +106,12 @@ test_that(".fit_rt_mixture() returns the documented structure", {
     fit,
     c(
       "par", "contaminant_prop", "converged", "iterations", "loglik",
-      "n_fitted"
+      "n_fitted", "p_correct", "accuracy_inverted"
     )
   )
+  # the accuracy fields are empty unless the joint model was asked for
+  expect_true(is.na(fit$p_correct))
+  expect_false(fit$accuracy_inverted)
   expect_true(fit$converged)
   expect_type(fit$iterations, "integer")
   expect_true(is.finite(fit$loglik))

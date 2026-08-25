@@ -123,11 +123,44 @@
 }
 
 # One EM iteration's E-step: responsibilities and the mixture log-likelihood.
-.e_step <- function(x, par, distribution, pi_rt, pi_c, uniform_dens) {
+#
+# With `y` supplied the two components each pick up a Bernoulli factor -- the
+# decision process is correct with probability p_correct, a contaminant with
+# the design's chance rate. That is the whole of the accuracy-informed
+# extension on this side: a fast trial that is correct becomes less likely to
+# be a guess than a fast trial that is an error, which an RT-only mixture
+# cannot see.
+.e_step <- function(x, par, distribution, pi_rt, pi_c, uniform_dens,
+                    y = NULL, p_correct = NULL, chance = NULL) {
   dens <- pmax(.rt_density(x, par, distribution), 1e-300)
   numer_rt <- pi_rt * dens
-  denom <- numer_rt + pi_c * uniform_dens
+  numer_c <- rep(pi_c * uniform_dens, length(x))
+
+  if (!is.null(y)) {
+    numer_rt <- numer_rt * ifelse(y == 1, p_correct, 1 - p_correct)
+    numer_c <- numer_c * ifelse(y == 1, chance, 1 - chance)
+  }
+
+  denom <- numer_rt + numer_c
   list(gamma_rt = numer_rt / denom, loglik = sum(log(denom)))
+}
+
+# M-step for the accuracy of the decision process.
+#
+# The p_correct terms of the expected complete-data log-likelihood are
+#   Q(p) = sum_i gamma_i [ y_i log p + (1 - y_i) log(1 - p) ]
+# so dQ/dp = 0 gives sum_i gamma_i y_i = p sum_i gamma_i, that is the
+# responsibility-weighted mean of y. Closed form, which is why the joint model
+# costs the EM almost nothing.
+#
+# Clamped away from the boundaries: all-correct data drives p to exactly 1,
+# where any later error trial would have a likelihood of exactly zero.
+.p_correct_step <- function(y, w) {
+  total <- sum(w)
+  if (!is.finite(total) || total <= 0) {
+    return(0.5)
+  }
+  min(max(sum(w * y) / total, 1e-6), 1 - 1e-6)
 }
 
 # Fit the mixture by expectation maximisation.
@@ -138,14 +171,17 @@
 # or aborted loop it belongs to the previous parameters rather than the ones
 # being reported. bmm returns NA here for the same reason.
 .fit_rt_mixture <- function(x, distribution, bound, init, max_prop,
-                            maxit, tol) {
-  x_valid <- x[x >= bound[1] & x <= bound[2]]
+                            maxit, tol, y = NULL, chance = 0.5) {
+  in_bounds <- x >= bound[1] & x <= bound[2]
+  x_valid <- x[in_bounds]
+  y_valid <- if (is.null(y)) NULL else y[in_bounds]
   n_valid <- length(x_valid)
 
   unfittable <- function(iterations = 0L) {
     list(
       par = NULL, contaminant_prop = NA_real_, converged = FALSE,
-      iterations = iterations, loglik = NA_real_, n_fitted = n_valid
+      iterations = iterations, loglik = NA_real_, n_fitted = n_valid,
+      p_correct = NA_real_, accuracy_inverted = FALSE
     )
   }
   # five is bmm's floor: below it the two components cannot be told apart
@@ -164,6 +200,14 @@
   }
   uniform_dens <- 1 / (bound[2] - bound[1])
 
+  # start p_correct at the observed accuracy: it is the right answer when
+  # nothing is contaminated, which is the neighbourhood the EM starts in
+  p_correct <- if (is.null(y_valid)) {
+    NULL
+  } else {
+    .p_correct_step(y_valid, rep(1, n_valid))
+  }
+
   prev_loglik <- -Inf
   converged <- FALSE
   loglik <- NA_real_
@@ -172,7 +216,10 @@
   for (i in seq_len(maxit)) {
     iter <- i
 
-    step <- .e_step(x_valid, par, distribution, pi_rt, pi_c, uniform_dens)
+    step <- .e_step(
+      x_valid, par, distribution, pi_rt, pi_c, uniform_dens,
+      y_valid, p_correct, chance
+    )
     if (anyNA(step$gamma_rt) || !is.finite(step$loglik)) break
     loglik <- step$loglik
 
@@ -194,6 +241,9 @@
       pi_rt <- 1 - pi_c
     }
     par <- .m_step(x_valid, distribution, step$gamma_rt, par)
+    if (!is.null(y_valid)) {
+      p_correct <- .p_correct_step(y_valid, step$gamma_rt)
+    }
   }
 
   if (!converged) {
@@ -206,6 +256,12 @@
     converged = TRUE,
     iterations = as.integer(iter),
     loglik = loglik,
-    n_fitted = n_valid
+    n_fitted = n_valid,
+    p_correct = if (is.null(p_correct)) NA_real_ else p_correct,
+    # p_correct below chance means the labels have swapped: the model is
+    # calling the LESS accurate component the decision process. Reported rather
+    # than constrained -- an inverted fit usually means the two components are
+    # not separable at this contamination rate, which is a finding.
+    accuracy_inverted = !is.null(p_correct) && p_correct < chance
   )
 }

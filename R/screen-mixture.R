@@ -8,11 +8,13 @@
 apply_rule.rtprep_rule_mixture <- function(rule, rt, response = NULL) {
   resolved <- .resolve_bounds(rule$bound, rt)
   bound <- resolved$bound
+  y <- if (isTRUE(rule$use_accuracy)) as.numeric(.as_upper(response)) else NULL
 
   fit <- .fit_rt_mixture(
     rt, rule$distribution, bound,
     init = rule$init, max_prop = rule$max_prop,
-    maxit = rule$maxit, tol = rule$tol
+    maxit = rule$maxit, tol = rule$tol,
+    y = y, chance = rule$chance
   )
   fit_row <- .mixture_fit_row(fit, resolved, rule$distribution)
 
@@ -32,30 +34,26 @@ apply_rule.rtprep_rule_mixture <- function(rule, rt, response = NULL) {
   uniform_dens <- ifelse(in_bounds, 1 / (bound[2] - bound[1]), 0)
   dens <- pmax(.rt_density(rt, fit$par, rule$distribution), 1e-300)
 
+  numer_rt <- (1 - pi_c) * dens
+  numer_c <- pi_c * uniform_dens
+  if (!is.null(y)) {
+    # the same two Bernoulli factors the E-step used, so the reported
+    # probability is the posterior under the model that was actually fitted
+    numer_rt <- numer_rt * ifelse(y == 1, fit$p_correct, 1 - fit$p_correct)
+    numer_c <- numer_c * ifelse(y == 1, rule$chance, 1 - rule$chance)
+  }
+
   # P(contaminant), then complemented: .prob is P(valid) throughout rtprep,
   # which is the reverse of what bmm::flag_contaminant_rts() returns. A trial
   # outside the bounds gets uniform_dens 0 and so .prob exactly 1 -- the
   # contaminant component cannot have produced it.
-  numer_c <- pi_c * uniform_dens
-  prob <- 1 - numer_c / (numer_c + (1 - pi_c) * dens)
+  prob <- 1 - numer_c / (numer_c + numer_rt)
 
   # .reason records what the rule found, at the fixed 0.5 point; rt_screen()
   # reconciles it with whatever keep policy is in force
   reason <- ifelse(prob <= 0.5, "contaminant", NA_character_)
 
   list(prob = prob, reason = reason, fit = fit_row)
-}
-
-# The accuracy-informed likelihood is not implemented yet. Checked through this
-# generic rather than inside apply_rule() so that rt_screen() can raise it
-# before touching any group: apply_rule() is never reached when every group is
-# empty, and an unsupported rule has to fail loudly regardless.
-#' @exportS3Method
-.rule_unsupported.rtprep_rule_mixture <- function(rule) {
-  if (isTRUE(rule$use_accuracy)) {
-    return("The accuracy-informed mixture is not yet implemented.")
-  }
-  NULL
 }
 
 # One row of EM diagnostics. Fitted parameters are prefixed so they cannot
@@ -68,6 +66,8 @@ apply_rule.rtprep_rule_mixture <- function(rule, rt, response = NULL) {
     loglik = fit$loglik,
     contaminant_prop = fit$contaminant_prop,
     n_fitted = as.integer(fit$n_fitted),
+    p_correct = fit$p_correct,
+    accuracy_inverted = fit$accuracy_inverted,
     bound_lower = resolved$bound[1],
     bound_upper = resolved$bound[2],
     bound_inverted = resolved$inverted,

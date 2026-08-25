@@ -232,13 +232,38 @@ the bounds, \strong{nothing is flagged} and \code{attr(x, "fits")$converged} is
 failed, rather than once per group. Note that \code{bmm} returns \code{NA}
 probabilities in this situation; \code{rtprep} keeps the data, because an \code{NA}
 would propagate into \code{.keep}.
+}
 
-\code{use_accuracy = TRUE} is \strong{experimental} and not yet implemented. It puts
-accuracy inside the mixture likelihood rather than using it only afterwards,
-on the reasoning that a fast trial that is \emph{correct} is less likely to be a
-guess than a fast trial that is an error. It assumes contaminants respond at
-\code{chance}, which holds for guessing but not for a delayed start-up, where the
-decision process still runs and accuracy is intact.
+\section{Accuracy inside the likelihood}{
+\code{use_accuracy = TRUE} is \strong{experimental}. It puts accuracy inside the
+mixture likelihood rather than using it only afterwards, on the reasoning
+that a fast trial that is \emph{correct} is less likely to be a guess than a fast
+trial that is an error — something an RT-only mixture cannot see. With \code{y}
+the accuracy indicator, \eqn{\gamma} the chance rate known from the design,
+and \eqn{p_c} the estimated accuracy of the decision process:
+
+\deqn{f(rt, y) = (1 - \pi) f_{RT}(rt \mid \theta)\, p_c^{y}(1-p_c)^{1-y}
+  + \pi\, U(rt \mid a, b)\, \gamma^{y}(1-\gamma)^{1-y}.}
+
+\eqn{\gamma} is fixed, not estimated. The M-step for \eqn{p_c} is the
+responsibility-weighted mean of \code{y}, so the extension costs the EM almost
+nothing; the fitted value comes back as \code{p_correct} in \code{attr(x, "fits")}.
+
+Two caveats the method cannot enforce for you:
+\itemize{
+\item It assumes contaminants respond at \code{chance}. That holds for guessing. It
+does \strong{not} hold for a delayed start-up, where the decision process still
+runs and accuracy is intact — there the extra dimension carries nothing,
+and the model is no better than the RT-only one.
+\item \code{response} must be coded \strong{correct/error}, not upper/lower boundary. Both
+are 0/1, so \code{rtprep} cannot tell them apart.
+}
+
+Nothing forces the valid component to be the accurate one. When a fit comes
+back with \eqn{p_c} below \code{chance} the labels have swapped, which usually
+means the two components are not separable at that contamination rate.
+\code{rtprep} reports this rather than constraining it: \code{accuracy_inverted} in
+\code{attr(x, "fits")}, plus one warning per call.
 }
 
 \section{No screening}{
@@ -295,6 +320,11 @@ model to experimental data. \emph{Psychonomic Bulletin & Review}, \emph{14}(6),
 Ratcliff, R., & Kang, I. (2021). Qualitative speed-accuracy tradeoff effects
 can be explained by a diffusion/fast-guess mixture model. \emph{Scientific
 Reports}, \emph{11}, 15169. \doi{10.1038/s41598-021-94451-7}
+
+Liu, Y., Cheng, Y., & Liu, H. (2020). Identifying effortful individuals with
+mixture modeling response accuracy and response time simultaneously to
+improve item parameter estimation. \emph{Educational and Psychological
+Measurement}, \emph{80}(4), 775–807. \doi{10.1177/0013164419895068}
 
 Ratcliff, R., & Tuerlinckx, F. (2002). Estimating parameters of the diffusion
 model: Approaches to dealing with contaminant reaction times and parameter

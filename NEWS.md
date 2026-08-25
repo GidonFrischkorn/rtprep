@@ -32,8 +32,19 @@
   use the exact weighted maximum likelihood estimator where `bmm` optimises
   numerically, and a failed fit keeps the data rather than returning `NA`.
 
-* `use_accuracy = TRUE` is accepted by `rule_mixture()` but not yet
-  implemented; it errors.
+* `rule_mixture(use_accuracy = TRUE)` puts accuracy inside the mixture
+  likelihood rather than checking it afterwards, on the reasoning that a fast
+  trial that is *correct* is less likely to be a guess than a fast trial that
+  is an error. The chance rate is fixed from the design and the accuracy of the
+  decision process is estimated, with a closed-form M-step. **Experimental**:
+  it is off by default and stays that way until the simulation says otherwise.
+
+  It helps where it should and not where it should not, both of which are
+  pinned by tests: for guessing contaminants that overlap the valid response
+  time distribution — the case RT-only detection fails at — it recovers
+  substantially more of them at matched specificity; for delayed start-ups,
+  whose accuracy is intact, it adds nothing, because the assumption that
+  contaminants respond at chance is simply false there.
 
 * `rt_summary()` aggregates surviving trials into the EZ-diffusion summary
   statistics, three ways: the sample moments, robust moments (median with

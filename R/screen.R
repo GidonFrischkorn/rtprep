@@ -161,6 +161,7 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
   )
   fits_table <- .assemble_fits(groups, key$id, observed, .keep, fits)
   .warn_bounds(fits_table)
+  .warn_inverted(fits_table)
   .warn_unconverged(fits_table)
   attr(out, "fits") <- fits_table
   out
@@ -181,6 +182,23 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
     "The model fit did not converge for ", n_failed, " of ", sum(fitted),
     " fitted group(s); those trials were all kept. ",
     "See attr(x, \"fits\") for which."
+  ))
+  invisible(NULL)
+}
+
+# An accuracy-informed fit whose valid component came out less accurate than a
+# guess has swapped its labels. Reported rather than constrained: it usually
+# means the two components are not separable at this contamination rate, which
+# is a finding rather than a nuisance.
+.warn_inverted <- function(fits) {
+  if (is.null(fits) || !"accuracy_inverted" %in% names(fits)) {
+    return(invisible(NULL))
+  }
+  n_inverted <- sum(fits$accuracy_inverted, na.rm = TRUE)
+  .warnif(n_inverted > 0L, paste0(
+    "In ", n_inverted, " group(s) the fitted decision process came out less ",
+    "accurate than chance, which means the mixture labelled its components ",
+    "the wrong way round. Treat those fits as uninformative."
   ))
   invisible(NULL)
 }

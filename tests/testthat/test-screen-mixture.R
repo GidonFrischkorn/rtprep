@@ -153,19 +153,17 @@ test_that("non-convergence warns once, not once per group", {
   expect_match(warnings[grep("did not converge", warnings)], "20")
 })
 
-test_that("the accuracy-informed mixture waits for milestone 4", {
+test_that("the accuracy-informed mixture runs, and is a different fit", {
+  # implemented in milestone 4; see test-accuracy-mixture.R for what it claims
   d <- mixture_data()
-  expect_error(
-    rt_screen(d$rt, rep(c(1, 0), length.out = nrow(d)),
-      rule = rule_mixture(use_accuracy = TRUE)
-    ),
-    "not yet implemented"
+  y <- rep(c(1, 0), length.out = nrow(d))
+
+  joint <- rt_screen(d$rt, y,
+    rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
   )
-  # and it must say so before touching a group, so an empty one cannot hide it
-  expect_error(
-    rt_screen(c(NA_real_, NA_real_), c(1, 0),
-      rule = rule_mixture(use_accuracy = TRUE)
-    ),
-    "not yet implemented"
-  )
+  rt_only <- rt_screen(d$rt, rule = rule_mixture("lognormal", maxit = 500))
+
+  expect_equal(nrow(joint), nrow(d))
+  expect_true(all(joint$.prob >= 0 & joint$.prob <= 1))
+  expect_false(isTRUE(all.equal(joint$.prob, rt_only$.prob)))
 })

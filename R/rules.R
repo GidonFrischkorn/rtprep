@@ -317,12 +317,42 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' probabilities in this situation; `rtprep` keeps the data, because an `NA`
 #' would propagate into `.keep`.
 #'
-#' `use_accuracy = TRUE` is **experimental** and not yet implemented. It puts
-#' accuracy inside the mixture likelihood rather than using it only afterwards,
-#' on the reasoning that a fast trial that is *correct* is less likely to be a
-#' guess than a fast trial that is an error. It assumes contaminants respond at
-#' `chance`, which holds for guessing but not for a delayed start-up, where the
-#' decision process still runs and accuracy is intact.
+#' # Accuracy inside the likelihood
+#'
+#' `use_accuracy = TRUE` is **experimental**. It puts accuracy inside the
+#' mixture likelihood rather than using it only afterwards, on the reasoning
+#' that a fast trial that is *correct* is less likely to be a guess than a fast
+#' trial that is an error — something an RT-only mixture cannot see. With `y`
+#' the accuracy indicator, \eqn{\gamma} the chance rate known from the design,
+#' and \eqn{p_c} the estimated accuracy of the decision process:
+#'
+#' \deqn{f(rt, y) = (1 - \pi) f_{RT}(rt \mid \theta)\, p_c^{y}(1-p_c)^{1-y}
+#'   + \pi\, U(rt \mid a, b)\, \gamma^{y}(1-\gamma)^{1-y}.}
+#'
+#' \eqn{\gamma} is fixed, not estimated. The M-step for \eqn{p_c} is the
+#' responsibility-weighted mean of `y`, so the extension costs the EM almost
+#' nothing; the fitted value comes back as `p_correct` in `attr(x, "fits")`.
+#'
+#' Two caveats the method cannot enforce for you:
+#'
+#' * It assumes contaminants respond at `chance`. That holds for guessing. It
+#'   does **not** hold for a delayed start-up, where the decision process still
+#'   runs and accuracy is intact — there the extra dimension carries nothing,
+#'   and the model is no better than the RT-only one.
+#' * `response` must be coded **correct/error**, not upper/lower boundary. Both
+#'   are 0/1, so `rtprep` cannot tell them apart.
+#'
+#' Nothing forces the valid component to be the accurate one. When a fit comes
+#' back with \eqn{p_c} below `chance` the labels have swapped, which usually
+#' means the two components are not separable at that contamination rate.
+#' `rtprep` reports this rather than constraining it: `accuracy_inverted` in
+#' `attr(x, "fits")`, plus one warning per call.
+#'
+#' @references
+#' Liu, Y., Cheng, Y., & Liu, H. (2020). Identifying effortful individuals with
+#' mixture modeling response accuracy and response time simultaneously to
+#' improve item parameter estimation. *Educational and Psychological
+#' Measurement*, *80*(4), 775–807. \doi{10.1177/0013164419895068}
 #'
 #' @references
 #' Ratcliff, R., & Tuerlinckx, F. (2002). Estimating parameters of the diffusion
