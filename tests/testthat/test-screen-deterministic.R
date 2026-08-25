@@ -263,3 +263,111 @@ test_that("rule_ewma() rejects response codings it cannot interpret", {
     "Unrecognized response"
   )
 })
+
+# --- adaptive leading-edge trim ---------------------------------------------
+#
+# The S statistic detects a gap-and-jump: an isolated low block with a gap to
+# the core sends the surviving minimum most of the way to the reference
+# quantile (S near 1), a tightly packed genuine front barely moves it (S near
+# 0). Expected values are written out with the same formulas the rule uses, so
+# the tests pin the contract rather than arithmetic.
+
+# two displaced fast trials, a clear gap, then a tight core: S ~ .99
+at_displaced <- c(0.150, 0.160, seq(0.400, 0.610, length.out = 22))
+# a genuinely steep front: the three fastest trials bunch together: S ~ .06
+at_steep <- c(0.400, 0.401, 0.402, seq(0.50, 0.90, length.out = 21))
+
+at_expected_s <- function(rt, q_cut = 0.05) {
+  thr <- unname(quantile(rt, q_cut))
+  (min(rt[rt > thr]) - min(rt)) /
+    (unname(quantile(rt, 2 * q_cut)) - min(rt))
+}
+
+test_that("rule_adaptive_trim() accepts a cut of displaced mass", {
+  rt <- at_displaced
+  out <- rt_screen(rt, rule = rule_adaptive_trim(0.05, 0.5))
+  thr <- unname(quantile(rt, 0.05))
+
+  expect_equal(out$.keep, rt > thr)
+  expect_equal(out$.reason[!out$.keep], rep("too_fast", 2))
+  expect_true(all(is.na(out$.reason[out$.keep])))
+
+  fits <- attr(out, "fits")
+  expect_equal(fits$S, at_expected_s(rt))
+  expect_gt(fits$S, 0.95)
+  expect_true(fits$accepted)
+  expect_equal(fits$cut_rt, thr)
+  expect_equal(fits$ref_q, 0.10)
+  expect_equal(fits$n_tentative, 2L)
+  expect_equal(fits$n_flagged, 2L)
+})
+
+test_that("rule_adaptive_trim() reverts on a steep genuine edge", {
+  out <- rt_screen(at_steep, rule = rule_adaptive_trim(0.05, 0.5))
+
+  expect_true(all(out$.keep))
+  expect_true(all(out$.prob == 1))
+
+  fits <- attr(out, "fits")
+  expect_equal(fits$S, at_expected_s(at_steep))
+  expect_lt(fits$S, 0.1)
+  expect_false(fits$accepted)
+  expect_equal(fits$n_tentative, 2L)
+  expect_equal(fits$n_flagged, 0L)
+})
+
+test_that("the acceptance decision flips around the realized S", {
+  s <- at_expected_s(at_displaced)
+  accept <- rt_screen(at_displaced, rule = rule_adaptive_trim(0.05, s - 0.01))
+  revert <- rt_screen(at_displaced, rule = rule_adaptive_trim(0.05, s + 0.01))
+  expect_equal(sum(!accept$.keep), 2L)
+  expect_true(all(revert$.keep))
+})
+
+test_that("ties at the quantile threshold are all cut", {
+  # n = 21 puts the type-7 q05 exactly on the second order statistic, so the
+  # threshold lands on the repeated value and rt <= thr cuts both copies
+  rt <- c(0.2, 0.2, seq(0.4, 0.6, length.out = 19))
+  expect_equal(unname(quantile(rt, 0.05)), 0.2)
+  out <- rt_screen(rt, rule = rule_adaptive_trim(0.05, 0.5))
+  expect_equal(sum(!out$.keep), 2L)
+  expect_equal(attr(out, "fits")$n_tentative, 2L)
+})
+
+test_that("rule_adaptive_trim() removes nothing when S has no footing", {
+  # ties from the minimum through the reference quantile: denom = 0
+  rt <- c(rep(0.3, 3), seq(0.4, 0.6, length.out = 17))
+  expect_equal(unname(quantile(rt, 0.10)), min(rt))
+  out <- rt_screen(rt, rule = rule_adaptive_trim(0.05, 0.5))
+  expect_true(all(out$.keep))
+  expect_true(is.na(attr(out, "fits")$S))
+  expect_true(is.na(attr(out, "fits")$accepted))
+
+  # all-equal response times
+  flat <- rt_screen(rep(0.4, 24), rule = rule_adaptive_trim(0.05, 0.5))
+  expect_true(all(flat$.keep))
+  expect_true(is.na(attr(flat, "fits")$S))
+})
+
+test_that("the n >= 20 floor separates keep-all from an evaluated rule", {
+  core <- function(n) c(0.150, 0.160, seq(0.400, 0.610, length.out = n - 2))
+  under <- rt_screen(core(19), rule = rule_adaptive_trim(0.05, 0.5))
+  at <- rt_screen(core(20), rule = rule_adaptive_trim(0.05, 0.5))
+
+  expect_true(all(under$.keep))
+  expect_true(is.na(attr(under, "fits")$accepted))
+  # at n = 20 the rule runs: the decision is recorded, whatever it is
+  expect_false(is.na(attr(at, "fits")$accepted))
+})
+
+test_that("adaptive trim decides per group under .by", {
+  rt <- c(at_displaced, at_steep)
+  subject <- rep(c(1, 2), times = c(length(at_displaced), length(at_steep)))
+  out <- rt_screen(rt, rule = rule_adaptive_trim(0.05, 0.5), .by = subject)
+
+  fits <- attr(out, "fits")
+  expect_equal(nrow(fits), 2L)
+  expect_equal(fits$accepted, c(TRUE, FALSE))
+  expect_equal(sum(!out$.keep[subject == 1]), 2L)
+  expect_true(all(out$.keep[subject == 2]))
+})

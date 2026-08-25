@@ -240,6 +240,54 @@ apply_rule.rtprep_rule_recursive <- function(rule, rt, response = NULL) {
   )
 }
 
+# --- adaptive leading-edge trim ---------------------------------------------
+
+#' @exportS3Method
+apply_rule.rtprep_rule_adaptive_trim <- function(rule, rt, response = NULL) {
+  n <- length(rt)
+  ref_q <- 2 * rule$q_cut
+  keep_all <- function(s, accepted, thr, n_tentative) {
+    list(
+      prob = rep(1, n),
+      reason = rep(NA_character_, n),
+      fit = data.frame(
+        S = s, accepted = accepted, cut_rt = thr, ref_q = ref_q,
+        n_tentative = n_tentative, n_flagged = 0L
+      )
+    )
+  }
+
+  # a 5% cut of a handful of trials is meaningless; inert at simulation trial
+  # counts, protects real-data use
+  if (n < 20L) {
+    return(keep_all(NA_real_, NA, NA_real_, NA_integer_))
+  }
+
+  thr <- unname(stats::quantile(rt, rule$q_cut))
+  cut <- rt <= thr
+  kept <- rt[!cut]
+  denom <- unname(stats::quantile(rt, ref_q)) - min(rt)
+  # ties from the minimum through the reference quantile leave S no footing;
+  # a validation that cannot be computed licenses no cut
+  if (denom <= 0 || length(kept) == 0L) {
+    return(keep_all(NA_real_, NA, thr, as.integer(sum(cut))))
+  }
+
+  s <- (min(kept) - min(rt)) / denom
+  if (s < rule$s_accept) {
+    return(keep_all(s, FALSE, thr, as.integer(sum(cut))))
+  }
+
+  list(
+    prob = as.numeric(!cut),
+    reason = ifelse(cut, "too_fast", NA_character_),
+    fit = data.frame(
+      S = s, accepted = TRUE, cut_rt = thr, ref_q = ref_q,
+      n_tentative = as.integer(sum(cut)), n_flagged = as.integer(sum(cut))
+    )
+  )
+}
+
 # --- EWMA accuracy control chart -------------------------------------------
 
 #' @exportS3Method

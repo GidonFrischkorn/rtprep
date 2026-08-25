@@ -9,6 +9,8 @@ test_that("every constructor returns the documented classes and a label", {
     recursive = rule_recursive(),
     ewma = rule_ewma(),
     mixture = rule_mixture(),
+    adaptive_trim = rule_adaptive_trim(),
+    ez_support = rule_ez_support(),
     none = rule_none()
   )
 
@@ -33,6 +35,10 @@ test_that("labels describe the rule's parameters", {
     rule_mixture(use_accuracy = TRUE)$label,
     "mixture(exgaussian, accuracy)"
   )
+  expect_equal(rule_adaptive_trim()$label, "adaptive_trim(0.05, 0.5)")
+  expect_equal(rule_adaptive_trim(0.1, 0.8)$label, "adaptive_trim(0.1, 0.8)")
+  expect_equal(rule_ez_support()$label, "ez_support(1, refit)")
+  expect_equal(rule_ez_support(0.8, refit = FALSE)$label, "ez_support(0.8)")
 })
 
 test_that("rule_mad() is a true alias for rule_sd(median, mad)", {
@@ -82,6 +88,31 @@ test_that("rule_ewma() validates lambda, L and chance", {
   expect_silent(rule_ewma(lambda = 1, L = 3, chance = 0.25))
 })
 
+test_that("rule_adaptive_trim() validates q_cut and s_accept", {
+  expect_error(rule_adaptive_trim(q_cut = 0), "must be a single")
+  expect_error(rule_adaptive_trim(q_cut = 0.5), "must be a single")
+  expect_error(rule_adaptive_trim(q_cut = -1), "must be a single")
+  expect_error(rule_adaptive_trim(q_cut = NA_real_), "must be a single")
+  expect_error(rule_adaptive_trim(q_cut = c(0.05, 0.1)), "must be a single")
+  expect_error(rule_adaptive_trim(s_accept = 0), "must be a single")
+  expect_error(rule_adaptive_trim(s_accept = -1), "must be a single")
+  expect_error(rule_adaptive_trim(s_accept = Inf), "must be a single")
+  expect_error(rule_adaptive_trim(s_accept = NA_real_), "must be a single")
+  expect_silent(rule_adaptive_trim(0.499, 1.2))
+})
+
+test_that("rule_ez_support() validates c_ndt and refit", {
+  expect_error(rule_ez_support(c_ndt = 0), "must be a single")
+  expect_error(rule_ez_support(c_ndt = -1), "must be a single")
+  expect_error(rule_ez_support(c_ndt = 1.5), "must be a single")
+  expect_error(rule_ez_support(c_ndt = NA_real_), "must be a single")
+  expect_error(rule_ez_support(c_ndt = c(0.8, 1)), "must be a single")
+  expect_error(rule_ez_support(refit = NA), "must be TRUE or FALSE")
+  expect_error(rule_ez_support(refit = c(TRUE, TRUE)), "must be TRUE or FALSE")
+  expect_silent(rule_ez_support(1))
+  expect_silent(rule_ez_support(0.8, refit = FALSE))
+})
+
 test_that("rule_mixture() validates its EM controls", {
   expect_error(rule_mixture(distribution = "gamma"))
   expect_error(rule_mixture(bound = "min"), "length 2")
@@ -115,4 +146,6 @@ test_that("print() reports the label and returns its input invisibly", {
   expect_output(print(rule_ewma()), "ewma")
   expect_output(print(rule_mixture()), "mixture")
   expect_output(print(rule_cutoff(0.2, 2)), "cutoff")
+  expect_output(print(rule_adaptive_trim()), "adaptive_trim\\(0\\.05, 0\\.5\\)")
+  expect_output(print(rule_ez_support()), "ez_support\\(1, refit\\)")
 })

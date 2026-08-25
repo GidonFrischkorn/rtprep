@@ -311,4 +311,6 @@ apply_rule.default <- function(rule, rt, response = NULL) {
 
 .needs_response.rtprep_rule_ewma <- function(rule) TRUE
 
+.needs_response.rtprep_rule_ez_support <- function(rule) TRUE
+
 .needs_response.rtprep_rule_mixture <- function(rule) isTRUE(rule$use_accuracy)

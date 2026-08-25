@@ -17,6 +17,10 @@
 #' * `rule_ewma()` — the accuracy control chart of Vandekerckhove and
 #'   Tuerlinckx (2007).
 #' * `rule_mixture()` — a uniform-contaminant mixture fitted by EM.
+#' * `rule_adaptive_trim()` — a lower trim that validates itself against the
+#'   shift of the surviving minimum. **Experimental**; see Details.
+#' * `rule_ez_support()` — a model-implied support bound from the closed-form
+#'   EZ non-decision time. **Experimental**; see Details.
 #' * `rule_none()` — a pass-through baseline.
 #'
 #' @param min,max Absolute bounds in seconds. Bounds are **inclusive**: a trial
@@ -36,6 +40,16 @@
 #'   departs from chance by more than `L` standard errors.
 #' @param chance Accuracy expected from a contaminant response, known from the
 #'   design (0.5 for a two-alternative task).
+#' @param q_cut Lower quantile of the tentative cut, in (0, 0.5). The
+#'   validation reference quantile is `2 * q_cut`.
+#' @param s_accept Minimum proportional shift of the surviving minimum toward
+#'   the reference quantile for the tentative cut to be accepted.
+#' @param c_ndt Multiplier on the fitted non-decision time that sets the
+#'   support bound, in (0, 1]: no valid response time can undercut
+#'   non-decision time, so nothing above 1 has a grounding.
+#' @param refit Whether to refit the EZ model once on the survivors and
+#'   re-flag against the updated non-decision time. Exactly one refit; the
+#'   rule never iterates to convergence.
 #' @param distribution Parametric distribution for the valid response time
 #'   component of the mixture.
 #' @param bound Length-2 bounds of the uniform contaminant component. Each
@@ -287,6 +301,96 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' @rdname rules
 #'
 #' @details
+#' # Adaptive leading-edge trim
+#'
+#' `rule_adaptive_trim()` is **experimental** — no published convention exists
+#' for it. It turns an unconditional lower trim into a validated one: cut at
+#' the empirical `q_cut` quantile, then measure how far the surviving minimum
+#' shifted toward the reference quantile at `2 * q_cut`,
+#'
+#' \deqn{S = \frac{\min(kept) - \min(all)}{q_{2 q_{cut}}(all) - \min(all)},}
+#'
+#' and keep the cut only when `S >= s_accept`. Displaced fast contaminants sit
+#' in a low block with a gap to the core, so removing them jumps the minimum
+#' most of the way to the reference (`S` near 1); a genuinely steep leading
+#' edge bunches its fastest trials, so cutting them barely moves the minimum
+#' (`S` near 0). When the cut is rejected the rule removes nothing, and the
+#' computed `S` and the decision are reported in `attr(x, "fits")` either way.
+#'
+#' What the statistic actually detects is a *gap* below the leading edge.
+#' Across-trial variability in non-decision time smears a clean edge into
+#' exactly such a shallow front, which is the rule's documented false-alarm
+#' mode. Groups with fewer than 20 trials, and groups whose reference quantile
+#' ties the minimum, are left untouched.
+#'
+#' @examples
+#' rule_adaptive_trim()
+#'
+#' @export
+rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
+  .check_scalar(q_cut, "q_cut",
+    lower = 0, upper = 0.5,
+    incl_lower = FALSE, incl_upper = FALSE
+  )
+  .check_scalar(s_accept, "s_accept", lower = 0, incl_lower = FALSE)
+
+  .new_rule(
+    "adaptive_trim",
+    label = paste0(
+      "adaptive_trim(", .fmt(q_cut), ", ", .fmt(s_accept), ")"
+    ),
+    q_cut = q_cut, s_accept = s_accept
+  )
+}
+
+#' @rdname rules
+#'
+#' @details
+#' # EZ support screen
+#'
+#' `rule_ez_support()` is **experimental** — no published convention exists
+#' for it. Every evidence accumulation model writes a response time as
+#' non-decision time plus a strictly positive decision time, so no valid trial
+#' can undercut non-decision time. The rule fits the closed-form EZ model to a
+#' group's trials, flags everything below `c_ndt` times the fitted
+#' non-decision time, refits once on the survivors (`refit = TRUE`), re-flags
+#' against the updated estimate, and stops — never iterating further, because
+#' lower-tail removal shrinks the variance and pushes the estimate upward, a
+#' one-way ratchet that unlimited iteration would run away with.
+#'
+#' The catch is the point: fast contaminants drag the fitted non-decision time
+#' down, so the rule's premise is poisoned by exactly the trials it hunts.
+#' Whether one refit recovers the threshold is an empirical question, not a
+#' guarantee. Groups with fewer than ten trials, unusable fits (including a
+#' negative fitted non-decision time, which contaminated moments can produce),
+#' and fits that would flag more than half the group all remove nothing, with
+#' `usable = FALSE` in `attr(x, "fits")`. That last guard is defensive: at
+#' `c_ndt <= 1` a first-pass EZ threshold cannot exceed the sample median,
+#' because the mean never sits more than one standard deviation above the
+#' median while the implied decision-time mean always exceeds it.
+#'
+#' This rule requires `response`, coded as correct/error.
+#'
+#' @examples
+#' rule_ez_support()
+#'
+#' @export
+rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
+  .check_scalar(c_ndt, "c_ndt", lower = 0, upper = 1, incl_lower = FALSE)
+  .check_flag(refit, "refit")
+
+  .new_rule(
+    "ez_support",
+    label = paste0(
+      "ez_support(", .fmt(c_ndt), if (refit) ", refit", ")"
+    ),
+    c_ndt = c_ndt, refit = refit
+  )
+}
+
+#' @rdname rules
+#'
+#' @details
 #' # Mixture flagging
 #'
 #' `rule_mixture()` fits, per group, a two-component mixture of a uniform
@@ -523,6 +627,22 @@ print.rtprep_rule <- function(x, ...) {
     "Flag trials by their posterior probability under a uniform-contaminant / ",
     x$distribution, " mixture",
     if (x$use_accuracy) ", using accuracy (experimental)", "."
+  )
+}
+
+.describe_rule.rtprep_rule_adaptive_trim <- function(x) {
+  paste0(
+    "Cut the fastest ", .fmt(100 * x$q_cut), "% only when the surviving ",
+    "minimum shifts at least ", .fmt(x$s_accept), " of the way to the ",
+    "q", .fmt(200 * x$q_cut), " quantile (experimental)."
+  )
+}
+
+.describe_rule.rtprep_rule_ez_support <- function(x) {
+  paste0(
+    "Exclude trials below ", .fmt(x$c_ndt), " x the closed-form EZ ",
+    "non-decision time",
+    if (x$refit) ", refitted once on the survivors", " (experimental)."
   )
 }
 

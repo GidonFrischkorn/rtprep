@@ -52,6 +52,23 @@
   None of that is a reason to drop the idea; it is the reason the flag defaults
   to off and the simulation exists.
 
+* `rule_adaptive_trim()` cuts at a lower quantile only when the surviving
+  minimum jumps toward the reference quantile at twice the cut — the
+  signature of displaced fast contaminants, which leave a gap below the core
+  that a genuinely steep leading edge does not. The computed shift statistic
+  and the accept/revert decision come back in `attr(x, "fits")` either way.
+  **Experimental**: no published convention exists, and the design's
+  smeared-ndt cells are exactly the shallow clean edge that should fool it;
+  it enters the simulation as a sweep-only family until the results speak.
+
+* `rule_ez_support()` flags response times below the closed-form EZ
+  non-decision time — impossible under any evidence accumulation model — then
+  refits once on the survivors and stops, because lower-tail removal raises
+  the fitted estimate and unlimited iteration would ratchet. Fast contaminants
+  drag the fitted bound down, so the rule's premise is poisoned by exactly the
+  trials it hunts; whether one refit recovers is what the simulation measures.
+  **Experimental**, same footing as above. Requires `response`.
+
 * `rt_summary()` aggregates surviving trials into the EZ-diffusion summary
   statistics, three ways: the sample moments, robust moments (median with
   IQR/1.349 or MAD), and the analytic moments of a fitted contaminant mixture.
