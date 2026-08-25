@@ -106,7 +106,7 @@ test_that(".fit_rt_mixture() returns the documented structure", {
     fit,
     c(
       "par", "contaminant_prop", "converged", "iterations", "loglik",
-      "n_fitted", "p_correct", "accuracy_inverted"
+      "n_fitted", "p_correct", "collapsed", "accuracy_inverted"
     )
   )
   # the accuracy fields are empty unless the joint model was asked for

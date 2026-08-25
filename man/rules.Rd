@@ -248,22 +248,49 @@ and \eqn{p_c} the estimated accuracy of the decision process:
 \eqn{\gamma} is fixed, not estimated. The M-step for \eqn{p_c} is the
 responsibility-weighted mean of \code{y}, so the extension costs the EM almost
 nothing; the fitted value comes back as \code{p_correct} in \code{attr(x, "fits")}.
+\subsection{What is known so far, and it is not all good}{
 
-Two caveats the method cannot enforce for you:
+The staging is deliberate, and the reasons are concrete. Three things are
+already established by the package's own tests, before the simulation has
+been run:
 \itemize{
-\item It assumes contaminants respond at \code{chance}. That holds for guessing. It
-does \strong{not} hold for a delayed start-up, where the decision process still
-runs and accuracy is intact — there the extra dimension carries nothing,
-and the model is no better than the RT-only one.
+\item \strong{It can order overlapping guesses better than response time alone.} Where
+contaminants fall inside the valid distribution's range — the case RT-only
+detection fails at — the joint posterior ranks them more accurately.
+\item \strong{But the fit tends to collapse.} A contaminant proportion of zero is a
+fixed point of this EM, and the accuracy factor widens its basin because it
+favours the valid component on every correct trial. On exactly the
+overlapping case above, the fit converges cleanly with
+\eqn{\pi \approx 10^{-7}} and the rule removes nothing at all: the better
+ordering is one the keep policy never gets to act on. Check \code{collapsed} and
+\code{contaminant_prop} in \code{attr(x, "fits")} against what you expected.
+\item \strong{It actively hurts when contaminants are as accurate as valid trials.}
+A delayed start-up still runs the decision process, so it is usually
+correct, and every correct contaminant has its contaminant evidence
+attenuated by \eqn{\gamma / p_c}. This is not neutrality: in the package's
+own test the joint model loses a large part of the sensitivity the RT-only
+model had.
+}
+
+The same deflation applies whenever observed accuracy is well above chance,
+which in most response time paradigms is always. Treat a contaminant
+proportion below the RT-only estimate as expected rather than as evidence of
+a cleaner data set.
+
+Two things the method cannot enforce for you:
+\itemize{
+\item It assumes contaminants respond at \code{chance}. Get \code{chance} wrong — screening
+a four-alternative task at 0.5 — and detection degrades sharply.
 \item \code{response} must be coded \strong{correct/error}, not upper/lower boundary. Both
 are 0/1, so \code{rtprep} cannot tell them apart.
 }
 
-Nothing forces the valid component to be the accurate one. When a fit comes
-back with \eqn{p_c} below \code{chance} the labels have swapped, which usually
-means the two components are not separable at that contamination rate.
-\code{rtprep} reports this rather than constraining it: \code{accuracy_inverted} in
+Nothing forces the valid component to be the accurate one either. When a fit
+comes back with \eqn{p_c} below \code{chance} the labels have swapped, which
+usually means the two components are not separable at that contamination
+rate. \code{rtprep} reports rather than constrains: \code{accuracy_inverted} in
 \code{attr(x, "fits")}, plus one warning per call.
+}
 }
 
 \section{No screening}{

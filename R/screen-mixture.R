@@ -8,7 +8,9 @@
 apply_rule.rtprep_rule_mixture <- function(rule, rt, response = NULL) {
   resolved <- .resolve_bounds(rule$bound, rt)
   bound <- resolved$bound
-  y <- if (isTRUE(rule$use_accuracy)) as.numeric(.as_upper(response)) else NULL
+  # response arrives already converted by rt_screen(); converting here would
+  # re-validate inside the per-group loop
+  y <- if (isTRUE(rule$use_accuracy)) response else NULL
 
   fit <- .fit_rt_mixture(
     rt, rule$distribution, bound,
@@ -37,10 +39,10 @@ apply_rule.rtprep_rule_mixture <- function(rule, rt, response = NULL) {
   numer_rt <- (1 - pi_c) * dens
   numer_c <- pi_c * uniform_dens
   if (!is.null(y)) {
-    # the same two Bernoulli factors the E-step used, so the reported
+    # the same factor the E-step used, from the same function, so the reported
     # probability is the posterior under the model that was actually fitted
-    numer_rt <- numer_rt * ifelse(y == 1, fit$p_correct, 1 - fit$p_correct)
-    numer_c <- numer_c * ifelse(y == 1, rule$chance, 1 - rule$chance)
+    numer_rt <- numer_rt * .bernoulli_factor(y, fit$p_correct)
+    numer_c <- numer_c * .bernoulli_factor(y, rule$chance)
   }
 
   # P(contaminant), then complemented: .prob is P(valid) throughout rtprep,
@@ -67,6 +69,7 @@ apply_rule.rtprep_rule_mixture <- function(rule, rt, response = NULL) {
     contaminant_prop = fit$contaminant_prop,
     n_fitted = as.integer(fit$n_fitted),
     p_correct = fit$p_correct,
+    collapsed = fit$collapsed,
     accuracy_inverted = fit$accuracy_inverted,
     bound_lower = resolved$bound[1],
     bound_upper = resolved$bound[2],

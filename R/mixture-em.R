@@ -137,12 +137,21 @@
   numer_c <- rep(pi_c * uniform_dens, length(x))
 
   if (!is.null(y)) {
-    numer_rt <- numer_rt * ifelse(y == 1, p_correct, 1 - p_correct)
-    numer_c <- numer_c * ifelse(y == 1, chance, 1 - chance)
+    numer_rt <- numer_rt * .bernoulli_factor(y, p_correct)
+    numer_c <- numer_c * .bernoulli_factor(y, chance)
   }
 
   denom <- numer_rt + numer_c
   list(gamma_rt = numer_rt / denom, loglik = sum(log(denom)))
+}
+
+# p^y (1 - p)^(1 - y) for a 0/1 vector y, written arithmetically because
+# ifelse() is an order of magnitude slower and this sits in the EM inner loop.
+# Defined once and called from both the fit and apply_rule()'s reporting: two
+# hand-written copies would let the fit and the reported posterior disagree
+# without any test noticing.
+.bernoulli_factor <- function(y, p) {
+  (1 - p) + y * (2 * p - 1)
 }
 
 # M-step for the accuracy of the decision process.
@@ -155,10 +164,13 @@
 #
 # Clamped away from the boundaries: all-correct data drives p to exactly 1,
 # where any later error trial would have a likelihood of exactly zero.
-.p_correct_step <- function(y, w) {
+.p_correct_step <- function(y, w, previous = 0.5) {
   total <- sum(w)
+  # degenerate weights leave the previous estimate standing, as .m_step() does;
+  # returning a constant would quietly overwrite a good fit with 0.5 and, with
+  # a chance rate other than 0.5, invert the labels into the bargain
   if (!is.finite(total) || total <= 0) {
-    return(0.5)
+    return(previous)
   }
   min(max(sum(w * y) / total, 1e-6), 1 - 1e-6)
 }
@@ -181,7 +193,7 @@
     list(
       par = NULL, contaminant_prop = NA_real_, converged = FALSE,
       iterations = iterations, loglik = NA_real_, n_fitted = n_valid,
-      p_correct = NA_real_, accuracy_inverted = FALSE
+      p_correct = NA_real_, collapsed = FALSE, accuracy_inverted = FALSE
     )
   }
   # five is bmm's floor: below it the two components cannot be told apart
@@ -242,7 +254,7 @@
     }
     par <- .m_step(x_valid, distribution, step$gamma_rt, par)
     if (!is.null(y_valid)) {
-      p_correct <- .p_correct_step(y_valid, step$gamma_rt)
+      p_correct <- .p_correct_step(y_valid, step$gamma_rt, p_correct)
     }
   }
 
@@ -258,6 +270,12 @@
     loglik = loglik,
     n_fitted = n_valid,
     p_correct = if (is.null(p_correct)) NA_real_ else p_correct,
+    # pi_c = 0 is a fixed point of this EM, and the accuracy factor widens its
+    # basin because it favours the valid component on every correct trial. A
+    # collapsed fit converges cleanly and flags nothing, so it has to be
+    # reported: clean data looks the same, and only the analyst knows which
+    # they have.
+    collapsed = pi_c < 1e-4,
     # p_correct below chance means the labels have swapped: the model is
     # calling the LESS accurate component the decision process. Reported rather
     # than constrained -- an inverted fit usually means the two components are

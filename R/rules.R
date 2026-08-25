@@ -333,19 +333,45 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' responsibility-weighted mean of `y`, so the extension costs the EM almost
 #' nothing; the fitted value comes back as `p_correct` in `attr(x, "fits")`.
 #'
-#' Two caveats the method cannot enforce for you:
+#' ## What is known so far, and it is not all good
 #'
-#' * It assumes contaminants respond at `chance`. That holds for guessing. It
-#'   does **not** hold for a delayed start-up, where the decision process still
-#'   runs and accuracy is intact — there the extra dimension carries nothing,
-#'   and the model is no better than the RT-only one.
+#' The staging is deliberate, and the reasons are concrete. Three things are
+#' already established by the package's own tests, before the simulation has
+#' been run:
+#'
+#' * **It can order overlapping guesses better than response time alone.** Where
+#'   contaminants fall inside the valid distribution's range — the case RT-only
+#'   detection fails at — the joint posterior ranks them more accurately.
+#' * **But the fit tends to collapse.** A contaminant proportion of zero is a
+#'   fixed point of this EM, and the accuracy factor widens its basin because it
+#'   favours the valid component on every correct trial. On exactly the
+#'   overlapping case above, the fit converges cleanly with
+#'   \eqn{\pi \approx 10^{-7}} and the rule removes nothing at all: the better
+#'   ordering is one the keep policy never gets to act on. Check `collapsed` and
+#'   `contaminant_prop` in `attr(x, "fits")` against what you expected.
+#' * **It actively hurts when contaminants are as accurate as valid trials.**
+#'   A delayed start-up still runs the decision process, so it is usually
+#'   correct, and every correct contaminant has its contaminant evidence
+#'   attenuated by \eqn{\gamma / p_c}. This is not neutrality: in the package's
+#'   own test the joint model loses a large part of the sensitivity the RT-only
+#'   model had.
+#'
+#' The same deflation applies whenever observed accuracy is well above chance,
+#' which in most response time paradigms is always. Treat a contaminant
+#' proportion below the RT-only estimate as expected rather than as evidence of
+#' a cleaner data set.
+#'
+#' Two things the method cannot enforce for you:
+#'
+#' * It assumes contaminants respond at `chance`. Get `chance` wrong — screening
+#'   a four-alternative task at 0.5 — and detection degrades sharply.
 #' * `response` must be coded **correct/error**, not upper/lower boundary. Both
 #'   are 0/1, so `rtprep` cannot tell them apart.
 #'
-#' Nothing forces the valid component to be the accurate one. When a fit comes
-#' back with \eqn{p_c} below `chance` the labels have swapped, which usually
-#' means the two components are not separable at that contamination rate.
-#' `rtprep` reports this rather than constraining it: `accuracy_inverted` in
+#' Nothing forces the valid component to be the accurate one either. When a fit
+#' comes back with \eqn{p_c} below `chance` the labels have swapped, which
+#' usually means the two components are not separable at that contamination
+#' rate. `rtprep` reports rather than constrains: `accuracy_inverted` in
 #' `attr(x, "fits")`, plus one warning per call.
 #'
 #' @references

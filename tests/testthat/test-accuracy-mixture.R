@@ -55,17 +55,53 @@ test_that("p_c equal to chance cancels out of the responsibilities exactly", {
   par <- rtprep:::.init_dist_params(x, "lognormal")
 
   rt_only <- rtprep:::.e_step(x, par, "lognormal", 0.95, 0.05, 1 / 2)
+  # deliberately NOT at 0.5: with p_correct == chance == 0.5 the two factors
+  # are numerically identical, so swapping them between the components would be
+  # a no-op and this test would be blind to exactly the error it exists to
+  # catch. At 0.8 the cancellation is still exact but the factors are not.
   joint <- rtprep:::.e_step(
     x, par, "lognormal", 0.95, 0.05, 1 / 2,
-    y = y, p_correct = 0.5, chance = 0.5
+    y = y, p_correct = 0.8, chance = 0.8
   )
 
   expect_equal(joint$gamma_rt, rt_only$gamma_rt)
   # the log-likelihood differs only by the constant both components picked up
   expect_equal(
     joint$loglik,
-    rt_only$loglik + sum(y * log(0.5) + (1 - y) * log(0.5))
+    rt_only$loglik + sum(y * log(0.8) + (1 - y) * log(0.2))
   )
+})
+
+test_that("the accuracy factors are attached to the right components", {
+  # asymmetric p_correct and chance, so applying them the wrong way round
+  # changes the answer. Without this the whole joint likelihood can be fitted
+  # backwards with every other test still green.
+  set.seed(95)
+  x <- rtprep:::.rexgauss(200, 0.45, 0.05, 0.15)
+  y <- rbinom(200, 1, 0.7)
+  par <- rtprep:::.init_dist_params(x, "lognormal")
+
+  right <- rtprep:::.e_step(
+    x, par, "lognormal", 0.9, 0.1, 1 / 2,
+    y = y, p_correct = 0.9, chance = 0.25
+  )
+  swapped <- rtprep:::.e_step(
+    x, par, "lognormal", 0.9, 0.1, 1 / 2,
+    y = y, p_correct = 0.25, chance = 0.9
+  )
+  expect_false(isTRUE(all.equal(right$gamma_rt, swapped$gamma_rt)))
+
+  # a correct trial must weigh towards the component that is more often correct
+  correct <- y == 1
+  expect_gt(mean(right$gamma_rt[correct]), mean(right$gamma_rt[!correct]))
+  expect_lt(mean(swapped$gamma_rt[correct]), mean(swapped$gamma_rt[!correct]))
+})
+
+test_that(".bernoulli_factor() is p^y (1 - p)^(1 - y)", {
+  y <- c(1, 0, 1, 1, 0)
+  for (p in c(0.25, 0.5, 0.9)) {
+    expect_equal(rtprep:::.bernoulli_factor(y, p), p^y * (1 - p)^(1 - y))
+  }
 })
 
 test_that("a decision process at chance gives back nearly the RT-only fit", {
@@ -118,6 +154,25 @@ test_that("the RT-only path is untouched by the joint machinery", {
 
 # --- recovery ---------------------------------------------------------------
 
+test_that("the p_c M-step moves p_c away from the observed accuracy", {
+  # p_correct starts at the raw accuracy. If the M-step were a no-op the fit
+  # would stay there and every tolerance-based recovery test would still pass,
+  # so the movement itself has to be asserted.
+  set.seed(11)
+  rt <- c(
+    rtprep:::.rexgauss(800, 0.45, 0.05, 0.15), runif(120, 0.10, 0.20)
+  )
+  y <- c(rbinom(800, 1, 0.95), rbinom(120, 1, 0.5))
+
+  fit <- fit_joint(rt, y)
+  expect_true(fit$converged)
+  # the raw accuracy is dragged down by the guesses; the fitted accuracy of the
+  # decision process should be markedly higher, and closer to the true 0.95
+  expect_gt(as.numeric(fit$p_correct) - mean(y), 0.05)
+  expect_equal(as.numeric(fit$p_correct), 0.95, tolerance = 0.05)
+  expect_false(fit$collapsed)
+})
+
 test_that("the joint EM recovers the mixing weight and the valid accuracy", {
   d <- guessing_data(n_core = 2000, n_contam = 300, p_correct = 0.9, seed = 85)
   fit <- fit_joint(d$rt, d$correct)
@@ -149,12 +204,24 @@ test_that("the joint log-likelihood increases across EM iterations", {
 sensitivity_at <- function(prob, truth, target_specificity = 0.9) {
   cut <- stats::quantile(prob[!truth], probs = 1 - target_specificity)
   flagged <- prob <= cut
+  # a degenerate .prob (every value equal, as a collapsed or failed fit
+  # returns) makes every trial fall at the cut, which reads as perfect
+  # sensitivity at zero specificity. Refuse to report that as a number.
+  realised <- sum(!flagged & !truth) / sum(!truth)
+  if (realised < target_specificity - 0.05) {
+    return(NA_real_)
+  }
   sum(flagged & truth) / sum(truth)
 }
 
-test_that("accuracy helps where response time alone cannot separate", {
-  # contaminants drawn from inside the core's own range: RT carries almost no
-  # signal, and the accuracy dimension is all there is
+test_that("accuracy orders overlapping guesses better, but the fit collapses", {
+  # Contaminants drawn from inside the core's own range: response time carries
+  # almost no signal, so this is the case the accuracy dimension exists for.
+  # The ranking does improve. The fitted mixture, however, collapses to a
+  # contaminant proportion of essentially zero, so the rule as shipped removes
+  # nothing at all -- the improvement is in an ordering the keep policy never
+  # gets to act on. Both halves are asserted, because reporting only the first
+  # would overstate what the method currently does.
   d <- guessing_data(
     n_core = 1500, n_contam = 250, p_correct = 0.95,
     overlap = TRUE, seed = 87
@@ -163,31 +230,41 @@ test_that("accuracy helps where response time alone cannot separate", {
   joint <- rt_screen(d$rt, d$correct,
     rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
   )
-  rt_only <- rt_screen(d$rt,
-    rule = rule_mixture("lognormal", maxit = 500)
+  rt_only <- rt_screen(d$rt, rule = rule_mixture("lognormal", maxit = 500))
+
+  expect_gt(
+    sensitivity_at(joint$.prob, d$contaminant),
+    sensitivity_at(rt_only$.prob, d$contaminant)
   )
 
-  joint_sens <- sensitivity_at(joint$.prob, d$contaminant)
-  rt_sens <- sensitivity_at(rt_only$.prob, d$contaminant)
-
-  expect_gt(joint_sens, rt_sens)
-  # RT alone should be near chance here, which is the premise of the comparison
-  expect_lt(rt_sens, 0.3)
+  fits <- attr(joint, "fits")
+  expect_true(fits$converged)
+  expect_true(fits$collapsed)
+  expect_lt(fits$contaminant_prop, 1e-4)
+  expect_equal(sum(!joint$.keep), 0L)
+  # and the collapse is what makes the ranking unusable: every posterior sits
+  # within a whisker of 1
+  expect_gt(min(joint$.prob), 0.999)
 })
 
-test_that("accuracy does not help for contaminants whose accuracy is intact", {
-  # a delayed start-up runs the decision process, just later, so it is as
-  # accurate as a valid trial. The joint model assumes contaminants respond at
-  # chance, so the extra dimension is worthless here -- an asymmetry the
-  # package claims out loud and therefore has to test.
+test_that("accuracy actively hurts when the contaminants' accuracy is intact", {
+  # A delayed start-up runs the decision process, just later, so it is as
+  # accurate as a valid trial. The model assumes contaminants respond at
+  # chance, which is simply false here -- and the cost is not neutrality. Every
+  # correct contaminant has its contaminant evidence attenuated by
+  # chance / p_correct, so the joint model loses a large part of the
+  # sensitivity the RT-only model had.
+  #
+  # The delay is small enough that the RT-only comparator is well off ceiling;
+  # at a larger delay it sits at exactly 1.0 and the comparison cannot fail in
+  # either direction.
   set.seed(89)
-  n_core <- 1500
-  n_contam <- 250
+  n_core <- 1200
+  n_contam <- 200
   core <- rtprep:::.rexgauss(n_core, 0.45, 0.05, 0.15)
-  delayed <- rtprep:::.rexgauss(n_contam, 0.45, 0.05, 0.15) + 0.6
+  delayed <- rtprep:::.rexgauss(n_contam, 0.45, 0.05, 0.15) + 0.25
   d <- data.frame(
     rt = c(core, delayed),
-    # intact accuracy: the contaminants are just as correct as the core
     correct = rbinom(n_core + n_contam, 1, 0.9),
     contaminant = rep(c(FALSE, TRUE), c(n_core, n_contam))
   )
@@ -200,8 +277,11 @@ test_that("accuracy does not help for contaminants whose accuracy is intact", {
   joint_sens <- sensitivity_at(joint$.prob, d$contaminant)
   rt_sens <- sensitivity_at(rt_only$.prob, d$contaminant)
 
-  # no meaningful gain; RT is doing all the work
-  expect_lt(joint_sens - rt_sens, 0.1)
+  # the comparator has to have room to move in both directions
+  expect_gt(rt_sens, 0.1)
+  expect_lt(rt_sens, 0.9)
+  # and the joint model is meaningfully worse, not merely no better
+  expect_lt(joint_sens, rt_sens - 0.05)
 })
 
 # --- degenerate data --------------------------------------------------------
@@ -269,7 +349,9 @@ test_that("the fits table reports the valid process's accuracy", {
     ),
     "fits"
   )
-  expect_true(all(c("p_correct", "accuracy_inverted") %in% names(joint)))
+  expect_true(all(
+    c("p_correct", "collapsed", "accuracy_inverted") %in% names(joint)
+  ))
   expect_false(is.na(joint$p_correct))
   expect_gt(joint$p_correct, 0.5)
 

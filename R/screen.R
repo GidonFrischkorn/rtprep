@@ -119,7 +119,10 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
   # alternative is a single NA propagating through the EWMA recursion and
   # silently switching the rule off for the whole group
   if (needs_response) {
-    observed <- observed & !is.na(.as_upper(response))
+    # converted once here rather than inside the group loop, so validation
+    # stays at the public boundary and the inner loop stays cheap
+    response <- as.numeric(.as_upper(response))
+    observed <- observed & !is.na(response)
   }
 
   prob <- rep(NA_real_, n)

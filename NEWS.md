@@ -39,12 +39,18 @@
   decision process is estimated, with a closed-form M-step. **Experimental**:
   it is off by default and stays that way until the simulation says otherwise.
 
-  It helps where it should and not where it should not, both of which are
-  pinned by tests: for guessing contaminants that overlap the valid response
-  time distribution — the case RT-only detection fails at — it recovers
-  substantially more of them at matched specificity; for delayed start-ups,
-  whose accuracy is intact, it adds nothing, because the assumption that
-  contaminants respond at chance is simply false there.
+  What is known so far is mixed, and the tests pin all of it. The joint
+  posterior does *order* overlapping guesses better than response time alone —
+  the case RT-only detection fails at. But on that same data the fit collapses
+  to a contaminant proportion near zero and the rule removes nothing, so the
+  better ordering is one the keep policy never acts on; a `collapsed` flag in
+  `attr(x, "fits")` reports it. And for delayed start-ups, whose accuracy is
+  intact, the model does not merely fail to help — it loses a large part of the
+  sensitivity the RT-only model had, because every correct contaminant has its
+  contaminant evidence attenuated by `chance / p_correct`.
+
+  None of that is a reason to drop the idea; it is the reason the flag defaults
+  to off and the simulation exists.
 
 * `rt_summary()` aggregates surviving trials into the EZ-diffusion summary
   statistics, three ways: the sample moments, robust moments (median with
