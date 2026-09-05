@@ -31,3 +31,5 @@ SIMDESIGN-TEMPFILE_*
 
 # macOS
 .DS_Store
+docs
+inst/doc

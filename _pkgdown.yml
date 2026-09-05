@@ -1,0 +1,55 @@
+url: https://www.gfrischkorn.org/rtprep/
+
+template:
+  bootstrap: 5
+  math-rendering: mathjax
+  bslib:
+    primary: "#0072B2" # the first colour of the manuscript's eam_palette
+
+development:
+  mode: auto
+
+navbar:
+  structure:
+    left: [intro, reference, articles, changelog]
+    right: [search, github]
+
+reference:
+  - title: About rtprep
+    contents:
+      - rtprep-package
+  - title: Screening
+    desc: One engine, one return shape, whichever rule is applied.
+    contents:
+      - rt_screen
+      - rt_keep
+      - screen_fits
+      - rules
+  - title: Aggregation and estimation
+    desc: From surviving trials to EZ-diffusion inputs and parameters.
+    contents:
+      - rt_summary
+      - adjust_accuracy
+      - ez_ddm
+  - title: Comparison and diagnostics
+    desc: >
+      What a different choice would have removed, and whether the removed
+      trials were what you thought.
+    contents:
+      - screen_compare
+      - check_guessing
+  - title: Ground truth
+    desc: >
+      Generate data with contaminants of known type, so a pipeline can be
+      tested instead of trusted.
+    contents:
+      - r_contaminated
+  - title: Data
+    contents:
+      - has_keyword("datasets")
+
+articles:
+  - title: Using rtprep
+    navbar: Using rtprep
+    contents:
+      - rtprep

@@ -50,6 +50,12 @@ release, made while the package was still unreleased.
   the flag survives `[`, `rbind()`, and every dplyr verb instead of being
   dropped by the first one.
 
+* `rt_example` is a small simulated data set, four participants by two
+  conditions with the ground truth kept, for the examples and the
+  get-started vignette (`vignette("rtprep")`), which walks the
+  screen-filter-aggregate-estimate chain inside a dplyr pipeline and then
+  scores it against the truth.
+
 ## New features
 
 * `rt_screen()` applies any screening rule to a response time vector and returns
