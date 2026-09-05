@@ -79,7 +79,12 @@ proportion of the anchor: response times are uniform on
 \code{informationless} for \code{process = "mixed"}, in that order. Normalized
 internally.}
 
-\item{dt}{Euler–Maruyama step size for the \code{"ddm"} generator, in seconds.}
+\item{dt}{Euler–Maruyama step size for the \code{"ddm"} generator, in seconds.
+Smaller steps are slower and more faithful: a discretised first-passage
+sampler misses boundary crossings that happen inside a step, which
+shifts the response times slightly late. The default of one millisecond
+was validated against \code{rtdists::rdiffusion()} in the package's tests,
+where the two agree in accuracy and in the response time quantiles.}
 }
 \value{
 A \code{data.frame} with \code{n} rows:

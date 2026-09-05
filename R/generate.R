@@ -361,6 +361,11 @@
 #'   `informationless` for `process = "mixed"`, in that order. Normalized
 #'   internally.
 #' @param dt Euler–Maruyama step size for the `"ddm"` generator, in seconds.
+#'   Smaller steps are slower and more faithful: a discretised first-passage
+#'   sampler misses boundary crossings that happen inside a step, which
+#'   shifts the response times slightly late. The default of one millisecond
+#'   was validated against `rtdists::rdiffusion()` in the package's tests,
+#'   where the two agree in accuracy and in the response time quantiles.
 #'
 #' @return A `data.frame` with `n` rows:
 #'

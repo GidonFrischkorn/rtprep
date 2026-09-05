@@ -327,3 +327,14 @@ test_that("the closed-form M-steps maximise the weighted likelihood", {
     expect_lte(nll(closed), numeric_fit$value + 1e-6, label = d)
   }
 })
+
+test_that("the M-step hands back its input when no weight remains", {
+  # every trial owned by the uniform component: nothing to fit the core to,
+  # and the previous parameters are the only honest answer
+  x <- c(0.3, 0.35, 0.4, 0.45, 0.5)
+  for (d in c("exgaussian", "lognormal", "invgaussian")) {
+    init <- rtprep:::.init_dist_params(x, d)
+    expect_identical(rtprep:::.m_step(x, d, rep(0, 5), init), init, info = d)
+    expect_identical(rtprep:::.m_step(x, d, rep(NA_real_, 5), init), init)
+  }
+})

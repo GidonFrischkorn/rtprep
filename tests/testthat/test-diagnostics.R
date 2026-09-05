@@ -212,6 +212,8 @@ test_that("a screening rule's output drops straight in", {
 })
 
 test_that("check_guessing() matches bmm::validate_fast_guesses()", {
+  # reaches into bmm internals: a bmm release must surface in CI, not on CRAN
+  skip_on_cran()
   skip_if_not_installed("bmm")
   d <- guessing_fixture()
 
@@ -235,4 +237,20 @@ test_that("check_guessing() matches bmm::validate_fast_guesses()", {
     expect_equal(ours$rt_threshold, theirs$rt_threshold, info = type)
     expect_equal(ours$mean_rt_tested, theirs$mean_rt_tested, info = type)
   }
+})
+
+test_that(".categorise_bf() names every band of the Jeffreys scale", {
+  bands <- c(
+    "strong_for_guessing", "moderate_for_guessing", "anecdotal_for_guessing",
+    "anecdotal_against_guessing", "moderate_against_guessing",
+    "strong_against_guessing"
+  )
+  bf <- c(30, 5, 2, 0.5, 0.2, 0.05)
+  expect_equal(vapply(bf, rtprep:::.categorise_bf, character(1)), bands)
+  # the band edges belong to the weaker claim
+  expect_equal(rtprep:::.categorise_bf(10), "moderate_for_guessing")
+  expect_equal(rtprep:::.categorise_bf(3), "anecdotal_for_guessing")
+  expect_equal(rtprep:::.categorise_bf(1), "anecdotal_against_guessing")
+  expect_equal(rtprep:::.categorise_bf(1 / 3), "moderate_against_guessing")
+  expect_equal(rtprep:::.categorise_bf(1 / 10), "strong_against_guessing")
 })

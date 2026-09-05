@@ -242,12 +242,10 @@
     }
     prev_loglik <- loglik
 
+    # gamma_rt was checked for NA above, so the mixing weight is always a
+    # number here; the reset bmm keeps for that case would be unreachable
     pi_rt <- mean(step$gamma_rt)
     pi_c <- 1 - pi_rt
-    if (is.na(pi_c)) {
-      pi_c <- init
-      pi_rt <- 1 - pi_c
-    }
     if (pi_c > max_prop) {
       pi_c <- max_prop
       pi_rt <- 1 - pi_c

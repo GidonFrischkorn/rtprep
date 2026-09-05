@@ -84,6 +84,8 @@ test_that("the recursive rules reproduce trimr's frozen answers", {
 # --- against trimr itself (runs wherever trimr is installed) ----------------
 
 test_that("the frozen reference still matches the installed trimr", {
+  # the frozen-fixture layer runs everywhere; the live comparison is for CI
+  skip_on_cran()
   skip_if_not_installed("trimr")
   d <- reference$data
 
@@ -149,6 +151,9 @@ test_that("mixture EM reaches the same keep decisions as bmm", {
   # by the optimiser's own tolerance. Decisions may then differ only for trials
   # whose posterior sits essentially on the 0.5 cut, where the decision is
   # arbitrary under either implementation.
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   for (seed in bmm_seeds) {
@@ -183,6 +188,9 @@ test_that("the exact M-steps never fit worse than bmm's numerical ones", {
   # Note this does NOT extend to the mixture log-likelihood at the stopping
   # iteration, which depends on which run trips `tol` first -- that is what the
   # loose bound in the next test allows for.
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   for (seed in bmm_seeds[1:4]) {
@@ -205,6 +213,9 @@ test_that("the exact M-steps never fit worse than bmm's numerical ones", {
 })
 
 test_that("the fitted mixture matches bmm's diagnostics", {
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   for (seed in bmm_seeds) {
@@ -239,6 +250,9 @@ test_that("the fitted mixture matches bmm's diagnostics", {
 
 test_that("n_fitted counts in-bounds trials, unlike bmm's n_trials", {
   # the two only coincide because the default bounds are buffered past the data
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
   rt <- bmm_fixture(31)
 
@@ -253,6 +267,9 @@ test_that("n_fitted counts in-bounds trials, unlike bmm's n_trials", {
 })
 
 test_that("the resolved contaminant bounds match bmm's", {
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   for (seed in bmm_seeds) {
@@ -277,6 +294,9 @@ test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
   # in the loop itself: the pre-M-step convergence check, the warm start, or the
   # clipping. rtprep clamps optim()'s box-projection rounding where bmm does
   # not, which is the only remaining source of difference.
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   for (seed in bmm_seeds) {
@@ -312,6 +332,9 @@ test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
 })
 
 test_that("EZ summary statistics match bmm::ezdm_summary_stats()", {
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   for (seed in bmm_seeds[1:4]) {
@@ -370,6 +393,9 @@ test_that("EZ summary statistics match bmm::ezdm_summary_stats()", {
 })
 
 test_that("robust aggregation matches bmm for both scale statistics", {
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
   rt <- bmm_fixture(31)
   set.seed(31)
@@ -389,6 +415,9 @@ test_that("robust aggregation matches bmm for both scale statistics", {
 test_that("adjust_accuracy() matches bmm::adjust_ezdm_accuracy()", {
   # both draw binomials, so the comparison is between distributions rather than
   # between single calls
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
 
   draw <- function(f, n) {
@@ -407,6 +436,9 @@ test_that("adjust_accuracy() matches bmm::adjust_ezdm_accuracy()", {
 })
 
 test_that("adjust_accuracy() leaves counts alone exactly as bmm does", {
+  # compares against bmm internals: a bmm release that changes its EM must
+  # surface in CI, not as a CRAN check failure written to this maintainer
+  skip_on_cran()
   skip_if_not_installed("bmm")
   for (prop in list(NA, 0, -0.1)) {
     expect_equal(

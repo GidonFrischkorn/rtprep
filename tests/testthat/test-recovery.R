@@ -15,6 +15,7 @@ fit_known <- function(rt, distribution, bound = c("min", "max")) {
 }
 
 test_that("the EM recovers ex-Gaussian parameters and the mixing weight", {
+  skip_on_cran() # tolerance-based recovery; CI and local runs cover it
   set.seed(101)
   n <- 4000
   pi_c <- 0.10
@@ -35,6 +36,7 @@ test_that("the EM recovers ex-Gaussian parameters and the mixing weight", {
 })
 
 test_that("the EM recovers lognormal parameters and the mixing weight", {
+  skip_on_cran() # tolerance-based recovery; CI and local runs cover it
   set.seed(102)
   n <- 4000
   pi_c <- 0.15
@@ -55,6 +57,7 @@ test_that("the EM recovers lognormal parameters and the mixing weight", {
 })
 
 test_that("the EM recovers inverse Gaussian parameters and the mixing weight", {
+  skip_on_cran() # tolerance-based recovery; CI and local runs cover it
   set.seed(103)
   n <- 4000
   pi_c <- 0.12
@@ -75,6 +78,7 @@ test_that("the EM recovers inverse Gaussian parameters and the mixing weight", {
 })
 
 test_that("the recovered mixing weight tracks the true one", {
+  skip_on_cran() # tolerance-based recovery; CI and local runs cover it
   # a single point estimate can be lucky; the ordering across rates cannot
   set.seed(104)
   n <- 3000
@@ -95,6 +99,7 @@ test_that("the recovered mixing weight tracks the true one", {
 })
 
 test_that("clean data yields a mixing weight near zero", {
+  skip_on_cran() # tolerance-based recovery; CI and local runs cover it
   set.seed(105)
   rt <- rlnorm(3000, -0.9, 0.3)
   fit <- fit_known(rt, "lognormal")
@@ -106,6 +111,7 @@ test_that("clean data yields a mixing weight near zero", {
 })
 
 test_that("per-trial responsibilities separate the two components", {
+  skip_on_cran() # tolerance-based recovery; CI and local runs cover it
   set.seed(106)
   n_core <- 2000
   n_contam <- 300

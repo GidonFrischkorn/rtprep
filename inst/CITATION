@@ -1,0 +1,24 @@
+citHeader("To cite rtprep in publications use:")
+
+bibentry(
+  bibtype = "Manual",
+  title = "rtprep: Screening, Trimming, and Aggregating Response Time Data",
+  author = person(
+    "Gidon T.", "Frischkorn",
+    comment = c(ORCID = "0000-0002-5055-9764")
+  ),
+  year = "2026",
+  note = "R package version 0.1.0",
+  url = "https://github.com/GidonFrischkorn/rtprep",
+  textVersion = paste(
+    "Frischkorn, G. T. (2026). rtprep: Screening, trimming, and aggregating",
+    "response time data. R package version 0.1.0.",
+    "https://github.com/GidonFrischkorn/rtprep"
+  )
+)
+
+citFooter(
+  "A tutorial article describing the package and the simulation studies",
+  "behind it is in preparation; this entry will be replaced by the article",
+  "on acceptance."
+)

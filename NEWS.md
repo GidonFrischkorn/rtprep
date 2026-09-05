@@ -1,9 +1,19 @@
-# rtprep 0.0.0.9000 (development version)
+# rtprep 0.1.0
+
+Initial CRAN release. `rtprep` gives the response time preprocessing
+decisions that precede an evidence accumulation model fit one interface:
+screening rules from incompatible families return the same per-trial object,
+aggregation into EZ-diffusion summary statistics and the closed-form inversion
+are separate, comparable steps, and a generator with known ground truth lets a
+chosen pipeline be tested rather than trusted. The package is the companion
+to a tutorial in preparation for *Advances in Methods and Practices in
+Psychological Science*; the entries below describe what it does and the
+decisions behind it.
 
 ## Interface changes before the first release
 
 These are the changes that would have needed a deprecation cycle after
-release, made while the package is still unreleased.
+release, made while the package was still unreleased.
 
 * The rule is now the second argument: `rt_screen(rt, rule, response = NULL,
   .by = NULL, ...)`, and likewise `screen_compare(rt, rules, response = NULL,

@@ -167,6 +167,8 @@ test_that(".init_dist_params() returns usable starting values", {
 # --- against bmm ------------------------------------------------------------
 
 test_that("the densities agree with bmm's", {
+  # reaches into bmm internals: a bmm release must surface in CI, not on CRAN
+  skip_on_cran()
   skip_if_not_installed("bmm")
   grid <- c(0.15, 0.3, 0.45, 0.7, 1.2, 3.0)
 
@@ -185,6 +187,8 @@ test_that("the densities agree with bmm's", {
 })
 
 test_that("the starting values and moments agree with bmm's", {
+  # reaches into bmm internals: a bmm release must surface in CI, not on CRAN
+  skip_on_cran()
   skip_if_not_installed("bmm")
   set.seed(5)
   x <- rtprep:::.rexgauss(300, 0.4, 0.05, 0.15)

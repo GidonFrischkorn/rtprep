@@ -59,6 +59,8 @@ test_that(".r_ddm reproduces the closed-form EZ observables", {
 })
 
 test_that(".r_ddm agrees with rtdists", {
+  # tolerance-based distributional comparison, slow-ish; CI runs it
+  skip_on_cran()
   skip_if_not_installed("rtdists")
   set.seed(103)
   d <- rtprep:::.r_ddm(
@@ -185,7 +187,7 @@ test_that("matched generators agree on the EZ statistics, differ at the edge", {
 
 test_that("prop = 0 gives chance accuracy with RTs inside the core's range", {
   set.seed(108)
-  # ddm: drift -> 0
+  # for the ddm the lapse sends the drift to zero
   lp <- rtprep:::.lapse_pars(
     list(drift = 1.5, bound = 1.2, ndt = 0.30, zr = 0.5),
     generator = "ddm", prop = 0
@@ -333,4 +335,16 @@ test_that("the mixed process draws all three with the stated weights", {
     rep(1 / 3, 3),
     tolerance = 0.10, ignore_attr = TRUE
   )
+})
+
+test_that(".r_ddm closes out stragglers at the step cap, dropping none", {
+  set.seed(109)
+  # zero drift and a wide boundary: nothing crosses in three steps
+  d <- rtprep:::.r_ddm(
+    25,
+    drift = 0, bound = 4, ndt = 0.3, dt = 0.01, max_steps = 3
+  )
+  expect_equal(nrow(d), 25L)
+  expect_equal(d$rt, rep(0.3 + 3 * 0.01, 25))
+  expect_true(all(d$response %in% c(0L, 1L)))
 })

@@ -48,10 +48,13 @@ apply_rule.rtprep_rule_sd <- function(rule, rt, response = NULL) {
 
 # --- van Selst & Jolicoeur (1994) recursive criteria ------------------------
 
-# The published criterion table: multipliers for sample sizes 4 to 100, one
-# column per procedure. Transcribed from van Selst & Jolicoeur (1994) and
-# cross-checked against trimr's `linearInterpolation` data set, which is the
-# reference implementation the equivalence tests compare against.
+# The criterion multipliers for sample sizes 4 to 100, one column per
+# procedure. Van Selst & Jolicoeur (1994) tabulate them (their Table 4) at
+# n = 4..15, 20, 25, 30, 35, 50, and 100, with the note "for sample sizes not
+# provided, use linear interpolation"; the values between those sizes are that
+# interpolation, and the whole vector is cross-checked against trimr's
+# `linearInterpolation` data set, which is the reference implementation the
+# equivalence tests compare against.
 .vsj_table <- list(
   moving = c(
     1.4580, 1.6800, 1.8410, 1.9610, 2.0500, 2.1200, 2.1700, 2.2200,

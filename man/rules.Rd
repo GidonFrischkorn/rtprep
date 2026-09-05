@@ -169,8 +169,10 @@ must not remove data.
 \section{Recursive and moving criteria}{
 Van Selst and Jolicoeur (1994) answered Miller's (1991) sample-size problem
 by making the multiplier itself depend on the number of trials. \code{rtprep}
-ships their published criterion table for sample sizes 4 to 100; below 4 no
-criterion exists and nothing is flagged, and above 100 the value for 100 is
+ships their published criteria (their Table 4, tabulated at 4 to 15, 20,
+25, 30, 35, 50, and 100 trials), linearly interpolated between the tabulated
+sample sizes as the table's note instructs and as \code{trimr} does. Below 4 no
+criterion exists and nothing is flagged; above 100 the value for 100 is
 used.
 \itemize{
 \item \code{type = "moving"} is their non-recursive moving criterion: one pass, with

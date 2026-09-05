@@ -149,3 +149,12 @@ test_that("print() reports the label and returns its input invisibly", {
   expect_output(print(rule_adaptive_trim()), "adaptive_trim\\(0\\.05, 0\\.5\\)")
   expect_output(print(rule_ez_support()), "ez_support\\(1, refit\\)")
 })
+
+test_that("rule_mixture() accepts the contaminant bounds as a list", {
+  expect_equal(
+    rule_mixture(bound = list(0.15, "max"))$bound,
+    rule_mixture(bound = c(0.15, "max"))$bound
+  )
+  expect_equal(rule_mixture(bound = list(0.15, 3))$bound, c(0.15, 3))
+  expect_error(rule_mixture(bound = list(0.15)), "length 2")
+})
