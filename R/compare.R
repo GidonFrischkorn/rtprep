@@ -119,6 +119,15 @@ screen_compare <- function(rt, response = NULL, rules, .by = NULL,
     s$.reason[!is.na(s$.reason)]
   }))))
 
+  # Same index list as the screening engine builds, for the same reason: the
+  # per-group scan this replaces ran once per rule per group over the whole
+  # trial vector. Missing trials are keyed here, unlike in rt_screen(), because
+  # "missing" is one of the reasons being counted.
+  keyed <- which(!is.na(key$id))
+  idx_by_group <- split(
+    keyed, factor(key$id[keyed], levels = seq_along(key$labels))
+  )
+
   rows <- lapply(seq_along(screens), function(i) {
     s <- screens[[i]]
     fits <- attr(s, "fits")
@@ -126,22 +135,22 @@ screen_compare <- function(rt, response = NULL, rules, .by = NULL,
       return(NULL)
     }
 
-    per_group <- lapply(seq_len(nrow(fits)), function(g) {
-      in_group <- !is.na(key$id) & key$id == g
-      row <- data.frame(
-        .rule = labels[i],
-        .group = fits$.group[g],
-        n_trials = fits$n_trials[g],
-        n_dropped = fits$n_dropped[g],
-        prop_dropped = fits$prop_dropped[g],
-        stringsAsFactors = FALSE
+    row <- data.frame(
+      .rule = labels[i],
+      .group = fits$.group,
+      n_trials = fits$n_trials,
+      n_dropped = fits$n_dropped,
+      prop_dropped = fits$prop_dropped,
+      stringsAsFactors = FALSE
+    )
+    for (r in reasons) {
+      flagged <- !is.na(s$.reason) & s$.reason == r
+      row[[r]] <- vapply(
+        idx_by_group, function(idx) sum(flagged[idx]), integer(1),
+        USE.NAMES = FALSE
       )
-      for (r in reasons) {
-        row[[r]] <- sum(in_group & !is.na(s$.reason) & s$.reason == r)
-      }
-      row
-    })
-    do.call(rbind, per_group)
+    }
+    row
   })
 
   out <- .rbind_fill(rows)

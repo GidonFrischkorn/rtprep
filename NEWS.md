@@ -115,6 +115,16 @@
   taking `.keep` rather than a contaminant flag and returning a one-row data
   frame rather than a list.
 
+## Performance
+
+* `rt_screen()` and `screen_compare()` now scale linearly in the number of
+  groups. Both used to locate each group's trials by scanning the whole trial
+  vector once per group, which is quadratic in participants: screening 10,000
+  participants with 100 trials each took 147 s, and 2,000 participants 7.3 s.
+  The same calls now take 2.1 s and 0.4 s. Nothing about the results changed —
+  `tests/testthat/test-engine.R` holds the previous engine's answers for the
+  whole rule roster and compares against them.
+
 ## Notes
 
 * Bounds are inclusive throughout: a trial is flagged only when it falls

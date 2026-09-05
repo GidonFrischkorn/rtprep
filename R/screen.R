@@ -132,8 +132,16 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
   groups <- key$labels
   fits <- vector("list", length(groups))
 
+  # Each group's rows are found in one pass rather than by rescanning the whole
+  # trial vector per group. The scan version was O(n x groups) -- quadratic in
+  # participants at fixed trials each -- which is minutes per call at the scale
+  # an online study reaches, and invisible at the 200 subjects the simulations
+  # screen.
+  obs <- which(observed)
+  idx_by_group <- split(obs, factor(key$id[obs], levels = seq_along(groups)))
+
   for (g in seq_along(groups)) {
-    idx <- which(observed & key$id == g)
+    idx <- idx_by_group[[g]]
     if (length(idx) == 0L) next
     res <- apply_rule(rule, rt[idx], response[idx])
     prob[idx] <- res$prob
@@ -162,7 +170,7 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
     .reason = reason,
     stringsAsFactors = FALSE
   )
-  fits_table <- .assemble_fits(groups, key$id, observed, .keep, fits)
+  fits_table <- .assemble_fits(groups, idx_by_group, .keep, fits)
   .warn_bounds(fits_table)
   .warn_inverted(fits_table)
   .warn_unconverged(fits_table)
@@ -230,24 +238,57 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
 
 # One row per group, in group-key order, with the shared bookkeeping columns
 # first and whatever the rule reported appended.
-.assemble_fits <- function(groups, id, observed, .keep, fits) {
-  base <- lapply(seq_along(groups), function(g) {
-    in_group <- observed & !is.na(id) & id == g
-    n_trials <- sum(in_group)
-    n_dropped <- sum(in_group & !.keep)
-    data.frame(
-      .group = groups[g],
-      n_trials = as.integer(n_trials),
-      n_dropped = as.integer(n_dropped),
-      prop_dropped = if (n_trials == 0L) NA_real_ else n_dropped / n_trials,
-      stringsAsFactors = FALSE
+#
+# `idx_by_group` is the index list rt_screen() already built, so the counts come
+# from lengths() and one pass per group over that group's own rows -- never over
+# the full trial vector.
+.assemble_fits <- function(groups, idx_by_group, .keep, fits) {
+  n_trials <- unname(lengths(idx_by_group))
+  n_dropped <- unname(vapply(
+    idx_by_group, function(idx) sum(!.keep[idx]), integer(1)
+  ))
+  prop_dropped <- n_dropped / n_trials
+  # a group with nothing observed has no drop rate, not a rate of zero
+  prop_dropped[n_trials == 0L] <- NA_real_
+
+  base <- data.frame(
+    .group = groups,
+    n_trials = as.integer(n_trials),
+    n_dropped = as.integer(n_dropped),
+    prop_dropped = prop_dropped,
+    stringsAsFactors = FALSE
+  )
+  # every group key was missing: still a data frame, just an empty one
+  if (length(groups) == 0L) {
+    return(base)
+  }
+
+  rule_cols <- .fill_fits(fits)
+  if (is.null(rule_cols)) base else cbind(base, rule_cols)
+}
+
+# Stack the rules' one-row fit data frames in group order, column by column.
+# Groups the rule never fitted, and columns it did not report for every group,
+# are filled with NA -- the same answer as rbind()ing padded rows, without
+# building and binding one data frame per group.
+.fill_fits <- function(fits) {
+  present <- !vapply(fits, is.null, logical(1))
+  if (!any(present)) {
+    return(NULL)
+  }
+
+  all_names <- unique(unlist(lapply(fits[present], names)))
+  cols <- lapply(all_names, function(nm) {
+    unlist(
+      lapply(fits, function(f) if (is.null(f[[nm]])) NA else f[[nm]]),
+      use.names = FALSE
     )
   })
-
-  rows <- lapply(seq_along(groups), function(g) {
-    if (is.null(fits[[g]])) base[[g]] else cbind(base[[g]], fits[[g]])
-  })
-  .rbind_fill(rows)
+  names(cols) <- all_names
+  do.call(
+    data.frame,
+    c(cols, list(check.names = FALSE, stringsAsFactors = FALSE))
+  )
 }
 
 # rbind() that tolerates rows with different columns, filling the gaps with NA.
