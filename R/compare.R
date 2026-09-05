@@ -6,7 +6,7 @@
 #' choice have removed?* — which is normally unanswerable because each rule's
 #' implementation returns a different shape.
 #'
-#' @param rt,response,.by,keep,threshold As in [rt_screen()], and forwarded
+#' @param rt,response,.by,policy,threshold As in [rt_screen()], and forwarded
 #'   unchanged.
 #' @param rules A `list()` of rule objects; see [rules]. Names become the labels
 #'   in the output; unnamed entries take the rule's own label.
@@ -39,7 +39,7 @@
 #' d <- r_contaminated(300, process = "mixed", rate = 0.1)
 #' cmp <- screen_compare(
 #'   d$rt,
-#'   rules = list(
+#'   list(
 #'     cutoff = rule_cutoff(0.18, 3),
 #'     sd = rule_sd(2.5),
 #'     recursive = rule_recursive("modified")
@@ -49,10 +49,10 @@
 #' cmp$agreement
 #'
 #' @export
-screen_compare <- function(rt, response = NULL, rules, .by = NULL,
-                           keep = c("threshold", "probabilistic"),
+screen_compare <- function(rt, rules, response = NULL, .by = NULL,
+                           policy = c("threshold", "probabilistic"),
                            threshold = 0.5) {
-  keep <- match.arg(keep)
+  policy <- match.arg(policy)
   # a rule object is itself a list, so this has to be checked before the
   # is.list() test or a single rule iterates over its own parameters
   .stopif(
@@ -80,7 +80,10 @@ screen_compare <- function(rt, response = NULL, rules, .by = NULL,
 
   n <- length(rt)
   screens <- lapply(rules, function(rule) {
-    rt_screen(rt, response, rule, .by, keep = keep, threshold = threshold)
+    rt_screen(
+      rt, rule, response,
+      .by = .by, policy = policy, threshold = threshold
+    )
   })
   names(screens) <- labels
 

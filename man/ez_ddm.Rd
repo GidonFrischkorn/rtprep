@@ -25,9 +25,9 @@ with \code{s} and \code{ndt} does not, so a drift of 0.1 at \code{s = 0.1} and a
 1.0 at \code{s = 1} describe the same process.}
 }
 \value{
-A \code{data.frame} with \code{drift}, \code{bound}, and \code{ndt}, one row per input
-element (inputs recycle to a common length). An \code{"edge_corrected"}
-attribute flags which rows needed the correction below.
+A \code{data.frame} with \code{drift}, \code{bound}, \code{ndt}, and a logical
+\code{edge_corrected}, one row per input element (inputs recycle to a common
+length). \code{edge_corrected} flags the rows that needed the correction below.
 }
 \description{
 The closed-form EZ-diffusion equations of Wagenmakers, van der Maas and
@@ -44,10 +44,9 @@ The equations divide by \code{logit(accuracy)} and break down at accuracies of 0
 \code{1 / (2 * n_trials)}: 1 becomes \verb{1 - 1/(2n)}, 0 becomes \verb{1/(2n)}, and 0.5
 becomes \verb{0.5 + 1/(2n)}. It is applied silently, because it is the published
 behaviour and a warning per cell would bury a simulation run — but which
-cells were corrected comes back in the \code{"edge_corrected"} attribute, so a
-script can count them. Note that \code{[}, \code{rbind()}, and every dplyr verb drop
-that attribute, so read it off the returned object directly rather than
-expecting it to survive a pipeline.
+cells were corrected comes back in the \code{edge_corrected} column, so a script
+can count them. It is a column rather than an attribute so that it survives
+\code{[}, \code{rbind()}, and the dplyr verbs.
 
 EZ is fragile under contamination: a handful of fast guesses moves the drift
 estimate a long way (Ratcliff, 2008). That fragility is the point of the

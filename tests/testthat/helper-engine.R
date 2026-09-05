@@ -68,14 +68,15 @@
 # The comparison layer shares the group bookkeeping, so it is frozen too.
 .engine_comparison <- function(d) {
   suppressWarnings(screen_compare(
-    d$rt, d$response,
-    rules = list(
+    d$rt,
+    list(
       sd = rule_sd(2.5),
       mad = rule_mad(2.5),
       recursive = rule_recursive("modified"),
       mixture = rule_mixture("lognormal"),
       ewma = rule_ewma()
     ),
+    response = d$response,
     .by = d$id
   ))
 }
@@ -86,8 +87,8 @@
 .engine_screen <- function(d, spec) {
   suppressWarnings(rt_screen(
     d$rt,
-    if (spec$needs_response) d$response else NULL,
-    rule = spec$rule,
+    spec$rule,
+    response = if (spec$needs_response) d$response else NULL,
     .by = if (spec$grouped) d$id else NULL
   ))
 }

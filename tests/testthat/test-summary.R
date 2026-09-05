@@ -356,14 +356,93 @@ test_that("adjust_accuracy() leaves the counts alone when there is nothing", {
 
 test_that("adjust_accuracy() validates its inputs", {
   bad_scalar <- "must be a single"
-  expect_error(adjust_accuracy("a", 100, 0.1), bad_scalar)
+  expect_error(adjust_accuracy("a", 100, 0.1), "whole number")
   expect_error(adjust_accuracy(80, 100, 0.1, guess_rate = 1.5), bad_scalar)
   expect_error(adjust_accuracy(80, 100, 0.1, guess_rate = -1), bad_scalar)
   expect_error(adjust_accuracy(120, 100, 0.1), "cannot exceed")
-  # counts must be whole numbers, and a proportion must be one number in [0, 1]
+  # counts must be whole numbers, and a proportion must be in [0, 1]
   expect_error(adjust_accuracy(80.5, 100.7, 0.1), "whole number")
   expect_error(adjust_accuracy(80, 100, 1.5), "cannot exceed 1")
-  expect_error(adjust_accuracy(80, 100, c(0.1, 0.2)), "single number")
+  expect_error(adjust_accuracy(80, 100, "0.1"), "must be numeric")
+  # one bad row is enough
+  expect_error(adjust_accuracy(c(80, 120), 100, 0.1), "cannot exceed")
+})
+
+test_that("adjust_accuracy() vectorises over rows, one draw per row", {
+  # the idiom bmm's vignette teaches: a summary table with one row per cell
+  tbl <- data.frame(
+    n_upper = c(80L, 45L, 95L), n_trials = c(100L, 50L, 100L),
+    contaminant_prop = c(0.1, 0.2, 0.05)
+  )
+  set.seed(64)
+  out <- adjust_accuracy(tbl$n_upper, tbl$n_trials, tbl$contaminant_prop)
+
+  expect_s3_class(out, "data.frame")
+  expect_equal(nrow(out), 3L)
+  expect_equal(names(out), c("n_upper_adj", "n_trials_adj"))
+  expect_type(out$n_upper_adj, "integer")
+  expect_type(out$n_trials_adj, "integer")
+  expect_true(all(out$n_trials_adj <= tbl$n_trials))
+  expect_true(all(out$n_upper_adj >= 0L & out$n_upper_adj <= out$n_trials_adj))
+
+  # the same rows are adjusted independently: over many draws each row's mean
+  # removal matches its own proportion
+  set.seed(65)
+  draws <- vapply(1:3000, function(i) {
+    adj <- adjust_accuracy(tbl$n_upper, tbl$n_trials, tbl$contaminant_prop)
+    adj$n_trials_adj
+  }, integer(3))
+  expect_equal(rowMeans(draws), c(90, 40, 95), tolerance = 0.005)
+})
+
+test_that("adjust_accuracy() recycles scalars against vectors", {
+  set.seed(66)
+  out <- adjust_accuracy(c(80, 40), 100, 0.1)
+  expect_equal(nrow(out), 2L)
+  expect_true(all(out$n_trials_adj <= 100L))
+
+  # a fractional recycle is a mistake worth saying out loud, as in ez_ddm()
+  expect_warning(
+    adjust_accuracy(c(80, 40, 60), c(100, 100), 0.1), "not a multiple"
+  )
+})
+
+test_that("adjust_accuracy() leaves rows with nothing to adjust alone", {
+  set.seed(67)
+  out <- adjust_accuracy(
+    n_upper = c(80L, 80L, 80L, 80L), n_trials = 100L,
+    contaminant_prop = c(0.3, NA, 0, -0.1)
+  )
+  expect_equal(out$n_trials_adj[2:4], rep(100L, 3))
+  expect_equal(out$n_upper_adj[2:4], rep(80L, 3))
+  expect_lt(out$n_trials_adj[1], 100L)
+
+  # a missing count gives a missing answer rather than an error, so the
+  # function survives a summary table with an empty cell
+  na_row <- adjust_accuracy(c(80L, NA), c(100L, 100L), 0.1)
+  expect_equal(na_row$n_upper_adj[2], NA_integer_)
+  expect_equal(na_row$n_trials_adj[2], NA_integer_)
+  expect_false(is.na(na_row$n_trials_adj[1]))
+})
+
+test_that("the length-1 path draws exactly as bmm does", {
+  # the equivalence test needs bmm installed; this pins the same contract
+  # without it. bmm draws rbinom(1, n_trials, prop) then rbinom(1, n_contam,
+  # guess_rate), in that order, and nothing when there is nothing to adjust.
+  set.seed(68)
+  out <- adjust_accuracy(80, 100, 0.15, guess_rate = 0.5)
+  set.seed(68)
+  n_contam <- rbinom(1, 100, 0.15)
+  n_contam_upper <- rbinom(1, n_contam, 0.5)
+  expect_equal(out$n_trials_adj, 100L - n_contam)
+  expect_equal(out$n_upper_adj, 80L - n_contam_upper)
+
+  # rows that need no adjustment must not consume the stream either
+  set.seed(69)
+  adjust_accuracy(80, 100, NA)
+  after_na <- runif(1)
+  set.seed(69)
+  expect_equal(after_na, runif(1))
 })
 
 # --- ez_ddm -----------------------------------------------------------------
@@ -376,7 +455,7 @@ test_that("ez_ddm() reproduces the Wagenmakers et al. (2007) example", {
     n_trials = 100, s = 0.1
   )
 
-  expect_equal(names(out), c("drift", "bound", "ndt"))
+  expect_equal(names(out), c("drift", "bound", "ndt", "edge_corrected"))
   expect_equal(out$drift, 0.1, tolerance = 0.001)
   expect_equal(out$bound, 0.14, tolerance = 0.001)
   expect_equal(out$ndt, 0.3, tolerance = 0.001)
@@ -444,7 +523,12 @@ test_that("ez_ddm() applies the published edge correction", {
   )
 
   expect_true(all(is.finite(out$drift)))
-  expect_equal(attr(out, "edge_corrected"), c(TRUE, TRUE, TRUE, FALSE))
+  expect_equal(out$edge_corrected, c(TRUE, TRUE, TRUE, FALSE))
+  expect_type(out$edge_corrected, "logical")
+  # a column survives what an attribute does not: subsetting and binding
+  expect_null(attr(out, "edge_corrected"))
+  expect_equal(rbind(out, out)$edge_corrected, rep(out$edge_corrected, 2))
+  expect_equal(out[2:3, ]$edge_corrected, c(TRUE, TRUE))
 
   # each corrected value must equal the uncorrected fit at the shifted accuracy
   expect_equal(out$drift[1], ez_ddm(0.7, 0.1, 1 - 1 / (2 * n), n)$drift)
@@ -465,7 +549,8 @@ test_that("ez_ddm() returns NA where the inputs carry no information", {
 test_that("ez_ddm() handles degenerate lengths without inventing rows", {
   empty <- ez_ddm(numeric(0), 0.1, 0.8, 100)
   expect_equal(nrow(empty), 0L)
-  expect_equal(names(empty), c("drift", "bound", "ndt"))
+  expect_equal(names(empty), c("drift", "bound", "ndt", "edge_corrected"))
+  expect_type(empty$edge_corrected, "logical")
 
   # a fractional recycle is a mistake worth saying out loud
   expect_warning(
@@ -477,7 +562,7 @@ test_that("ez_ddm() cannot correct an edge with a single trial", {
   # 0 and 1 both land on 0.5 at n = 1, where the equations break down anyway
   out <- ez_ddm(0.7, 0.1, c(1, 0, 0.5), n_trials = 1)
   expect_true(all(is.na(out$drift)))
-  expect_equal(attr(out, "edge_corrected"), c(TRUE, TRUE, TRUE))
+  expect_equal(out$edge_corrected, c(TRUE, TRUE, TRUE))
 
   expect_false(is.na(ez_ddm(0.7, 0.1, 1, n_trials = 2)$drift))
 })

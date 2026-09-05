@@ -9,10 +9,10 @@
 \usage{
 screen_compare(
   rt,
-  response = NULL,
   rules,
+  response = NULL,
   .by = NULL,
-  keep = c("threshold", "probabilistic"),
+  policy = c("threshold", "probabilistic"),
   threshold = 0.5
 )
 
@@ -23,7 +23,7 @@ screen_compare(
 \method{plot}{rtprep_comparison}(x, ...)
 }
 \arguments{
-\item{rt, response, .by, keep, threshold}{As in \code{\link[=rt_screen]{rt_screen()}}, and forwarded
+\item{rt, response, .by, policy, threshold}{As in \code{\link[=rt_screen]{rt_screen()}}, and forwarded
 unchanged.}
 
 \item{rules}{A \code{list()} of rule objects; see \link{rules}. Names become the labels
@@ -67,7 +67,7 @@ set.seed(2)
 d <- r_contaminated(300, process = "mixed", rate = 0.1)
 cmp <- screen_compare(
   d$rt,
-  rules = list(
+  list(
     cutoff = rule_cutoff(0.18, 3),
     sd = rule_sd(2.5),
     recursive = rule_recursive("modified")

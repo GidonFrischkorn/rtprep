@@ -69,9 +69,125 @@ test_that("a kept trial never carries a reason", {
 test_that("the probabilistic policy matches threshold for 0/1 rules", {
   rt <- rt_fixture()
   det <- rt_screen(rt, rule = rule_cutoff(0.18, 3))
-  prob <- rt_screen(rt, rule = rule_cutoff(0.18, 3), keep = "probabilistic")
+  prob <- rt_screen(rt, rule = rule_cutoff(0.18, 3), policy = "probabilistic")
   expect_equal(prob$.keep, det$.keep)
   expect_equal(prob$.prob, det$.prob)
+})
+
+test_that("the rule is the second positional argument", {
+  rt <- rt_fixture()
+  expect_equal(
+    rt_screen(rt, rule_cutoff(0.18, 3)),
+    rt_screen(rt, rule = rule_cutoff(0.18, 3))
+  )
+  # response comes third, and is named in every documented call
+  d <- data.frame(rt = c(0.2, 0.3, 0.5, 0.6), correct = c(0, 0, 1, 1))
+  expect_equal(
+    rt_screen(d$rt, rule_ewma(), response = d$correct),
+    rt_screen(d$rt, rule_ewma(), d$correct)
+  )
+  # a response vector in the rule's position fails loudly, not silently
+  expect_error(rt_screen(d$rt, d$correct, rule_ewma()), "must be a rule object")
+})
+
+test_that("the policy argument is policy, and the old name is refused", {
+  rt <- rt_fixture()
+  # partial matching cannot rescue the old spelling: "keep" is not a prefix
+  expect_error(
+    rt_screen(rt, rule_cutoff(0.18, 3), keep = "threshold"), "unused argument"
+  )
+  expect_error(
+    rt_screen(rt, rule_none(), policy = "sometimes"), "should be one"
+  )
+})
+
+# --- rt_keep() --------------------------------------------------------------
+
+test_that("rt_keep() is the .keep column, and nothing else", {
+  rt <- rt_fixture()
+  scr <- rt_screen(rt, rule_cutoff(0.18, 3))
+  keep <- suppressMessages(rt_keep(rt, rule_cutoff(0.18, 3)))
+
+  expect_type(keep, "logical")
+  expect_length(keep, length(rt))
+  expect_null(attributes(keep))
+  expect_equal(keep, scr$.keep)
+})
+
+test_that("rt_keep() reports the drop count once, and can be told not to", {
+  rt <- rt_fixture()
+  expect_message(
+    rt_keep(rt, rule_cutoff(0.18, 3)),
+    "cutoff\\(0.18, 3\\): dropped 2 of 10 trials \\(20.0%\\)"
+  )
+  expect_silent(rt_keep(rt, rule_cutoff(0.18, 3), quiet = TRUE))
+  # nothing dropped is still worth one line: silence would read as "not run"
+  expect_message(rt_keep(rt, rule_none()), "dropped 0 of 10 trials \\(0.0%\\)")
+})
+
+test_that("rt_keep() counts missing trials as dropped and says so", {
+  rt <- c(rt_fixture(), NA, NA)
+  expect_message(
+    rt_keep(rt, rule_cutoff(0.18, 3)),
+    "dropped 4 of 12 trials \\(33.3%\\), 2 of them missing"
+  )
+  expect_false(any(suppressMessages(rt_keep(rt, rule_cutoff(0.18, 3)))[11:12]))
+})
+
+test_that("rt_keep() forwards grouping, response, and the policy", {
+  rt <- c(0.3, 5.0, 0.4, 0.35, 6.0, 0.45)
+  id <- c("b", "a", "a", "b", "b", "a")
+  expect_equal(
+    suppressMessages(rt_keep(rt, rule_sd(1.5), .by = id)),
+    rt_screen(rt, rule_sd(1.5), .by = id)$.keep
+  )
+  # one message for the whole call, not one per group
+  expect_message(rt_keep(rt, rule_sd(1.5), .by = id), "dropped", all = TRUE)
+  expect_length(
+    capture_messages(rt_keep(rt, rule_sd(1.5), .by = id)), 1L
+  )
+
+  d <- data.frame(rt = c(0.2, 0.3, 0.5, 0.6), correct = c(0, 0, 1, 1))
+  expect_equal(
+    suppressMessages(rt_keep(d$rt, rule_ewma(), response = d$correct)),
+    rt_screen(d$rt, rule_ewma(), response = d$correct)$.keep
+  )
+  expect_error(rt_keep(d$rt, rule_ewma()), "requires 'response'")
+
+  expect_equal(
+    suppressMessages(rt_keep(rt, rule_recursive("hybrid"), threshold = 0.75)),
+    rt_screen(rt, rule_recursive("hybrid"), threshold = 0.75)$.keep
+  )
+  expect_error(rt_keep(rt, rule_none(), keep = "threshold"), "unused argument")
+})
+
+# --- screen_fits() ----------------------------------------------------------
+
+test_that("screen_fits() is the fits table, and nothing else", {
+  rt <- c(0.3, 5.0, 0.4, 0.35, 6.0, 0.45)
+  id <- c("b", "a", "a", "b", "b", "a")
+  scr <- rt_screen(rt, rule_sd(1.5), .by = id)
+  fits <- screen_fits(rt, rule_sd(1.5), .by = id)
+
+  expect_s3_class(fits, "data.frame")
+  expect_equal(fits, attr(scr, "fits"))
+  expect_equal(attr(fits, "row.names"), seq_len(nrow(fits)))
+  expect_null(attr(fits, "fits"))
+})
+
+test_that("screen_fits() reports the drop counts under the stated policy", {
+  rt <- rt_fixture()
+  # threshold = 1 drops every trial the rule did not reject outright, so the
+  # count in the table has to move with the policy, not with the rule
+  expect_equal(screen_fits(rt, rule_none())$n_dropped, 0L)
+  expect_equal(screen_fits(rt, rule_none(), threshold = 1)$n_dropped, 10L)
+  expect_equal(
+    screen_fits(rt, rule_cutoff(0.18, 3), threshold = 1)$n_dropped,
+    sum(!rt_screen(rt, rule_cutoff(0.18, 3), threshold = 1)$.keep)
+  )
+  expect_error(
+    screen_fits(rt, rule_none(), keep = "threshold"), "unused argument"
+  )
 })
 
 test_that("input order is preserved for grouped input", {
@@ -266,10 +382,13 @@ test_that("a missing response is treated as a missing trial", {
     rt = c(seq(0.10, 0.19, length.out = 40), seq(0.50, 0.80, length.out = 60)),
     correct = c(rep(c(1, 0), length.out = 40), rep(1, 60))
   )
-  full <- rt_screen(d$rt, d$correct, rule = rule_ewma(lambda = 0.05))
+  full <- rt_screen(d$rt, response = d$correct, rule = rule_ewma(lambda = 0.05))
 
   d$correct[3] <- NA
-  holed <- rt_screen(d$rt, d$correct, rule = rule_ewma(lambda = 0.05))
+  holed <- rt_screen(
+    d$rt,
+    response = d$correct, rule = rule_ewma(lambda = 0.05)
+  )
 
   expect_equal(holed$.reason[3], "missing")
   expect_false(holed$.keep[3])
@@ -279,7 +398,7 @@ test_that("a missing response is treated as a missing trial", {
 
   # a rule that ignores accuracy is unaffected by a missing one
   expect_equal(
-    rt_screen(d$rt, d$correct, rule = rule_cutoff(0.18, 3))$.keep,
+    rt_screen(d$rt, response = d$correct, rule = rule_cutoff(0.18, 3))$.keep,
     d$rt >= 0.18 & d$rt <= 3
   )
 })

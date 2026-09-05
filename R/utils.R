@@ -42,14 +42,16 @@
   invisible(NULL)
 }
 
-# A whole number of trials or responses. Unlike .check_count() this allows zero,
-# because an empty cell is a legitimate thing to summarise.
-.check_whole <- function(x, name) {
-  .stopif(
-    !is.numeric(x) || length(x) != 1L || is.na(x) || x < 0 ||
-      abs(x - round(x)) > .Machine$double.eps^0.5,
-    paste0("'", name, "' must be a single whole number of at least 0.")
-  )
+# Whole numbers of trials or responses, NA allowed, for the functions that
+# vectorise over the rows of a summary table. Unlike .check_count() this allows
+# zero, because an empty cell is a legitimate thing to summarise; a missing
+# count is a missing answer downstream, not an error here.
+.check_wholes <- function(x, name) {
+  observed <- x[!is.na(x)]
+  ok <- (is.numeric(x) || all(is.na(x))) &&
+    !any(observed < 0) &&
+    !any(abs(observed - round(observed)) > .Machine$double.eps^0.5)
+  .stopif(!ok, paste0("'", name, "' must be whole numbers of at least 0."))
   invisible(NULL)
 }
 

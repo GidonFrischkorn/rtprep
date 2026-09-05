@@ -6,10 +6,10 @@
 \usage{
 rt_screen(
   rt,
-  response = NULL,
   rule,
+  response = NULL,
   .by = NULL,
-  keep = c("threshold", "probabilistic"),
+  policy = c("threshold", "probabilistic"),
   threshold = 0.5
 )
 }
@@ -17,23 +17,23 @@ rt_screen(
 \item{rt}{Numeric vector of response times \strong{in seconds}. \code{NA} is allowed;
 non-positive values are an error.}
 
+\item{rule}{A rule object; see \link{rules}.}
+
 \item{response}{Optional response coding of the same length as \code{rt}, given as
 numeric 0/1, logical, or a character or factor using labels such as
 \code{"correct"}/\code{"error"} or \code{"upper"}/\code{"lower"}. Required by \code{\link[=rule_ewma]{rule_ewma()}} and
 by \code{\link[=rule_mixture]{rule_mixture()}} with \code{use_accuracy = TRUE}.}
 
-\item{rule}{A rule object; see \link{rules}.}
-
 \item{.by}{Optional grouping of the same length as \code{rt} — a vector, factor,
 list of vectors, or data frame. Rules are fitted separately within each
 group. \code{NULL} treats all trials as one group.}
 
-\item{keep}{Exclusion policy. \code{"threshold"} keeps a trial when its
+\item{policy}{Exclusion policy. \code{"threshold"} keeps a trial when its
 probability of validity exceeds \code{threshold}. \code{"probabilistic"} keeps it
 with that probability, drawing once per trial.}
 
-\item{threshold}{Cut for \code{keep = "threshold"}, in \verb{[0, 1]}. Ignored under the
-probabilistic policy.}
+\item{threshold}{Cut for \code{policy = "threshold"}, in \verb{[0, 1]}. Ignored under
+the probabilistic policy.}
 }
 \value{
 A \code{data.frame} with one row per element of \code{rt}, in input order:
@@ -54,6 +54,7 @@ against a fractional \code{.prob}). A kept trial never carries a reason.}
 Per-group fit diagnostics are attached as \code{attr(x, "fits")}: one row per
 group with \code{.group}, \code{n_trials}, \code{n_dropped}, and \code{prop_dropped}, plus
 whatever the rule reports (bounds, iterations, EM convergence).
+\code{\link[=screen_fits]{screen_fits()}} returns that table on its own.
 }
 \description{
 Applies a screening rule and returns one row per input trial, whichever rule
@@ -73,21 +74,37 @@ Trials with a missing response time, or a missing value in any \code{.by}
 component, are excluded from every rule's computation and returned with
 \code{.keep = FALSE}, \code{.prob = NA}, and \code{.reason = "missing"}.
 
-Under \code{keep = "probabilistic"} the decision is stochastic by design. There is
-no \code{set.seed()} anywhere in \code{rtprep}; reproducibility is the caller's, which
-in the simulation scripts means \code{SimDesign}'s seed handling.
+Under \code{policy = "probabilistic"} the decision is stochastic by design. There
+is no \code{set.seed()} anywhere in \code{rtprep}; reproducibility is the caller's,
+which in the simulation scripts means \code{SimDesign}'s seed handling.
 }
+\section{Inside a data-frame pipeline}{
+The function takes vectors and returns a data frame, so it drops into
+\code{dplyr::mutate()} unchanged: \code{mutate(rt_screen(rt, rule_sd(2.5)), .by = id)}
+splices the four columns in, and \code{filter(.keep)} then drops the flagged
+trials. Two things to know. \code{attr(x, "fits")} does not survive \code{mutate()};
+use \code{\link[=screen_fits]{screen_fits()}} when the per-group table is what you want. And dplyr
+reads \verb{.keep =} as its own argument, so assign the column by splicing
+rather than by name. When only the filter is needed, \code{\link[=rt_keep]{rt_keep()}} returns
+the logical vector directly.
+}
+
 \examples{
 rt <- c(0.12, 0.31, 0.35, 0.38, 0.42, 0.47, 0.55, 2.90)
-rt_screen(rt, rule = rule_cutoff(0.18, 2.5))
+rt_screen(rt, rule_cutoff(0.18, 2.5))
 
 # rules are group-aware without the package depending on dplyr
 id <- rep(c("a", "b"), each = 4)
-scr <- rt_screen(rt, rule = rule_sd(2), .by = id)
+scr <- rt_screen(rt, rule_sd(2), .by = id)
 attr(scr, "fits")
+
+# a rule that reads accuracy takes it by name
+correct <- c(0, 1, 1, 1, 0, 1, 1, 1)
+rt_screen(rt, rule_ewma(lambda = 0.1), response = correct)
 
 }
 \seealso{
-\link{rules} for the rules themselves; \code{screen_compare()} to apply
-several at once; \code{rt_summary()} to aggregate what survives.
+\link{rules} for the rules themselves; \code{\link[=rt_keep]{rt_keep()}} for the keep vector
+alone; \code{\link[=screen_fits]{screen_fits()}} for the per-group table alone; \code{\link[=screen_compare]{screen_compare()}}
+to apply several rules at once; \code{\link[=rt_summary]{rt_summary()}} to aggregate what survives.
 }

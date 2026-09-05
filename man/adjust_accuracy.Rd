@@ -7,19 +7,24 @@
 adjust_accuracy(n_upper, n_trials, contaminant_prop, guess_rate = 0.5)
 }
 \arguments{
-\item{n_upper}{Count of upper-boundary (correct) responses.}
+\item{n_upper}{Count of upper-boundary (correct) responses. Vectorised: the
+three count and proportion arguments recycle to a common length, one row
+per element, so the function takes the columns of a summary table
+directly.}
 
 \item{n_trials}{Total number of trials.}
 
 \item{contaminant_prop}{Estimated contaminant proportion, typically the
-\code{contaminant_prop} column of \code{\link[=rt_summary]{rt_summary()}}. \code{NA} or \verb{<= 0} returns the
-counts unchanged.}
+\code{contaminant_prop} column of \code{\link[=rt_summary]{rt_summary()}}. \code{NA} or \verb{<= 0} returns that
+row's counts unchanged.}
 
 \item{guess_rate}{Accuracy assumed for a contaminant response, known from the
-design. \code{0.5} for a two-alternative task.}
+design. \code{0.5} for a two-alternative task. One value for every row.}
 }
 \value{
-A one-row \code{data.frame} with integer \code{n_upper_adj} and \code{n_trials_adj}.
+A \code{data.frame} with integer \code{n_upper_adj} and \code{n_trials_adj}, one
+row per input element. A row whose \code{n_upper} or \code{n_trials} is \code{NA} comes
+back \code{NA}.
 }
 \description{
 Removes the estimated contaminant trials from the accuracy counts, on the
@@ -32,10 +37,20 @@ those happened to be correct, are both binomial draws, so repeated calls
 differ. That is faithful to the uncertainty in a mixture estimate — a point
 estimate would understate it — and it matches \code{bmm}. There is no \code{set.seed()}
 anywhere in \code{rtprep}; reproducibility is the caller's.
+
+Each row draws independently. For a single row the two draws are made in
+the same order as \code{bmm::adjust_ezdm_accuracy()}, so the two functions give
+the same answer from the same random seed.
 }
 \examples{
 set.seed(42)
 adjust_accuracy(n_upper = 80, n_trials = 100, contaminant_prop = 0.1)
+
+# one row per cell of a summary table
+cells <- data.frame(
+  n_upper = c(80, 45), n_trials = c(100, 50), contaminant_prop = c(0.1, 0.2)
+)
+adjust_accuracy(cells$n_upper, cells$n_trials, cells$contaminant_prop)
 
 }
 \seealso{

@@ -9,19 +9,19 @@
 #'
 #' @param rt Numeric vector of response times **in seconds**. `NA` is allowed;
 #'   non-positive values are an error.
+#' @param rule A rule object; see [rules].
 #' @param response Optional response coding of the same length as `rt`, given as
 #'   numeric 0/1, logical, or a character or factor using labels such as
 #'   `"correct"`/`"error"` or `"upper"`/`"lower"`. Required by [rule_ewma()] and
 #'   by [rule_mixture()] with `use_accuracy = TRUE`.
-#' @param rule A rule object; see [rules].
 #' @param .by Optional grouping of the same length as `rt` — a vector, factor,
 #'   list of vectors, or data frame. Rules are fitted separately within each
 #'   group. `NULL` treats all trials as one group.
-#' @param keep Exclusion policy. `"threshold"` keeps a trial when its
+#' @param policy Exclusion policy. `"threshold"` keeps a trial when its
 #'   probability of validity exceeds `threshold`. `"probabilistic"` keeps it
 #'   with that probability, drawing once per trial.
-#' @param threshold Cut for `keep = "threshold"`, in `[0, 1]`. Ignored under the
-#'   probabilistic policy.
+#' @param threshold Cut for `policy = "threshold"`, in `[0, 1]`. Ignored under
+#'   the probabilistic policy.
 #'
 #' @return A `data.frame` with one row per element of `rt`, in input order:
 #'
@@ -41,6 +41,7 @@
 #'   Per-group fit diagnostics are attached as `attr(x, "fits")`: one row per
 #'   group with `.group`, `n_trials`, `n_dropped`, and `prop_dropped`, plus
 #'   whatever the rule reports (bounds, iterations, EM convergence).
+#'   [screen_fits()] returns that table on its own.
 #'
 #' @details
 #' Separating the probability from the decision is deliberate. A mixture rule
@@ -53,27 +54,43 @@
 #' component, are excluded from every rule's computation and returned with
 #' `.keep = FALSE`, `.prob = NA`, and `.reason = "missing"`.
 #'
-#' Under `keep = "probabilistic"` the decision is stochastic by design. There is
-#' no `set.seed()` anywhere in `rtprep`; reproducibility is the caller's, which
-#' in the simulation scripts means `SimDesign`'s seed handling.
+#' Under `policy = "probabilistic"` the decision is stochastic by design. There
+#' is no `set.seed()` anywhere in `rtprep`; reproducibility is the caller's,
+#' which in the simulation scripts means `SimDesign`'s seed handling.
 #'
-#' @seealso [rules] for the rules themselves; `screen_compare()` to apply
-#'   several at once; `rt_summary()` to aggregate what survives.
+#' # Inside a data-frame pipeline
+#'
+#' The function takes vectors and returns a data frame, so it drops into
+#' `dplyr::mutate()` unchanged: `mutate(rt_screen(rt, rule_sd(2.5)), .by = id)`
+#' splices the four columns in, and `filter(.keep)` then drops the flagged
+#' trials. Two things to know. `attr(x, "fits")` does not survive `mutate()`;
+#' use [screen_fits()] when the per-group table is what you want. And dplyr
+#' reads `.keep =` as its own argument, so assign the column by splicing
+#' rather than by name. When only the filter is needed, [rt_keep()] returns
+#' the logical vector directly.
+#'
+#' @seealso [rules] for the rules themselves; [rt_keep()] for the keep vector
+#'   alone; [screen_fits()] for the per-group table alone; [screen_compare()]
+#'   to apply several rules at once; [rt_summary()] to aggregate what survives.
 #'
 #' @examples
 #' rt <- c(0.12, 0.31, 0.35, 0.38, 0.42, 0.47, 0.55, 2.90)
-#' rt_screen(rt, rule = rule_cutoff(0.18, 2.5))
+#' rt_screen(rt, rule_cutoff(0.18, 2.5))
 #'
 #' # rules are group-aware without the package depending on dplyr
 #' id <- rep(c("a", "b"), each = 4)
-#' scr <- rt_screen(rt, rule = rule_sd(2), .by = id)
+#' scr <- rt_screen(rt, rule_sd(2), .by = id)
 #' attr(scr, "fits")
 #'
+#' # a rule that reads accuracy takes it by name
+#' correct <- c(0, 1, 1, 1, 0, 1, 1, 1)
+#' rt_screen(rt, rule_ewma(lambda = 0.1), response = correct)
+#'
 #' @export
-rt_screen <- function(rt, response = NULL, rule, .by = NULL,
-                      keep = c("threshold", "probabilistic"),
+rt_screen <- function(rt, rule, response = NULL, .by = NULL,
+                      policy = c("threshold", "probabilistic"),
                       threshold = 0.5) {
-  keep <- match.arg(keep)
+  policy <- match.arg(policy)
   .check_rt(rt)
   .stopif(
     !inherits(rule, "rtprep_rule"),
@@ -151,7 +168,7 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
     fits[g] <- list(res$fit)
   }
 
-  .keep <- if (keep == "threshold") {
+  .keep <- if (policy == "threshold") {
     prob > threshold
   } else {
     stats::runif(n) < prob
@@ -176,6 +193,98 @@ rt_screen <- function(rt, response = NULL, rule, .by = NULL,
   .warn_unconverged(fits_table)
   attr(out, "fits") <- fits_table
   out
+}
+
+#' Keep vector from a screening rule
+#'
+#' @description
+#' The `.keep` column of [rt_screen()] on its own, for the case where a filter
+#' is all that is wanted. It reports how many trials it dropped, once per call,
+#' so that the exclusion count is logged next to the exclusion rather than
+#' reconstructed afterwards.
+#'
+#' @inheritParams rt_screen
+#' @param quiet If `FALSE` (the default), one message states the rule, the
+#'   number of trials dropped, and the proportion. `TRUE` suppresses it.
+#'
+#' @return A logical vector the length of `rt`: `TRUE` for a trial to keep.
+#'   Trials with a missing response time or grouping key are `FALSE`, as in
+#'   [rt_screen()].
+#'
+#' @details
+#' Inside a grouped `filter()` the message fires once per group, because the
+#' function is called once per group. Pass `.by` to `rt_keep()` instead of to
+#' `filter()`: the keep vector is identical either way, and the count then
+#' covers the whole data set in one line. Or set `quiet = TRUE`.
+#'
+#' @seealso [rt_screen()] for the probability and the reason alongside the
+#'   decision; [screen_fits()] for the per-group diagnostics.
+#'
+#' @examples
+#' rt <- c(0.12, 0.31, 0.35, 0.38, 0.42, 0.47, 0.55, 2.90)
+#' keep <- rt_keep(rt, rule_cutoff(0.18, 2.5))
+#' rt[keep]
+#'
+#' # with dplyr: dat |> filter(rt_keep(rt, rule_sd(2.5), .by = id))
+#'
+#' @export
+rt_keep <- function(rt, rule, response = NULL, .by = NULL,
+                    policy = c("threshold", "probabilistic"),
+                    threshold = 0.5, quiet = FALSE) {
+  .check_flag(quiet, "quiet")
+  scr <- rt_screen(
+    rt, rule, response,
+    .by = .by, policy = policy, threshold = threshold
+  )
+  keep <- scr$.keep
+  if (!quiet) {
+    n_dropped <- sum(!keep)
+    n_missing <- sum(!is.na(scr$.reason) & scr$.reason == "missing")
+    message(sprintf(
+      "%s: dropped %d of %d trials (%.1f%%)%s",
+      rule$label, n_dropped, length(rt), 100 * n_dropped / length(rt),
+      if (n_missing > 0L) sprintf(", %d of them missing", n_missing) else ""
+    ))
+  }
+  keep
+}
+
+#' Per-group fit diagnostics from a screening rule
+#'
+#' @description
+#' The `fits` table of [rt_screen()] on its own: one row per group with the
+#' bookkeeping columns and whatever the rule reports. It exists because an
+#' attribute does not survive `dplyr::mutate()`, so the table is otherwise out
+#' of reach inside a pipeline.
+#'
+#' @inheritParams rt_screen
+#'
+#' @return A `data.frame` with one row per group, in group order: `.group`,
+#'   `n_trials`, `n_dropped`, `prop_dropped`, then the rule's own columns
+#'   (bounds, criterion, iterations, EM convergence, and so on; see [rules]).
+#'   `n_dropped` and `prop_dropped` count under the stated `policy` and
+#'   `threshold`, exactly as `attr(rt_screen(...), "fits")` would.
+#'
+#' @seealso [rt_screen()], whose per-trial result carries this table as an
+#'   attribute; [screen_compare()] for the same table stacked over several
+#'   rules.
+#'
+#' @examples
+#' rt <- c(0.12, 0.31, 0.35, 0.38, 0.42, 0.47, 0.55, 2.90)
+#' id <- rep(c("a", "b"), each = 4)
+#' screen_fits(rt, rule_sd(2), .by = id)
+#'
+#' # with dplyr: dat |> reframe(screen_fits(rt, rule_sd(2.5)), .by = id)
+#'
+#' @export
+screen_fits <- function(rt, rule, response = NULL, .by = NULL,
+                        policy = c("threshold", "probabilistic"),
+                        threshold = 0.5) {
+  scr <- rt_screen(
+    rt, rule, response,
+    .by = .by, policy = policy, threshold = threshold
+  )
+  attr(scr, "fits")
 }
 
 # Report failed fits once for the whole call rather than once per group.

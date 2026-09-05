@@ -22,7 +22,10 @@ ez_fixture <- function() {
 
 test_that("the final-threshold contract holds and the fast block is flagged", {
   d <- ez_fixture()
-  out <- rt_screen(d$rt, d$ok, rule = rule_ez_support(1, refit = TRUE))
+  out <- rt_screen(
+    d$rt,
+    response = d$ok, rule = rule_ez_support(1, refit = TRUE)
+  )
   fits <- attr(out, "fits")
 
   # the one assertion that pins boundary strictness, the two-pass result, and
@@ -41,7 +44,10 @@ test_that("the final-threshold contract holds and the fast block is flagged", {
 
 test_that("the refit ratchets upward on this fixture and pass-1 flags stay", {
   d <- ez_fixture()
-  out <- rt_screen(d$rt, d$ok, rule = rule_ez_support(1, refit = TRUE))
+  out <- rt_screen(
+    d$rt,
+    response = d$ok, rule = rule_ez_support(1, refit = TRUE)
+  )
   fits <- attr(out, "fits")
 
   expect_gte(fits$ndt_final, fits$ndt_init)
@@ -51,7 +57,10 @@ test_that("the refit ratchets upward on this fixture and pass-1 flags stay", {
 
 test_that("the rule stops after exactly one refit", {
   d <- ez_fixture()
-  out <- rt_screen(d$rt, d$ok, rule = rule_ez_support(1, refit = TRUE))
+  out <- rt_screen(
+    d$rt,
+    response = d$ok, rule = rule_ez_support(1, refit = TRUE)
+  )
   fits <- attr(out, "fits")
 
   # a third pass would move the threshold again; the rule must not take it
@@ -63,7 +72,10 @@ test_that("the rule stops after exactly one refit", {
 
 test_that("refit = FALSE is a single pass", {
   d <- ez_fixture()
-  out <- rt_screen(d$rt, d$ok, rule = rule_ez_support(1, refit = FALSE))
+  out <- rt_screen(
+    d$rt,
+    response = d$ok, rule = rule_ez_support(1, refit = FALSE)
+  )
   fits <- attr(out, "fits")
 
   expect_equal(fits$ndt_final, fits$ndt_init)
@@ -73,7 +85,10 @@ test_that("refit = FALSE is a single pass", {
 
 test_that("c_ndt scales the support threshold", {
   d <- ez_fixture()
-  out <- rt_screen(d$rt, d$ok, rule = rule_ez_support(0.8, refit = TRUE))
+  out <- rt_screen(
+    d$rt,
+    response = d$ok, rule = rule_ez_support(0.8, refit = TRUE)
+  )
   fits <- attr(out, "fits")
   expect_equal(out$.keep, d$rt >= 0.8 * fits$ndt_final)
   expect_equal(fits$threshold_rt, 0.8 * fits$ndt_final)
@@ -101,7 +116,7 @@ test_that("a negative fitted ndt removes nothing", {
   ok <- rep(c(1, 1, 1, 0), 25)
   expect_lt(ez_ddm(mean(rt), var(rt), mean(ok), length(rt))$ndt, 0)
 
-  out <- rt_screen(rt, ok, rule = rule_ez_support())
+  out <- rt_screen(rt, response = ok, rule = rule_ez_support())
   expect_true(all(out$.keep))
   fits <- attr(out, "fits")
   expect_false(fits$usable)
@@ -143,7 +158,7 @@ test_that("the EZ support screen fits per group under .by", {
   ok <- c(d$ok, slow_ok)
   subject <- rep(c(1, 2), times = c(length(d$rt), length(slow_rt)))
 
-  out <- rt_screen(rt, ok, rule = rule_ez_support(), .by = subject)
+  out <- rt_screen(rt, response = ok, rule = rule_ez_support(), .by = subject)
   fits <- attr(out, "fits")
   expect_equal(nrow(fits), 2L)
   expect_false(isTRUE(all.equal(fits$ndt_final[1], fits$ndt_final[2])))

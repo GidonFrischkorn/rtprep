@@ -158,7 +158,8 @@ test_that("the accuracy-informed mixture runs, and is a different fit", {
   d <- mixture_data()
   y <- rep(c(1, 0), length.out = nrow(d))
 
-  joint <- rt_screen(d$rt, y,
+  joint <- rt_screen(d$rt,
+    response = y,
     rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
   )
   rt_only <- rt_screen(d$rt, rule = rule_mixture("lognormal", maxit = 500))

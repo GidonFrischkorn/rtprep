@@ -246,3 +246,34 @@ test_that("plot() works whether or not ggplot2 is installed", {
   on.exit(dev.off(), add = TRUE)
   expect_invisible(plot(cmp))
 })
+
+test_that("the roster is the second positional argument", {
+  rt <- compare_fixture()
+  parts <- c("keep", "prob", "reason", "drops")
+  expect_equal(
+    screen_compare(rt, standard_rules())[parts],
+    screen_compare(rt, rules = standard_rules())[parts]
+  )
+  # a response vector in the roster's position fails loudly
+  expect_error(
+    screen_compare(rt, rep(1, length(rt))), "non-empty list of rule objects"
+  )
+})
+
+test_that("screen_compare() forwards the policy under its new name only", {
+  rt <- compare_fixture()
+  # rule_none() gives .prob = 1 everywhere, so the two policies part company
+  # only at threshold = 1: the threshold policy drops every trial, the
+  # probabilistic one keeps every trial. A silently dropped `policy` would
+  # fall back to threshold and fail here.
+  dropped <- screen_compare(rt, list(rule_none()), threshold = 1)
+  kept <- screen_compare(
+    rt, list(rule_none()),
+    policy = "probabilistic", threshold = 1
+  )
+  expect_false(any(dropped$keep))
+  expect_true(all(kept$keep))
+  expect_error(
+    screen_compare(rt, standard_rules(), keep = "threshold"), "unused argument"
+  )
+})

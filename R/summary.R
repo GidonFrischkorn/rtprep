@@ -340,15 +340,20 @@ rt_summary <- function(rt, response = NULL,
 #' assumption that contaminants respond correctly at `guess_rate`. A port of
 #' `bmm::adjust_ezdm_accuracy()`.
 #'
-#' @param n_upper Count of upper-boundary (correct) responses.
+#' @param n_upper Count of upper-boundary (correct) responses. Vectorised: the
+#'   three count and proportion arguments recycle to a common length, one row
+#'   per element, so the function takes the columns of a summary table
+#'   directly.
 #' @param n_trials Total number of trials.
 #' @param contaminant_prop Estimated contaminant proportion, typically the
-#'   `contaminant_prop` column of [rt_summary()]. `NA` or `<= 0` returns the
-#'   counts unchanged.
+#'   `contaminant_prop` column of [rt_summary()]. `NA` or `<= 0` returns that
+#'   row's counts unchanged.
 #' @param guess_rate Accuracy assumed for a contaminant response, known from the
-#'   design. `0.5` for a two-alternative task.
+#'   design. `0.5` for a two-alternative task. One value for every row.
 #'
-#' @return A one-row `data.frame` with integer `n_upper_adj` and `n_trials_adj`.
+#' @return A `data.frame` with integer `n_upper_adj` and `n_trials_adj`, one
+#'   row per input element. A row whose `n_upper` or `n_trials` is `NA` comes
+#'   back `NA`.
 #'
 #' @details
 #' **Stochastic by design.** How many trials were contaminants, and how many of
@@ -357,6 +362,10 @@ rt_summary <- function(rt, response = NULL,
 #' estimate would understate it — and it matches `bmm`. There is no `set.seed()`
 #' anywhere in `rtprep`; reproducibility is the caller's.
 #'
+#' Each row draws independently. For a single row the two draws are made in
+#' the same order as `bmm::adjust_ezdm_accuracy()`, so the two functions give
+#' the same answer from the same random seed.
+#'
 #' @seealso [rt_summary()] for the counts and the proportion, [ez_ddm()] for
 #'   what to do with them.
 #'
@@ -364,41 +373,72 @@ rt_summary <- function(rt, response = NULL,
 #' set.seed(42)
 #' adjust_accuracy(n_upper = 80, n_trials = 100, contaminant_prop = 0.1)
 #'
+#' # one row per cell of a summary table
+#' cells <- data.frame(
+#'   n_upper = c(80, 45), n_trials = c(100, 50), contaminant_prop = c(0.1, 0.2)
+#' )
+#' adjust_accuracy(cells$n_upper, cells$n_trials, cells$contaminant_prop)
+#'
 #' @export
 adjust_accuracy <- function(n_upper, n_trials, contaminant_prop,
                             guess_rate = 0.5) {
-  .check_whole(n_upper, "n_upper")
-  .check_whole(n_trials, "n_trials")
+  .check_wholes(n_upper, "n_upper")
+  .check_wholes(n_trials, "n_trials")
   .check_scalar(guess_rate, "guess_rate", lower = 0, upper = 1)
-  .stopif(n_upper > n_trials, "'n_upper' cannot exceed 'n_trials'.")
   .stopif(
-    length(contaminant_prop) != 1L ||
-      (!is.numeric(contaminant_prop) && !is.na(contaminant_prop)),
-    "'contaminant_prop' must be a single number, or NA."
+    !(is.numeric(contaminant_prop) || all(is.na(contaminant_prop))),
+    "'contaminant_prop' must be numeric, or NA."
   )
   .stopif(
-    !is.na(contaminant_prop) && contaminant_prop > 1,
+    any(contaminant_prop > 1, na.rm = TRUE),
     "'contaminant_prop' cannot exceed 1."
   )
 
-  if (is.na(contaminant_prop) || contaminant_prop <= 0) {
-    return(data.frame(
-      n_upper_adj = as.integer(n_upper),
-      n_trials_adj = as.integer(n_trials)
-    ))
+  sizes <- lengths(list(n_upper, n_trials, contaminant_prop))
+  if (any(sizes == 0L)) {
+    return(data.frame(n_upper_adj = integer(0), n_trials_adj = integer(0)))
+  }
+  n <- max(sizes)
+  .warnif(
+    any(n %% sizes != 0L),
+    "Longer argument is not a multiple of the shorter ones; recycling anyway."
+  )
+  n_upper <- rep_len(n_upper, n)
+  n_trials <- rep_len(n_trials, n)
+  contaminant_prop <- rep_len(as.numeric(contaminant_prop), n)
+  .stopif(
+    any(n_upper > n_trials, na.rm = TRUE),
+    "'n_upper' cannot exceed 'n_trials'."
+  )
+
+  n_upper_adj <- as.integer(n_upper)
+  n_trials_adj <- as.integer(n_trials)
+  # a row with a missing count has no answer, whichever count is missing
+  no_count <- is.na(n_upper) | is.na(n_trials)
+  n_upper_adj[no_count] <- NA_integer_
+  n_trials_adj[no_count] <- NA_integer_
+
+  # Only rows with something to adjust touch the random stream. For one such
+  # row this is rbinom(1, n_trials, prop) then rbinom(1, n_contam, guess_rate),
+  # which is bmm's sequence, so the equivalence holds draw for draw.
+  active <- !is.na(contaminant_prop) & contaminant_prop > 0 & !no_count
+  if (any(active)) {
+    k <- sum(active)
+    n_contam <- stats::rbinom(
+      k,
+      size = n_trials[active], prob = contaminant_prop[active]
+    )
+    # of those, the ones that came out correct by chance
+    n_contam_upper <- stats::rbinom(k, size = n_contam, prob = guess_rate)
+
+    remaining <- n_trials[active] - n_contam
+    n_trials_adj[active] <- as.integer(remaining)
+    n_upper_adj[active] <- as.integer(
+      pmax(0, pmin(n_upper[active] - n_contam_upper, remaining))
+    )
   }
 
-  n_contam <- stats::rbinom(1, size = n_trials, prob = contaminant_prop)
-  # of those, the ones that came out correct by chance
-  n_contam_upper <- stats::rbinom(1, size = n_contam, prob = guess_rate)
-
-  n_trials_adj <- n_trials - n_contam
-  n_upper_adj <- max(0, min(n_upper - n_contam_upper, n_trials_adj))
-
-  data.frame(
-    n_upper_adj = as.integer(n_upper_adj),
-    n_trials_adj = as.integer(n_trials_adj)
-  )
+  data.frame(n_upper_adj = n_upper_adj, n_trials_adj = n_trials_adj)
 }
 
 #' Invert summary statistics into diffusion parameters
@@ -426,9 +466,9 @@ adjust_accuracy <- function(n_upper, n_trials, contaminant_prop,
 #'   with `s` and `ndt` does not, so a drift of 0.1 at `s = 0.1` and a drift of
 #'   1.0 at `s = 1` describe the same process.
 #'
-#' @return A `data.frame` with `drift`, `bound`, and `ndt`, one row per input
-#'   element (inputs recycle to a common length). An `"edge_corrected"`
-#'   attribute flags which rows needed the correction below.
+#' @return A `data.frame` with `drift`, `bound`, `ndt`, and a logical
+#'   `edge_corrected`, one row per input element (inputs recycle to a common
+#'   length). `edge_corrected` flags the rows that needed the correction below.
 #'
 #' @details
 #' The equations divide by `logit(accuracy)` and break down at accuracies of 0,
@@ -436,10 +476,9 @@ adjust_accuracy <- function(n_upper, n_trials, contaminant_prop,
 #' `1 / (2 * n_trials)`: 1 becomes `1 - 1/(2n)`, 0 becomes `1/(2n)`, and 0.5
 #' becomes `0.5 + 1/(2n)`. It is applied silently, because it is the published
 #' behaviour and a warning per cell would bury a simulation run — but which
-#' cells were corrected comes back in the `"edge_corrected"` attribute, so a
-#' script can count them. Note that `[`, `rbind()`, and every dplyr verb drop
-#' that attribute, so read it off the returned object directly rather than
-#' expecting it to survive a pipeline.
+#' cells were corrected comes back in the `edge_corrected` column, so a script
+#' can count them. It is a column rather than an attribute so that it survives
+#' `[`, `rbind()`, and the dplyr verbs.
 #'
 #' EZ is fragile under contamination: a handful of fast guesses moves the drift
 #' estimate a long way (Ratcliff, 2008). That fragility is the point of the
@@ -486,11 +525,10 @@ ez_ddm <- function(mean_rt, var_rt, accuracy, n_trials, s = 1) {
 
   sizes <- lengths(list(mean_rt, var_rt, accuracy, n_trials))
   if (any(sizes == 0L)) {
-    out <- data.frame(
-      drift = numeric(0), bound = numeric(0), ndt = numeric(0)
-    )
-    attr(out, "edge_corrected") <- logical(0)
-    return(out)
+    return(data.frame(
+      drift = numeric(0), bound = numeric(0), ndt = numeric(0),
+      edge_corrected = logical(0)
+    ))
   }
   n <- max(sizes)
   .warnif(
@@ -532,7 +570,7 @@ ez_ddm <- function(mean_rt, var_rt, accuracy, n_trials, s = 1) {
     ndt[i] <- mean_rt[i] - mdt
   }
 
-  out <- data.frame(drift = drift, bound = bound, ndt = ndt)
-  attr(out, "edge_corrected") <- corrected
-  out
+  data.frame(
+    drift = drift, bound = bound, ndt = ndt, edge_corrected = corrected
+  )
 }

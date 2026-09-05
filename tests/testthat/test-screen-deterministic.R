@@ -211,7 +211,10 @@ ewma_fixture <- function(n_fast = 40, n_slow = 60) {
 
 test_that("rule_ewma() cuts where accuracy departs from chance", {
   d <- ewma_fixture()
-  out <- rt_screen(d$rt, d$correct, rule = rule_ewma(lambda = 0.05, L = 1.5))
+  out <- rt_screen(
+    d$rt,
+    response = d$correct, rule = rule_ewma(lambda = 0.05, L = 1.5)
+  )
 
   expect_false(any(out$.keep[1:40]))
   expect_true(all(out$.reason[1:40] == "too_fast"))
@@ -230,7 +233,10 @@ test_that("rule_ewma() overshoots the elbow, and by less as lambda grows", {
   # cost Study 1 measures -- pin it down rather than let it drift.
   d <- ewma_fixture()
   flagged <- vapply(c(0.01, 0.05, 0.10, 0.20), function(lam) {
-    sum(!rt_screen(d$rt, d$correct, rule = rule_ewma(lambda = lam))$.keep)
+    sum(!rt_screen(
+      d$rt,
+      response = d$correct, rule = rule_ewma(lambda = lam)
+    )$.keep)
   }, integer(1))
 
   expect_true(all(flagged >= 40), info = "every true guess must be caught")
@@ -241,7 +247,10 @@ test_that("rule_ewma() overshoots the elbow, and by less as lambda grows", {
 test_that("rule_ewma() flags nothing when accuracy never leaves chance", {
   rt <- seq(0.10, 1.00, length.out = 100)
   correct <- rep(c(1, 0), 50)
-  out <- rt_screen(rt, correct, rule = rule_ewma(lambda = 0.05, L = 1.5))
+  out <- rt_screen(
+    rt,
+    response = correct, rule = rule_ewma(lambda = 0.05, L = 1.5)
+  )
 
   expect_true(all(out$.keep))
   expect_true(is.na(attr(out, "fits")$cutoff_rt))
@@ -250,16 +259,19 @@ test_that("rule_ewma() flags nothing when accuracy never leaves chance", {
 
 test_that("rule_ewma() accepts the response codings the package documents", {
   d <- ewma_fixture()
-  numeric_out <- rt_screen(d$rt, d$correct, rule = rule_ewma(lambda = 0.05))
+  numeric_out <- rt_screen(
+    d$rt,
+    response = d$correct, rule = rule_ewma(lambda = 0.05)
+  )
   chr <- ifelse(d$correct == 1, "correct", "error")
-  chr_out <- rt_screen(d$rt, chr, rule = rule_ewma(lambda = 0.05))
+  chr_out <- rt_screen(d$rt, response = chr, rule = rule_ewma(lambda = 0.05))
   expect_equal(chr_out$.keep, numeric_out$.keep)
 })
 
 test_that("rule_ewma() rejects response codings it cannot interpret", {
   d <- ewma_fixture(4, 6)
   expect_error(
-    rt_screen(d$rt, rep("maybe", 10), rule = rule_ewma()),
+    rt_screen(d$rt, rule_ewma(), response = rep("maybe", 10)),
     "Unrecognized response"
   )
 })

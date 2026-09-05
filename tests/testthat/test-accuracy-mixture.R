@@ -227,7 +227,8 @@ test_that("accuracy orders overlapping guesses better, but the fit collapses", {
     overlap = TRUE, seed = 87
   )
 
-  joint <- rt_screen(d$rt, d$correct,
+  joint <- rt_screen(d$rt,
+    response = d$correct,
     rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
   )
   rt_only <- rt_screen(d$rt, rule = rule_mixture("lognormal", maxit = 500))
@@ -269,7 +270,8 @@ test_that("accuracy actively hurts when the contaminants' accuracy is intact", {
     contaminant = rep(c(FALSE, TRUE), c(n_core, n_contam))
   )
 
-  joint <- rt_screen(d$rt, d$correct,
+  joint <- rt_screen(d$rt,
+    response = d$correct,
     rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
   )
   rt_only <- rt_screen(d$rt, rule = rule_mixture("lognormal", maxit = 500))
@@ -315,7 +317,8 @@ test_that("rt_screen() reports an inverted fit once for the whole call", {
 
   warnings <- character(0)
   withCallingHandlers(
-    rt_screen(rt, correct,
+    rt_screen(rt,
+      response = correct,
       rule = rule_mixture("lognormal", use_accuracy = TRUE), .by = id
     ),
     warning = function(w) {
@@ -330,7 +333,8 @@ test_that("rt_screen() reports an inverted fit once for the whole call", {
 
 test_that("the accuracy-informed rule is now applicable", {
   d <- guessing_data()
-  out <- rt_screen(d$rt, d$correct,
+  out <- rt_screen(d$rt,
+    response = d$correct,
     rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
   )
 
@@ -344,7 +348,8 @@ test_that("the fits table reports the valid process's accuracy", {
   d <- guessing_data(p_correct = 0.9)
 
   joint <- attr(
-    rt_screen(d$rt, d$correct,
+    rt_screen(d$rt,
+      response = d$correct,
       rule = rule_mixture("lognormal", use_accuracy = TRUE, maxit = 500)
     ),
     "fits"

@@ -1,5 +1,45 @@
 # rtprep 0.0.0.9000 (development version)
 
+## Interface changes before the first release
+
+These are the changes that would have needed a deprecation cycle after
+release, made while the package is still unreleased.
+
+* The rule is now the second argument: `rt_screen(rt, rule, response = NULL,
+  .by = NULL, ...)`, and likewise `screen_compare(rt, rules, response = NULL,
+  .by = NULL, ...)`. `rt_screen(rt, rule_sd(2.5))` works as it reads, and
+  `response`, which most rules do not need, is passed by name. A call that
+  still passes `response` in the second position fails with "'rule' must be a
+  rule object" rather than doing something else quietly.
+
+* The exclusion policy argument is `policy = c("threshold", "probabilistic")`,
+  not `keep =`. The column that holds the decision is `.keep`; the argument
+  that chooses how the decision is made is the policy, and one word for two
+  things was one too many. The old name is refused outright (it is not a
+  prefix of the new one, so partial matching cannot rescue it).
+
+* `rt_keep()` returns the `.keep` column alone, as a logical vector, and
+  reports once how many trials it dropped: `dat |> filter(rt_keep(rt,
+  rule_sd(2.5), .by = id))` is the whole filter step, with the exclusion count
+  logged next to the exclusion. `quiet = TRUE` silences the message. Inside a
+  grouped `filter()` the message would fire once per group, so pass `.by` to
+  `rt_keep()` instead; the keep vector is the same either way.
+
+* `screen_fits()` returns the per-group fits table alone. `attr(x, "fits")`
+  does not survive `dplyr::mutate()`, so inside a pipeline the table was
+  otherwise out of reach. `dat |> reframe(screen_fits(rt, rule_sd(2.5)),
+  .by = id)` is now one call.
+
+* `adjust_accuracy()` vectorises over rows: the columns of a summary table go
+  straight in, one row per cell, each row drawing independently. Rows with a
+  missing count come back `NA` rather than stopping the call. For a single
+  row the draws are made in `bmm::adjust_ezdm_accuracy()`'s order, so the
+  draw-for-draw equivalence with `bmm` still holds and is still tested.
+
+* `ez_ddm()` returns `edge_corrected` as a column rather than an attribute, so
+  the flag survives `[`, `rbind()`, and every dplyr verb instead of being
+  dropped by the first one.
+
 ## New features
 
 * `rt_screen()` applies any screening rule to a response time vector and returns
@@ -11,7 +51,7 @@
 
 * `.prob` is the probability that a trial came from the decision process — that
   is, P(valid) — and the keep decision is a separate, explicit policy
-  (`keep = "threshold"` or `"probabilistic"`). Deterministic rules are the
+  (`policy = "threshold"` or `"probabilistic"`). Deterministic rules are the
   degenerate case, returning 0 or 1. Note that `bmm::flag_contaminant_rts()`
   returns the complement.
 
