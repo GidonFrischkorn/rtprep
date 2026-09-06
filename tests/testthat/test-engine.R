@@ -9,7 +9,9 @@
 # The fixture was produced by the shipped engine and must survive every
 # refactor unchanged. Regenerate it -- by loading the package and running
 # fixtures/make-engine-reference.R -- only when a change to a rule's answer is
-# intended and has been reviewed.
+# intended and has been reviewed. Last regenerated 2026-09-06, when the
+# mixture default moved from maxit = 100 to 500 (DESIGN.md #28): the groups
+# that had stopped at the old cap now converge; no keep decision moved.
 #
 # (test code is not package code; the no-set.seed rule binds R/.)
 

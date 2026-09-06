@@ -17,10 +17,6 @@
 #' * `rule_ewma()` — the accuracy control chart of Vandekerckhove and
 #'   Tuerlinckx (2007).
 #' * `rule_mixture()` — a uniform-contaminant mixture fitted by EM.
-#' * `rule_adaptive_trim()` — a lower trim that validates itself against the
-#'   shift of the surviving minimum. **Experimental**; see Details.
-#' * `rule_ez_support()` — a model-implied support bound from the closed-form
-#'   EZ non-decision time. **Experimental**; see Details.
 #' * `rule_none()` — a pass-through baseline.
 #'
 #' @param min,max Absolute bounds in seconds. Bounds are **inclusive**: a trial
@@ -40,16 +36,6 @@
 #'   departs from chance by more than `L` standard errors.
 #' @param chance Accuracy expected from a contaminant response, known from the
 #'   design (0.5 for a two-alternative task).
-#' @param q_cut Lower quantile of the tentative cut, in (0, 0.5). The
-#'   validation reference quantile is `2 * q_cut`.
-#' @param s_accept Minimum proportional shift of the surviving minimum toward
-#'   the reference quantile for the tentative cut to be accepted.
-#' @param c_ndt Multiplier on the fitted non-decision time that sets the
-#'   support bound, in (0, 1]: no valid response time can undercut
-#'   non-decision time, so nothing above 1 has a grounding.
-#' @param refit Whether to refit the EZ model once on the survivors and
-#'   re-flag against the updated non-decision time. Exactly one refit; the
-#'   rule never iterates to convergence.
 #' @param distribution Parametric distribution for the valid response time
 #'   component of the mixture.
 #' @param bound Length-2 bounds of the uniform contaminant component. Each
@@ -58,7 +44,11 @@
 #'   **Experimental**; see Details.
 #' @param init Starting value for the contaminant proportion.
 #' @param max_prop Upper bound on the estimated contaminant proportion.
-#' @param maxit Maximum number of EM iterations.
+#' @param maxit Maximum number of EM iterations. The default of 500 is the
+#'   setting the companion simulation used throughout; at 100, which
+#'   `bmm::flag_contaminant_rts()` uses, the lognormal core left a quarter of
+#'   fits unconverged on heavy-tailed data, and an unconverged fit keeps every
+#'   trial. Pass `maxit` explicitly when comparing the two packages.
 #' @param tol Convergence tolerance on the log-likelihood.
 #'
 #' @return An object of class `c("rtprep_rule_<name>", "rtprep_rule")`: a list
@@ -66,6 +56,8 @@
 #'   of [rt_screen()].
 #'
 #' @seealso [rt_screen()] to apply a rule; `screen_compare()` to apply several.
+#'   Two further rules that the companion simulation evaluated and did not
+#'   recommend are kept unexported and documented in `?rules_experimental`.
 #'
 #' @name rules
 NULL
@@ -300,13 +292,42 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
   )
 }
 
-#' @rdname rules
+#' Experimental screening rules (not exported)
+#'
+#' @description
+#' Two rules that entered the companion simulation as experimental families
+#' and came out tracking no preprocessing on every estimand that matters. They
+#' are not exported: a function on the package index reads as a
+#' recommendation, and neither is recommended. The code, its tests, and this
+#' page stay so that the simulation scripts reproduce from the released source
+#' and so that the negative result can be inspected. Reach them with
+#' `rtprep:::rule_adaptive_trim()` and `rtprep:::rule_ez_support()`; both
+#' return a rule object that [rt_screen()] applies like any other.
+#'
+#' @param q_cut Lower quantile of the tentative cut, in (0, 0.5). The
+#'   validation reference quantile is `2 * q_cut`.
+#' @param s_accept Minimum proportional shift of the surviving minimum toward
+#'   the reference quantile for the tentative cut to be accepted.
+#' @param c_ndt Multiplier on the fitted non-decision time that sets the
+#'   support bound, in (0, 1]: no valid response time can undercut
+#'   non-decision time, so nothing above 1 has a grounding.
+#' @param refit Whether to refit the EZ model once on the survivors and
+#'   re-flag against the updated non-decision time. Exactly one refit; the
+#'   rule never iterates to convergence.
+#'
+#' @return An object of class `c("rtprep_rule_<name>", "rtprep_rule")`, as
+#'   for the exported constructors in [rules].
 #'
 #' @details
 #' # Adaptive leading-edge trim
 #'
-#' `rule_adaptive_trim()` is **experimental** — no published convention exists
-#' for it. It turns an unconditional lower trim into a validated one: cut at
+#' `rule_adaptive_trim()` cuts at a lower quantile and keeps the cut only if
+#' it looks like removed contaminants rather than removed edge. In the
+#' simulation it accepted its own cut on nine clean cells in ten at the
+#' pre-declared operating point, because a clean leading edge already carries
+#' most of the shift the statistic looks for, and its detection of
+#' leading-edge anticipations did not exceed the EWMA chart's. It turns an
+#' unconditional lower trim into a validated one: cut at
 #' the empirical `q_cut` quantile, then measure how far the surviving minimum
 #' shifted toward the reference quantile at `2 * q_cut`,
 #'
@@ -326,9 +347,11 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' ties the minimum, are left untouched.
 #'
 #' @examples
-#' rule_adaptive_trim()
+#' rtprep:::rule_adaptive_trim()
 #'
-#' @export
+#' @keywords internal
+#' @aliases rules_experimental
+#' @rdname rules_experimental
 rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
   .check_scalar(q_cut, "q_cut",
     lower = 0, upper = 0.5,
@@ -345,13 +368,17 @@ rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
   )
 }
 
-#' @rdname rules
+#' @rdname rules_experimental
 #'
 #' @details
 #' # EZ support screen
 #'
-#' `rule_ez_support()` is **experimental** — no published convention exists
-#' for it. Every evidence accumulation model writes a response time as
+#' `rule_ez_support()` flags trials the fitted model says are impossible. In
+#' the simulation it failed where its own premise predicted: late delayed
+#' start-ups drag the fitted non-decision time below zero and the rule reverts
+#' to keeping everything, while across-trial variability in non-decision time
+#' pushes genuine trials under the bound and the rule removes them. Every
+#' evidence accumulation model writes a response time as
 #' non-decision time plus a strictly positive decision time, so no valid trial
 #' can undercut non-decision time. The rule fits the closed-form EZ model to a
 #' group's trials, flags everything below `c_ndt` times the fitted
@@ -374,9 +401,9 @@ rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
 #' This rule requires `response`, coded as correct/error.
 #'
 #' @examples
-#' rule_ez_support()
+#' rtprep:::rule_ez_support()
 #'
-#' @export
+#' @keywords internal
 rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
   .check_scalar(c_ndt, "c_ndt", lower = 0, upper = 1, incl_lower = FALSE)
   .check_flag(refit, "refit")
@@ -500,7 +527,7 @@ rule_mixture <- function(
   distribution = c("exgaussian", "lognormal", "invgaussian"),
   bound = c("min", "max"), use_accuracy = FALSE,
   chance = 0.5, init = 0.05, max_prop = 0.5,
-  maxit = 100, tol = 1e-6
+  maxit = 500, tol = 1e-6
 ) {
   distribution <- match.arg(distribution)
   bound <- .check_bound(bound)

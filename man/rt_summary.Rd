@@ -54,7 +54,9 @@ Kish's effective sample size \code{sum(w)^2 / sum(w^2)}, so two unit weights
 among ninety-eight zeros count as two trials rather than a hundred.}
 
 \item{...}{Passed to the mixture fit: \code{bound}, \code{init}, \code{max_prop}, \code{maxit},
-\code{tol}, as documented in \code{\link[=rule_mixture]{rule_mixture()}}.}
+\code{tol}, as documented in \code{\link[=rule_mixture]{rule_mixture()}} and with the same defaults,
+including \code{maxit = 500} (the companion simulation's setting) where
+\code{bmm::ezdm_summary_stats()} uses 100.}
 }
 \value{
 A one-row \code{data.frame} — the inputs \code{\link[=ez_ddm]{ez_ddm()}} needs.

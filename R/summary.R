@@ -35,7 +35,9 @@
 #'   Kish's effective sample size `sum(w)^2 / sum(w^2)`, so two unit weights
 #'   among ninety-eight zeros count as two trials rather than a hundred.
 #' @param ... Passed to the mixture fit: `bound`, `init`, `max_prop`, `maxit`,
-#'   `tol`, as documented in [rule_mixture()].
+#'   `tol`, as documented in [rule_mixture()] and with the same defaults,
+#'   including `maxit = 500` (the companion simulation's setting) where
+#'   `bmm::ezdm_summary_stats()` uses 100.
 #'
 #' @return A one-row `data.frame` — the inputs [ez_ddm()] needs.
 #'
@@ -313,7 +315,7 @@ rt_summary <- function(rt, response = NULL,
   args <- utils::modifyList(
     list(
       bound = c("min", "max"), init = 0.05, max_prop = 0.5,
-      maxit = 100, tol = 1e-6
+      maxit = 500, tol = 1e-6
     ),
     dots
   )

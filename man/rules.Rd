@@ -7,8 +7,6 @@
 \alias{rule_mad}
 \alias{rule_recursive}
 \alias{rule_ewma}
-\alias{rule_adaptive_trim}
-\alias{rule_ez_support}
 \alias{rule_mixture}
 \alias{rule_none}
 \alias{print.rtprep_rule}
@@ -24,10 +22,6 @@ rule_recursive(type = c("moving", "modified", "hybrid"), include_max = TRUE)
 
 rule_ewma(lambda = 0.01, L = 1.5, chance = 0.5)
 
-rule_adaptive_trim(q_cut = 0.05, s_accept = 0.5)
-
-rule_ez_support(c_ndt = 1, refit = TRUE)
-
 rule_mixture(
   distribution = c("exgaussian", "lognormal", "invgaussian"),
   bound = c("min", "max"),
@@ -35,7 +29,7 @@ rule_mixture(
   chance = 0.5,
   init = 0.05,
   max_prop = 0.5,
-  maxit = 100,
+  maxit = 500,
   tol = 1e-06
 )
 
@@ -70,20 +64,6 @@ departs from chance by more than \code{L} standard errors.}
 \item{chance}{Accuracy expected from a contaminant response, known from the
 design (0.5 for a two-alternative task).}
 
-\item{q_cut}{Lower quantile of the tentative cut, in (0, 0.5). The
-validation reference quantile is \code{2 * q_cut}.}
-
-\item{s_accept}{Minimum proportional shift of the surviving minimum toward
-the reference quantile for the tentative cut to be accepted.}
-
-\item{c_ndt}{Multiplier on the fitted non-decision time that sets the
-support bound, in (0, 1]: no valid response time can undercut
-non-decision time, so nothing above 1 has a grounding.}
-
-\item{refit}{Whether to refit the EZ model once on the survivors and
-re-flag against the updated non-decision time. Exactly one refit; the
-rule never iterates to convergence.}
-
 \item{distribution}{Parametric distribution for the valid response time
 component of the mixture.}
 
@@ -97,7 +77,11 @@ element may be a number, or \code{"min"}/\code{"max"} for a data-driven bound.}
 
 \item{max_prop}{Upper bound on the estimated contaminant proportion.}
 
-\item{maxit}{Maximum number of EM iterations.}
+\item{maxit}{Maximum number of EM iterations. The default of 500 is the
+setting the companion simulation used throughout; at 100, which
+\code{bmm::flag_contaminant_rts()} uses, the lognormal core left a quarter of
+fits unconverged on heavy-tailed data, and an unconverged fit keeps every
+trial. Pass \code{maxit} explicitly when comparing the two packages.}
 
 \item{tol}{Convergence tolerance on the log-likelihood.}
 
@@ -127,10 +111,6 @@ Jolicoeur (1994).
 \item \code{rule_ewma()} — the accuracy control chart of Vandekerckhove and
 Tuerlinckx (2007).
 \item \code{rule_mixture()} — a uniform-contaminant mixture fitted by EM.
-\item \code{rule_adaptive_trim()} — a lower trim that validates itself against the
-shift of the surviving minimum. \strong{Experimental}; see Details.
-\item \code{rule_ez_support()} — a model-implied support bound from the closed-form
-EZ non-decision time. \strong{Experimental}; see Details.
 \item \code{rule_none()} — a pass-through baseline.
 }
 }
@@ -228,53 +208,6 @@ accuracy-based comparator, not as a recommendation.
 
 This rule requires \code{response}, coded as correct/error rather than as an
 upper/lower boundary.
-}
-
-\section{Adaptive leading-edge trim}{
-\code{rule_adaptive_trim()} is \strong{experimental} — no published convention exists
-for it. It turns an unconditional lower trim into a validated one: cut at
-the empirical \code{q_cut} quantile, then measure how far the surviving minimum
-shifted toward the reference quantile at \code{2 * q_cut},
-
-\deqn{S = \frac{\min(kept) - \min(all)}{q_{2 q_{cut}}(all) - \min(all)},}
-
-and keep the cut only when \code{S >= s_accept}. Displaced fast contaminants sit
-in a low block with a gap to the core, so removing them jumps the minimum
-most of the way to the reference (\code{S} near 1); a genuinely steep leading
-edge bunches its fastest trials, so cutting them barely moves the minimum
-(\code{S} near 0). When the cut is rejected the rule removes nothing, and the
-computed \code{S} and the decision are reported in \code{attr(x, "fits")} either way.
-
-What the statistic actually detects is a \emph{gap} below the leading edge.
-Across-trial variability in non-decision time smears a clean edge into
-exactly such a shallow front, which is the rule's documented false-alarm
-mode. Groups with fewer than 20 trials, and groups whose reference quantile
-ties the minimum, are left untouched.
-}
-
-\section{EZ support screen}{
-\code{rule_ez_support()} is \strong{experimental} — no published convention exists
-for it. Every evidence accumulation model writes a response time as
-non-decision time plus a strictly positive decision time, so no valid trial
-can undercut non-decision time. The rule fits the closed-form EZ model to a
-group's trials, flags everything below \code{c_ndt} times the fitted
-non-decision time, refits once on the survivors (\code{refit = TRUE}), re-flags
-against the updated estimate, and stops — never iterating further, because
-lower-tail removal shrinks the variance and pushes the estimate upward, a
-one-way ratchet that unlimited iteration would run away with.
-
-The catch is the point: fast contaminants drag the fitted non-decision time
-down, so the rule's premise is poisoned by exactly the trials it hunts.
-Whether one refit recovers the threshold is an empirical question, not a
-guarantee. Groups with fewer than ten trials, unusable fits (including a
-negative fitted non-decision time, which contaminated moments can produce),
-and fits that would flag more than half the group all remove nothing, with
-\code{usable = FALSE} in \code{attr(x, "fits")}. That last guard is defensive: at
-\code{c_ndt <= 1} a first-pass EZ threshold cannot exceed the sample median,
-because the mean never sits more than one standard deviation above the
-median while the implied decision-time mean always exceeds it.
-
-This rule requires \code{response}, coded as correct/error.
 }
 
 \section{Mixture flagging}{
@@ -382,10 +315,6 @@ rule_recursive("modified")
 
 rule_ewma(lambda = 0.05)
 
-rule_adaptive_trim()
-
-rule_ez_support()
-
 rule_mixture("lognormal")
 
 rule_none()
@@ -437,4 +366,6 @@ variability. \emph{Psychonomic Bulletin & Review}, \emph{9}(3), 438–481.
 }
 \seealso{
 \code{\link[=rt_screen]{rt_screen()}} to apply a rule; \code{screen_compare()} to apply several.
+Two further rules that the companion simulation evaluated and did not
+recommend are kept unexported and documented in \code{?rules_experimental}.
 }

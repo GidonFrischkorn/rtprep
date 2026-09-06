@@ -29,9 +29,9 @@
   d
 }
 
-# Every exported rule, at its default and at the configurations the studies
-# use. `grouped` and `needs_response` are part of the specification because the
-# engine takes a different path for each.
+# Every rule constructor, exported or internal, at its default and at the
+# configurations the studies use. `grouped` and `needs_response` are part of
+# the specification because the engine takes a different path for each.
 .engine_roster <- function() {
   spec <- function(rule, grouped = TRUE, needs_response = FALSE) {
     list(rule = rule, grouped = grouped, needs_response = needs_response)

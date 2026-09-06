@@ -50,6 +50,35 @@ release, made while the package was still unreleased.
   the flag survives `[`, `rbind()`, and every dplyr verb instead of being
   dropped by the first one.
 
+* `rule_adaptive_trim()` and `rule_ez_support()` are not exported. Both
+  entered the companion simulation as experimental families and both came
+  out tracking no preprocessing on every estimand that matters; the adaptive
+  trim also accepts its cut on nine clean cells in ten at its pre-declared
+  operating point, and the EZ screen reverts to keeping everything once late
+  delayed start-ups drag the fitted non-decision time below zero. A function
+  on the package index reads as a recommendation, and neither is recommended.
+  The code, its tests, and its documentation stay (`?rules_experimental`) so
+  that the simulation scripts reproduce from the released source through
+  `rtprep:::` and so that the negative result can be inspected.
+
+  What the two rules do: the adaptive trim cuts at a lower quantile only when
+  the surviving minimum jumps toward the reference quantile at twice the cut,
+  the signature of displaced fast contaminants, and reports the shift
+  statistic and the accept/revert decision in `attr(x, "fits")`. The EZ
+  support screen flags response times below the closed-form EZ non-decision
+  time, refits once on the survivors, and stops, because lower-tail removal
+  raises the fitted estimate and unlimited iteration would ratchet.
+
+* `rule_mixture()` and `rt_summary(method = "mixture")` default to
+  `maxit = 500` rather than 100. At 100 iterations the lognormal core left a
+  quarter of fits unconverged on shifted-exponential data, and an unconverged
+  fit keeps every trial; at 500, the setting the simulation used throughout,
+  non-convergence is below 0.2% on average. `bmm::flag_contaminant_rts()`
+  keeps 100, so pass `maxit` explicitly when comparing the two. The engine
+  regression fixture was regenerated at the new default; the only rows that
+  moved are the mixture rules', where the groups that had stopped at the old
+  cap now converge, and no keep decision changed.
+
 * `rt_example` is a small simulated data set, four participants by two
   conditions with the ground truth kept, for the examples and the
   get-started vignette (`vignette("rtprep")`), which walks the
@@ -93,37 +122,22 @@ release, made while the package was still unreleased.
   trial that is *correct* is less likely to be a guess than a fast trial that
   is an error. The chance rate is fixed from the design and the accuracy of the
   decision process is estimated, with a closed-form M-step. **Experimental**:
-  it is off by default and stays that way until the simulation says otherwise.
+  it is off by default, and the companion simulation confirmed why.
 
-  What is known so far is mixed, and the tests pin all of it. The joint
-  posterior does *order* overlapping guesses better than response time alone —
-  the case RT-only detection fails at. But on that same data the fit collapses
-  to a contaminant proportion near zero and the rule removes nothing, so the
-  better ordering is one the keep policy never acts on; a `collapsed` flag in
-  `attr(x, "fits")` reports it. And for delayed start-ups, whose accuracy is
-  intact, the model does not merely fail to help — it loses a large part of the
-  sensitivity the RT-only model had, because every correct contaminant has its
-  contaminant evidence attenuated by `chance / p_correct`.
+  The tests pinned the picture before the simulation ran, and the simulation
+  reproduced it at scale. The joint posterior does *order* overlapping guesses
+  better than response time alone — the case RT-only detection fails at. But
+  on that same data the fit collapses to a contaminant proportion near zero
+  and the rule removes nothing, so the better ordering is one the keep policy
+  never acts on; a `collapsed` flag in `attr(x, "fits")` reports it. And for
+  delayed start-ups, whose accuracy is intact, the model does not merely fail
+  to help — it loses a large part of the sensitivity the RT-only model had,
+  because every correct contaminant has its contaminant evidence attenuated by
+  `chance / p_correct`. In the simulation the variant collapsed in about two
+  fits in three and detected nothing the RT-only model did not.
 
-  None of that is a reason to drop the idea; it is the reason the flag defaults
-  to off and the simulation exists.
-
-* `rule_adaptive_trim()` cuts at a lower quantile only when the surviving
-  minimum jumps toward the reference quantile at twice the cut — the
-  signature of displaced fast contaminants, which leave a gap below the core
-  that a genuinely steep leading edge does not. The computed shift statistic
-  and the accept/revert decision come back in `attr(x, "fits")` either way.
-  **Experimental**: no published convention exists, and the design's
-  smeared-ndt cells are exactly the shallow clean edge that should fool it;
-  it enters the simulation as a sweep-only family until the results speak.
-
-* `rule_ez_support()` flags response times below the closed-form EZ
-  non-decision time — impossible under any evidence accumulation model — then
-  refits once on the survivors and stops, because lower-tail removal raises
-  the fitted estimate and unlimited iteration would ratchet. Fast contaminants
-  drag the fitted bound down, so the rule's premise is poisoned by exactly the
-  trials it hunts; whether one refit recovers is what the simulation measures.
-  **Experimental**, same footing as above. Requires `response`.
+  The flag stays because the collapse is something a user should be able to
+  see for themselves; it stays off because nothing recommends turning it on.
 
 * `rt_summary()` aggregates surviving trials into the EZ-diffusion summary
   statistics, three ways: the sample moments, robust moments (median with
