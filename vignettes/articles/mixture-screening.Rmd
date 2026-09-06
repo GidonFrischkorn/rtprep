@@ -474,6 +474,7 @@ rt_example |>
 
 How often the collapse happens at scale, by core and by contaminant
 process, is what the companion simulation measured, and its numbers live in
-the simulation article. The rule is in the roster because the idea is sound
+[the simulation article](simulation-studies.html). The rule is in the
+roster because the idea is sound
 and widely used; the columns above are how you find out whether it did
 anything on your data.

@@ -68,3 +68,4 @@ articles:
     navbar: Ecosystem
     contents:
       - articles/rtprep-and-bmm
+      - articles/simulation-studies
