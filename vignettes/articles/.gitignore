@@ -1,2 +1,5 @@
 *.html
 *.R
+# the ground-truth article and the manuscript's Worked Example share this
+# chunk file (knitr::read_chunk()); it is source, not a render by-product
+!ground-truth-chunks.R

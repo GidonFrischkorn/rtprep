@@ -59,3 +59,7 @@ articles:
       - articles/screening-rules
       - articles/mixture-screening
       - articles/aggregation
+  - title: Checking your pipeline
+    navbar: Checking your pipeline
+    contents:
+      - articles/ground-truth
