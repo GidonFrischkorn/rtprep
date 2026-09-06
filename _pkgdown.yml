@@ -11,7 +11,7 @@ development:
 
 navbar:
   structure:
-    left: [intro, reference, articles, changelog]
+    left: [intro, reference, articles, news] # `news` is the NEWS.md component
     right: [search, github]
 
 reference:
@@ -48,8 +48,7 @@ reference:
     contents:
       - has_keyword("datasets")
 
-articles:
-  - title: Using rtprep
-    navbar: Using rtprep
-    contents:
-      - rtprep
+# No `articles:` section yet. The only vignette, rtprep.Rmd, is the package's
+# get-started article and pkgdown puts it in the navbar's `intro` slot; listing
+# it here as well left the Articles dropdown with a heading and no links.
+# Add the section back when the first non-intro article lands.
