@@ -48,7 +48,12 @@ reference:
     contents:
       - has_keyword("datasets")
 
-# No `articles:` section yet. The only vignette, rtprep.Rmd, is the package's
-# get-started article and pkgdown puts it in the navbar's `intro` slot; listing
-# it here as well left the Articles dropdown with a heading and no links.
-# Add the section back when the first non-intro article lands.
+# The get-started vignette (rtprep.Rmd) is not listed here: pkgdown puts it in
+# the navbar's `intro` slot, and listing it as an article as well left the
+# dropdown with a heading and no links. Sections grow as articles land; an
+# article file that is not listed fails `pkgdown::check_pkgdown()`.
+articles:
+  - title: Using rtprep
+    navbar: Using rtprep
+    contents:
+      - articles/screening-rules
