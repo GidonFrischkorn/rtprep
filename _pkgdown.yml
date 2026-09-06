@@ -63,3 +63,4 @@ articles:
     navbar: Checking your pipeline
     contents:
       - articles/ground-truth
+      - articles/comparing-rules

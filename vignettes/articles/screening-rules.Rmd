@@ -423,8 +423,9 @@ one location-and-spread rule whose lower bound is positive, and it still
 falls short of the fastest trial in the cell; in this cell the chart is the
 only rule that removed anything from below. Which of those removals
 were contaminants is a question the fits table cannot answer; the vignette
-scores it against the generator's truth, and the ground-truth article does
-so for a task matched to your own.
+scores it against the generator's truth, and
+[the ground-truth article](ground-truth.html) does so for a task matched to
+your own.
 
 ## Where next
 
@@ -434,5 +435,6 @@ simulation evaluated and did not recommend are kept unexported and described
 in `?rules_experimental`. The mixture has
 [its own article](mixture-screening.html),
 [the aggregation article](aggregation.html) covers what happens to the
-surviving trials, and `screen_compare()`
-applies a whole roster at once and reports where the rules disagree.
+surviving trials, and [the comparison article](comparing-rules.html) applies
+a whole roster at once with `screen_compare()` and reports where the rules
+disagree.

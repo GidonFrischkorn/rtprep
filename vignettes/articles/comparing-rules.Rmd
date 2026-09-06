@@ -1,0 +1,253 @@
+---
+title: "Comparing rules: what a different choice would have removed"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center",
+  # dplyr, tidyr, and ggplot2 are Suggests: the article reads without them and
+  # runs with them
+  eval = requireNamespace("dplyr", quietly = TRUE) &&
+    requireNamespace("tidyr", quietly = TRUE) &&
+    requireNamespace("ggplot2", quietly = TRUE)
+)
+# CI must fail rather than publish a page whose chunks silently did not run
+if (nzchar(Sys.getenv("CI"))) stopifnot(knitr::opts_chunk$get("eval"))
+okabe_ito <- c(
+  "#0072B2", "#E69F00", "#009E73", "#D55E00",
+  "#56B4E9", "#CC79A7", "#F0E442", "#000000"
+)
+```
+
+The question `rtprep` exists to make askable is what a different
+preprocessing choice would have removed. It is normally unanswerable
+because every implementation returns a different shape: a trimmed data
+frame here, a vector of probabilities there, a set of summary statistics
+somewhere else. With one return shape the comparison is one call, and this
+article is about that call: what `screen_compare()` returns, which of its
+two agreement measures answers which question, how to see what each rule
+removed and why, and how to turn the result into the thing the manuscript
+asks for, a pipeline reported as a result rather than as a method detail.
+
+```{r setup, message = FALSE}
+library(rtprep)
+library(dplyr)
+library(ggplot2)
+```
+
+## One call, several tables
+
+`screen_compare()` takes a named list of rules and applies each one with
+the same grouping, policy, and threshold. The get-started vignette runs a
+five-rule roster; this one adds the accuracy chart, which needs `response`,
+and uses the lognormal mixture:
+
+```{r compare}
+roster <- list(
+  cutoff = rule_cutoff(0.18, 3),
+  sd = rule_sd(2.5),
+  mad = rule_mad(2.5),
+  recursive = rule_recursive("modified"),
+  mixture = rule_mixture("lognormal"),
+  ewma = rule_ewma()
+)
+
+cmp <- screen_compare(
+  rt_example$rt, roster,
+  response = rt_example$response,
+  .by = list(rt_example$id, rt_example$condition)
+)
+cmp
+```
+
+The print method gives the overall drop rate per rule and the pair that
+agrees least. Behind it sit three matrices with one row per trial and one
+column per rule, and three tables:
+
+```{r names}
+names(cmp)
+dim(cmp$keep)
+```
+
+`keep`, `prob`, and `reason` are the per-trial columns of `rt_screen()`
+stacked side by side; `drops` counts what each rule removed per group, with
+a column per reason; `agreement` compares every pair; `fits` stacks each
+rule's per-group diagnostics with a `.rule` column. `summary(cmp)` prints
+the drops and the agreement in full.
+
+## Agreement and Jaccard answer different questions
+
+```{r agreement}
+cmp$agreement
+```
+
+`agree` is the share of trials on which two rules made the same decision.
+`jaccard` is the overlap of the two sets of removed trials: the size of
+their intersection over the size of their union. The two diverge exactly
+where it matters, and a constructed pair shows the extreme. On one cell,
+a cutoff that removes only the fastest 2% and a cutoff that removes only
+the slowest 2% never remove the same trial:
+
+```{r divergence}
+p3_hard <- rt_example |>
+  filter(id == "p3", condition == "hard")
+
+edges <- screen_compare(
+  p3_hard$rt,
+  list(
+    fast_only = rule_cutoff(min = quantile(p3_hard$rt, 0.02)),
+    slow_only = rule_cutoff(max = quantile(p3_hard$rt, 0.98))
+  )
+)
+edges$agreement
+```
+
+They agree on `r round(100 * edges$agreement$agree)`% of decisions and
+overlap not at all. Agreement alone would call them interchangeable, and
+in the roster above the same thing happens to every pair that includes the
+chart: it agrees with the other rules on
+`r round(100 * min(cmp$agreement$agree[cmp$agreement$rule_y == "ewma"]))`%
+of decisions or more and shares no removed trial with any of them, because
+it cuts from below and the rest cut from above. The other reading is the
+recursive criterion against the mixture, which agree on
+`r round(100 * cmp$agreement$agree[cmp$agreement$rule_x == "recursive" & cmp$agreement$rule_y == "mixture"], 1)`%
+of decisions and overlap at
+`r round(cmp$agreement$jaccard[cmp$agreement$rule_x == "recursive" & cmp$agreement$rule_y == "mixture"], 2)`:
+two rules from different families that removed almost the same trials.
+
+One more case is deliberate. When neither rule removed anything there is no
+overlap to compute, and `jaccard` is `NA` rather than 1, because calling an
+empty comparison a perfect match would make it look like agreement:
+
+```{r jaccard-na}
+screen_compare(
+  p3_hard$rt,
+  list(wide = rule_cutoff(0.1, 5), none = rule_none())
+)$agreement
+```
+
+## What each rule removed, and why
+
+The `drops` table has one row per rule and group, and a column for every
+reason any rule gave. Summing over groups shows the composition of each
+rule's removals:
+
+```{r reasons}
+cmp$drops |>
+  summarise(
+    across(c(n_dropped, too_fast, too_slow, contaminant), sum),
+    .by = .rule
+  )
+```
+
+The SD and MAD criteria and the recursive criterion removed nothing but
+slow trials, and the cutoff removed nothing at all. The chart removed
+nothing but fast ones. The mixture's reason is `"contaminant"`, because a
+posterior has no side. Those
+are three different bets about where the contamination sits, and the table
+shows which one a rule made without the truth being consulted. Per group
+the drops vary more than the totals suggest; the chart's rate runs from
+`r round(100 * min(cmp$drops$prop_dropped[cmp$drops$.rule == "ewma"]))`%
+to
+`r round(100 * max(cmp$drops$prop_dropped[cmp$drops$.rule == "ewma"]))`%
+across the eight cells, which is its lag showing per participant.
+
+## The plot
+
+The plot method draws the drop rates and returns a ggplot when ggplot2 is
+installed, with a base-graphics fallback when it is not, so the usual
+additions apply:
+
+```{r plot, fig.alt = "Horizontal bar chart of the proportion of trials dropped by each of six screening rules on rt_example, ordered from the absolute cutoff at zero to the MAD criterion at about eleven percent."}
+plot(cmp) +
+  labs(title = "Proportion of trials each rule removed") +
+  theme_minimal()
+```
+
+The agreement table draws as a tile plot of the Jaccard overlap, which
+makes the two clusters visible at once: the rules that cut from above
+overlap with each other and with nothing else.
+
+```{r jaccard-plot, fig.alt = "Tile plot of the Jaccard overlap between every pair of the six rules. The SD, recursive, and mixture rules overlap strongly with each other, the MAD criterion moderately with them, and the cutoff and the EWMA chart overlap with nothing."}
+cmp$agreement |>
+  mutate(
+    rule_x = factor(rule_x, levels = names(roster)),
+    rule_y = factor(rule_y, levels = rev(names(roster)))
+  ) |>
+  ggplot(aes(rule_x, rule_y, fill = jaccard)) +
+  geom_tile(colour = "white") +
+  geom_text(aes(label = round(jaccard, 2)), size = 3.5) +
+  scale_fill_gradient(low = "grey92", high = okabe_ito[1], limits = c(0, 1)) +
+  labs(x = NULL, y = NULL, fill = "Jaccard") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+```
+
+## The threshold is part of the pipeline
+
+`policy` and `threshold` are forwarded to every rule, and for the mixture
+they change what is removed. The same lognormal mixture at three thresholds:
+
+```{r thresholds}
+vapply(c(0.3, 0.5, 0.7), function(th) {
+  sum(!screen_compare(
+    rt_example$rt, list(mixture = rule_mixture("lognormal")),
+    .by = list(rt_example$id, rt_example$condition), threshold = th
+  )$keep)
+}, numeric(1)) |>
+  setNames(c("0.3", "0.5", "0.7"))
+```
+
+A comparison that names the rule and not the threshold has not named the
+pipeline. The deterministic rules are unaffected, because their `.prob` is
+0 or 1 and every threshold strictly between falls on the same side.
+
+## With ground truth: score every rule at once
+
+Everything above is available on real data. `rt_example` also carries the
+truth, and because `keep` is a matrix, scoring every rule is one line for
+sensitivity and one for specificity:
+
+```{r truth}
+contaminant <- rt_example$contaminant
+
+round(colMeans(!cmp$keep[contaminant, ]), 2)
+round(colMeans(cmp$keep[!contaminant, ]), 3)
+```
+
+The most aggressive rule finds the most contaminants and pays the most
+genuine trials for them; the cutoff finds nothing because nothing in this
+fast task reaches its bounds. Which of these is the right trade depends on
+what the estimate is for, and that is the question the companion
+simulation's Study 2 and Study 3 answer, on 200 replications rather than
+eight cells. [The ground-truth article](ground-truth.html) shows the same
+scoring on data matched to your own task.
+
+## Reporting a pipeline as a result
+
+The manuscript's recommendation is to report the pipeline as a result
+rather than as a method detail: name the rule and its setting, report the
+realised drop rate, and report the substantive analysis under at least two
+pipelines plus the no-preprocessing baseline. Where the conclusion moves
+across pipelines, that movement is a finding about the data's contamination
+and belongs in the paper. `screen_compare()` produces the first two columns
+of that table directly, and the rule objects carry their own settings:
+
+```{r report}
+tibble(
+  pipeline = names(cmp$rules),
+  setting = vapply(cmp$rules, function(r) r$label, character(1)),
+  prop_dropped = colMeans(!cmp$keep)
+)
+```
+
+The third column, the analysis under each pipeline, is the `keep` matrix
+applied to whatever comes next: filter with a column, aggregate, estimate,
+and repeat per column. [The aggregation article](aggregation.html) carries
+one such table through to drift estimates, and
+[the ground-truth article](ground-truth.html) adds the column a real data
+set never has, which is how far each pipeline sits from the truth.
