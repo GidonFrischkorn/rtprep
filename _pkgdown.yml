@@ -57,3 +57,4 @@ articles:
     navbar: Using rtprep
     contents:
       - articles/screening-rules
+      - articles/mixture-screening

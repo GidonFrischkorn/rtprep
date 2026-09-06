@@ -29,7 +29,7 @@ turn and asks the same three questions of it: what it removes, what it
 reports about the removal, and where it fails. Everything runs on
 `rt_example`, plus two generated data sets where a failure needs a task the
 example does not provide. The contaminant mixture gets one paragraph here and
-its own article.
+[its own article](mixture-screening.html).
 
 ```{r setup, message = FALSE}
 library(rtprep)
@@ -305,7 +305,7 @@ contaminants, following Ratcliff and Tuerlinckx (2002). It is the one rule
 whose `.prob` is a genuine posterior rather than 0 or 1, which is why the
 keep policy exists as a separate step. Which core to choose, what the bounds
 do, what an unconverged fit does, and the three ways the rule fails are the
-subject of a separate article.
+subject of [the mixture article](mixture-screening.html).
 
 ## Probability before decision
 
@@ -431,6 +431,7 @@ so for a task matched to your own.
 `?rules` documents every constructor with the reference it implements and
 the columns it adds to the fits table. Two further rules that the companion
 simulation evaluated and did not recommend are kept unexported and described
-in `?rules_experimental`. The mixture has its own article, the aggregation
-article covers what happens to the surviving trials, and `screen_compare()`
+in `?rules_experimental`. The mixture has
+[its own article](mixture-screening.html), the aggregation article covers
+what happens to the surviving trials, and `screen_compare()`
 applies a whole roster at once and reports where the rules disagree.
