@@ -24,16 +24,21 @@ test_that("the fixture is the data set this file builds", {
 # The ex-Gaussian M-step is a numerical optimisation (stats::optim() in
 # R/mixture-em.R); every other rule in the roster is closed-form. Its EM does
 # not land in the same place on every platform. Against this fixture, built on
-# macOS, ubuntu and windows move the iteration count by one and the parameters
-# at the fourth decimal in most groups, and in one group (s24) the EM that
-# converged in 15 iterations on macOS stops unconverged after 13, at which
-# point the rule keeps every trial and reports NA, by design. No tolerance
-# absorbs a branch change, so that rule is compared only over groups whose
-# convergence status agrees, with a tolerance on the numbers and a small
-# allowance of threshold flips, and the number of groups allowed to disagree
-# is capped. That still catches what the net exists for: a bookkeeping bug
-# puts the wrong trials into a group and moves every group's fit and
-# decisions, not one group's. The closed-form rules stay exact.
+# macOS, ubuntu and windows move the parameters at the fourth decimal in most
+# groups, and in one group (s24) the EM that converged on macOS stops
+# unconverged, at which point the rule keeps every trial and reports NA, by
+# design. No tolerance absorbs a branch change, so that rule is compared only
+# over groups whose convergence status agrees, with a tolerance on the numbers
+# and a small allowance of threshold flips, and the number of groups allowed
+# to disagree is capped. The iteration count is not compared for that rule:
+# since the default moved to maxit = 500 the slowest groups (s38, s04)
+# converge after 179 and 127 iterations, and the platforms' optimiser paths
+# move those counts by more than the 5 an earlier version of this test
+# allowed (red on ubuntu oldrel/devel and windows, 2026-09-06) while the
+# parameters they land on stay within tolerance. That still catches what the
+# net exists for: a bookkeeping bug puts the wrong trials into a group and
+# moves every group's fit and decisions, not one group's. The closed-form
+# rules stay exact, iteration counts included.
 optim_rules <- "mix_exgaussian"
 max_divergent_groups <- 2L
 max_flip_share <- 0.005
@@ -62,10 +67,6 @@ test_that("every rule returns the frozen per-trial columns and fits", {
       expect_equal(
         fits[both, num_cols], wf[both, num_cols],
         tolerance = 1e-2, info = nm
-      )
-      expect_true(
-        all(abs(fits$iterations - wf$iterations)[both] <= 5),
-        info = nm
       )
 
       in_same <- d$id %in% fits$.group[same]
