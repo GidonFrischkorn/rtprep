@@ -345,9 +345,9 @@ table(keep = drawn$.keep, reason = drawn$.reason, useNA = "ifany")
 
 The same split appears: trials the rule flagged, and trials a draw against a
 fractional `.prob` happened to remove. A probabilistic screen is the honest
-way to carry the mixture's uncertainty into a resampling analysis, and the
-aggregation article shows the alternative, which is to hand `.prob` to
-`rt_summary()` as a weight and remove nothing.
+way to carry the mixture's uncertainty into a resampling analysis, and
+[the aggregation article](aggregation.html) shows the alternative, which is
+to hand `.prob` to `rt_summary()` as a weight and remove nothing.
 
 ## A rule that cannot be evaluated removes nothing
 
@@ -432,6 +432,7 @@ so for a task matched to your own.
 the columns it adds to the fits table. Two further rules that the companion
 simulation evaluated and did not recommend are kept unexported and described
 in `?rules_experimental`. The mixture has
-[its own article](mixture-screening.html), the aggregation article covers
-what happens to the surviving trials, and `screen_compare()`
+[its own article](mixture-screening.html),
+[the aggregation article](aggregation.html) covers what happens to the
+surviving trials, and `screen_compare()`
 applies a whole roster at once and reports where the rules disagree.

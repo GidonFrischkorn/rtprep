@@ -238,8 +238,9 @@ On this cell the weighted and the trimmed means land within
 `r if (mean_gap_ms < 1) "a millisecond" else paste(round(mean_gap_ms), "ms")`
 of each other and both well away from the untreated one, which is what a
 posterior that is nearly 0 or 1 for most trials produces. Where
-the posteriors are more spread out the two routes diverge, and the
-aggregation article compares them alongside the third option, mixture
+the posteriors are more spread out the two routes diverge, and
+[the aggregation article](aggregation.html) compares them alongside the
+third option, mixture
 aggregation, which reads the moments off the fitted core and removes
 nothing.
 

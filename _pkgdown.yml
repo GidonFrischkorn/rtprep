@@ -58,3 +58,4 @@ articles:
     contents:
       - articles/screening-rules
       - articles/mixture-screening
+      - articles/aggregation
