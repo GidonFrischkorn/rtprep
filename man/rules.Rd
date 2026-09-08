@@ -77,11 +77,10 @@ element may be a number, or \code{"min"}/\code{"max"} for a data-driven bound.}
 
 \item{max_prop}{Upper bound on the estimated contaminant proportion.}
 
-\item{maxit}{Maximum number of EM iterations. The default of 500 is the
-setting the companion simulation used throughout; at 100, which
-\code{bmm::flag_contaminant_rts()} uses, the lognormal core left a quarter of
-fits unconverged on heavy-tailed data, and an unconverged fit keeps every
-trial. Pass \code{maxit} explicitly when comparing the two packages.}
+\item{maxit}{Maximum number of EM iterations. A fit that reaches \code{maxit} is
+reported as unconverged and keeps every trial in its group.
+\code{bmm::flag_contaminant_rts()} uses 100; pass \code{maxit} explicitly when
+comparing the two packages.}
 
 \item{tol}{Convergence tolerance on the log-likelihood.}
 
@@ -256,9 +255,8 @@ responsibility-weighted mean of \code{y}, so the extension costs the EM almost
 nothing; the fitted value comes back as \code{p_correct} in \code{attr(x, "fits")}.
 \subsection{What is known so far, and it is not all good}{
 
-The staging is deliberate, and the reasons are concrete. Three things are
-already established by the package's own tests, before the simulation has
-been run:
+The staging is deliberate, and the reasons are concrete. Three things the
+package's own tests establish:
 \itemize{
 \item \strong{It can order overlapping guesses better than response time alone.} Where
 contaminants fall inside the valid distribution's range — the case RT-only
@@ -366,6 +364,6 @@ variability. \emph{Psychonomic Bulletin & Review}, \emph{9}(3), 438–481.
 }
 \seealso{
 \code{\link[=rt_screen]{rt_screen()}} to apply a rule; \code{screen_compare()} to apply several.
-Two further rules that the companion simulation evaluated and did not
-recommend are kept unexported and documented in \code{?rules_experimental}.
+Two further, experimental rules are unexported and documented in
+\code{?rules_experimental}.
 }

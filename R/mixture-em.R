@@ -3,9 +3,9 @@
 #   f(rt)  =  (1 - pi_c) f_RT(rt | theta)  +  pi_c U(rt | a, b)
 #
 # Ratcliff & Tuerlinckx (2002). The loop below is deliberately a copy of
-# bmm:::.fit_rt_mixture(), down to the order of operations, because the
-# companion DDM tutorial recommends bmm's defaults on the strength of results
-# computed here. Two things follow from that and are load-bearing:
+# bmm:::.fit_rt_mixture(), down to the order of operations, so that the two
+# implementations agree fit for fit (tests/testthat/test-equivalence.R checks
+# it). Two things follow from that and are load-bearing:
 #
 #   * convergence is checked BEFORE the M-step, so the reported parameters are
 #     the ones that produced the converged log-likelihood rather than a further

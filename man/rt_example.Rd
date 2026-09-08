@@ -38,9 +38,8 @@ The participants differ in two things at once. Their drift differs, by a
 fixed ability factor of \code{0.85}, \code{0.95}, \code{1.05}, and \code{1.20} on a base drift
 of \code{1.5} (hard) and \code{1.9} (easy), with \code{bound = 1.2} and \code{ndt = 0.30}
 throughout. And their contamination rate differs, so that the error in a
-participant's estimate can be set against their own rate. That comparison is
-the question the package's companion tutorial asks of every preprocessing
-pipeline.
+participant's estimate can be set against their own rate, as the
+get-started vignette does.
 
 The generating script is \code{data-raw/rt_example.R} in the source repository;
 the seed is fixed there, not in the package.

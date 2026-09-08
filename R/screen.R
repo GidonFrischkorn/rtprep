@@ -55,8 +55,7 @@
 #' `.keep = FALSE`, `.prob = NA`, and `.reason = "missing"`.
 #'
 #' Under `policy = "probabilistic"` the decision is stochastic by design. There
-#' is no `set.seed()` anywhere in `rtprep`; reproducibility is the caller's,
-#' which in the simulation scripts means `SimDesign`'s seed handling.
+#' is no `set.seed()` anywhere in `rtprep`; reproducibility is the caller's.
 #'
 #' # Inside a data-frame pipeline
 #'

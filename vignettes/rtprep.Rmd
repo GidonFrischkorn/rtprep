@@ -159,8 +159,8 @@ estimates |>
 
 `rt_summary()` has a `method` argument for the robust (median and IQR) and
 mixture-based moments, which act on the same trials without removing any;
-the tutorial that accompanies the package compares those routes against
-trimming.
+`?rt_summary` documents them, and the aggregation article on the package
+website puts the routes side by side.
 
 ## Does the error track the contamination rate?
 
@@ -195,10 +195,11 @@ Screening moves every cell, mostly toward the truth, but the heaviest
 contaminator's easy condition stays well below it. Four participants with
 100 trials per cell cannot separate the rate's effect from sampling error,
 and this vignette does not try to. Whether a participant's error tracks
-their own contamination rate, and whether any pipeline breaks that link, is
-the question the companion tutorial answers with 200 replications per cell;
-the short version is that the tested pipelines do not, and the safeguards
-belong in the design.
+their own contamination rate needs more participants than this vignette
+has. `r_contaminated()` generates them with the truth attached, and the
+ground-truth article on the package website
+(<https://www.gfrischkorn.org/rtprep/articles/ground-truth.html>) runs that
+check on data matched to a task of your own.
 
 ## Comparing rules
 

@@ -30,22 +30,17 @@ An object of class \code{c("rtprep_rule_<name>", "rtprep_rule")}, as
 for the exported constructors in \link{rules}.
 }
 \description{
-Two rules that entered the companion simulation as experimental families
-and came out tracking no preprocessing on every estimand that matters. They
-are not exported: a function on the package index reads as a
-recommendation, and neither is recommended. The code, its tests, and this
-page stay so that the simulation scripts reproduce from the released source
-and so that the negative result can be inspected. Reach them with
-\code{rtprep:::rule_adaptive_trim()} and \code{rtprep:::rule_ez_support()}; both
-return a rule object that \code{\link[=rt_screen]{rt_screen()}} applies like any other.
+Two rules kept out of the exported roster. A function on the package index
+reads as a recommendation, and neither is one. The code, its tests, and
+this page stay so that the rules' behaviour and failure modes can be
+inspected, and so that scripts calling them through \verb{rtprep:::} keep
+working. Reach them with \code{rtprep:::rule_adaptive_trim()} and
+\code{rtprep:::rule_ez_support()}; both return a rule object that \code{\link[=rt_screen]{rt_screen()}}
+applies like any other.
 }
 \section{Adaptive leading-edge trim}{
 \code{rule_adaptive_trim()} cuts at a lower quantile and keeps the cut only if
-it looks like removed contaminants rather than removed edge. In the
-simulation it accepted its own cut on nine clean cells in ten at the
-pre-declared operating point, because a clean leading edge already carries
-most of the shift the statistic looks for, and its detection of
-leading-edge anticipations did not exceed the EWMA chart's. It turns an
+it looks like removed contaminants rather than removed edge. It turns an
 unconditional lower trim into a validated one: cut at
 the empirical \code{q_cut} quantile, then measure how far the surviving minimum
 shifted toward the reference quantile at \code{2 * q_cut},
@@ -67,11 +62,11 @@ ties the minimum, are left untouched.
 }
 
 \section{EZ support screen}{
-\code{rule_ez_support()} flags trials the fitted model says are impossible. In
-the simulation it failed where its own premise predicted: late delayed
-start-ups drag the fitted non-decision time below zero and the rule reverts
-to keeping everything, while across-trial variability in non-decision time
-pushes genuine trials under the bound and the rule removes them. Every
+\code{rule_ez_support()} flags trials the fitted model says are impossible. Its
+two failure modes follow from that premise: late delayed start-ups drag the
+fitted non-decision time below zero and the rule reverts to keeping
+everything, while across-trial variability in non-decision time pushes
+genuine trials under the bound and the rule removes them. Every
 evidence accumulation model writes a response time as
 non-decision time plus a strictly positive decision time, so no valid trial
 can undercut non-decision time. The rule fits the closed-form EZ model to a

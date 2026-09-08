@@ -379,7 +379,7 @@
 #' # Reproducibility
 #'
 #' There is no `set.seed()` anywhere in `rtprep`; reproducibility belongs to
-#' the caller (in the simulation scripts, to SimDesign's seed management).
+#' the caller.
 #'
 #' # The three processes are clusters, not point definitions
 #'

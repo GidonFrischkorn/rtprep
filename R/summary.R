@@ -36,8 +36,7 @@
 #'   among ninety-eight zeros count as two trials rather than a hundred.
 #' @param ... Passed to the mixture fit: `bound`, `init`, `max_prop`, `maxit`,
 #'   `tol`, as documented in [rule_mixture()] and with the same defaults,
-#'   including `maxit = 500` (the companion simulation's setting) where
-#'   `bmm::ezdm_summary_stats()` uses 100.
+#'   including `maxit = 500` where `bmm::ezdm_summary_stats()` uses 100.
 #'
 #' @return A one-row `data.frame` — the inputs [ez_ddm()] needs.
 #'
@@ -57,8 +56,8 @@
 #' `method = "mixture"` reads its moments from the *parametric component*, not
 #' from the data, so a trial the uniform component owns contributes nothing at
 #' all. `weights` instead computes weighted sample moments, so such a trial
-#' contributes a little. The tutorial compares them, which is why both are here
-#' and why combining them is an error rather than a convenience.
+#' contributes a little. They are two models of the same doubt, which is why
+#' both are here and why combining them is an error rather than a convenience.
 #'
 #' Weighted variances use the reliability-weight denominator
 #' `sum(w) - sum(w^2) / sum(w)`, which reduces to `n - 1` when the weights are
@@ -68,7 +67,7 @@
 #' # Differences from `bmm`
 #'
 #' `bmm::ezdm_summary_stats()` defaults to `method = "mixture"`; this function
-#' defaults to `"simple"`. A tutorial about preprocessing choices should not
+#' defaults to `"simple"`. A package about preprocessing choices should not
 #' make one of the choices silently.
 #'
 #' For `version = "4par"` with `method = "mixture"`, the contaminant bounds are

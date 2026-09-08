@@ -55,8 +55,7 @@ among ninety-eight zeros count as two trials rather than a hundred.}
 
 \item{...}{Passed to the mixture fit: \code{bound}, \code{init}, \code{max_prop}, \code{maxit},
 \code{tol}, as documented in \code{\link[=rule_mixture]{rule_mixture()}} and with the same defaults,
-including \code{maxit = 500} (the companion simulation's setting) where
-\code{bmm::ezdm_summary_stats()} uses 100.}
+including \code{maxit = 500} where \code{bmm::ezdm_summary_stats()} uses 100.}
 }
 \value{
 A one-row \code{data.frame} — the inputs \code{\link[=ez_ddm]{ez_ddm()}} needs.
@@ -82,8 +81,8 @@ as consequential as the exclusion rule.
 \code{method = "mixture"} reads its moments from the \emph{parametric component}, not
 from the data, so a trial the uniform component owns contributes nothing at
 all. \code{weights} instead computes weighted sample moments, so such a trial
-contributes a little. The tutorial compares them, which is why both are here
-and why combining them is an error rather than a convenience.
+contributes a little. They are two models of the same doubt, which is why
+both are here and why combining them is an error rather than a convenience.
 
 Weighted variances use the reliability-weight denominator
 \code{sum(w) - sum(w^2) / sum(w)}, which reduces to \code{n - 1} when the weights are
@@ -93,7 +92,7 @@ equal. Frequency weights would use \code{sum(w) - 1} and are the wrong model:
 
 \section{Differences from \code{bmm}}{
 \code{bmm::ezdm_summary_stats()} defaults to \code{method = "mixture"}; this function
-defaults to \code{"simple"}. A tutorial about preprocessing choices should not
+defaults to \code{"simple"}. A package about preprocessing choices should not
 make one of the choices silently.
 
 For \code{version = "4par"} with \code{method = "mixture"}, the contaminant bounds are

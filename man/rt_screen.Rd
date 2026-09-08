@@ -75,8 +75,7 @@ component, are excluded from every rule's computation and returned with
 \code{.keep = FALSE}, \code{.prob = NA}, and \code{.reason = "missing"}.
 
 Under \code{policy = "probabilistic"} the decision is stochastic by design. There
-is no \code{set.seed()} anywhere in \code{rtprep}; reproducibility is the caller's,
-which in the simulation scripts means \code{SimDesign}'s seed handling.
+is no \code{set.seed()} anywhere in \code{rtprep}; reproducibility is the caller's.
 }
 \section{Inside a data-frame pipeline}{
 The function takes vectors and returns a data frame, so it drops into

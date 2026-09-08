@@ -105,7 +105,7 @@ truth lets a preprocessing pipeline be tested rather than trusted.
 }
 \section{Reproducibility}{
 There is no \code{set.seed()} anywhere in \code{rtprep}; reproducibility belongs to
-the caller (in the simulation scripts, to SimDesign's seed management).
+the caller.
 }
 
 \section{The three processes are clusters, not point definitions}{

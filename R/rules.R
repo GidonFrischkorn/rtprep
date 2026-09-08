@@ -44,11 +44,10 @@
 #'   **Experimental**; see Details.
 #' @param init Starting value for the contaminant proportion.
 #' @param max_prop Upper bound on the estimated contaminant proportion.
-#' @param maxit Maximum number of EM iterations. The default of 500 is the
-#'   setting the companion simulation used throughout; at 100, which
-#'   `bmm::flag_contaminant_rts()` uses, the lognormal core left a quarter of
-#'   fits unconverged on heavy-tailed data, and an unconverged fit keeps every
-#'   trial. Pass `maxit` explicitly when comparing the two packages.
+#' @param maxit Maximum number of EM iterations. A fit that reaches `maxit` is
+#'   reported as unconverged and keeps every trial in its group.
+#'   `bmm::flag_contaminant_rts()` uses 100; pass `maxit` explicitly when
+#'   comparing the two packages.
 #' @param tol Convergence tolerance on the log-likelihood.
 #'
 #' @return An object of class `c("rtprep_rule_<name>", "rtprep_rule")`: a list
@@ -56,8 +55,8 @@
 #'   of [rt_screen()].
 #'
 #' @seealso [rt_screen()] to apply a rule; `screen_compare()` to apply several.
-#'   Two further rules that the companion simulation evaluated and did not
-#'   recommend are kept unexported and documented in `?rules_experimental`.
+#'   Two further, experimental rules are unexported and documented in
+#'   `?rules_experimental`.
 #'
 #' @name rules
 NULL
@@ -295,14 +294,13 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' Experimental screening rules (not exported)
 #'
 #' @description
-#' Two rules that entered the companion simulation as experimental families
-#' and came out tracking no preprocessing on every estimand that matters. They
-#' are not exported: a function on the package index reads as a
-#' recommendation, and neither is recommended. The code, its tests, and this
-#' page stay so that the simulation scripts reproduce from the released source
-#' and so that the negative result can be inspected. Reach them with
-#' `rtprep:::rule_adaptive_trim()` and `rtprep:::rule_ez_support()`; both
-#' return a rule object that [rt_screen()] applies like any other.
+#' Two rules kept out of the exported roster. A function on the package index
+#' reads as a recommendation, and neither is one. The code, its tests, and
+#' this page stay so that the rules' behaviour and failure modes can be
+#' inspected, and so that scripts calling them through `rtprep:::` keep
+#' working. Reach them with `rtprep:::rule_adaptive_trim()` and
+#' `rtprep:::rule_ez_support()`; both return a rule object that [rt_screen()]
+#' applies like any other.
 #'
 #' @param q_cut Lower quantile of the tentative cut, in (0, 0.5). The
 #'   validation reference quantile is `2 * q_cut`.
@@ -322,11 +320,7 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' # Adaptive leading-edge trim
 #'
 #' `rule_adaptive_trim()` cuts at a lower quantile and keeps the cut only if
-#' it looks like removed contaminants rather than removed edge. In the
-#' simulation it accepted its own cut on nine clean cells in ten at the
-#' pre-declared operating point, because a clean leading edge already carries
-#' most of the shift the statistic looks for, and its detection of
-#' leading-edge anticipations did not exceed the EWMA chart's. It turns an
+#' it looks like removed contaminants rather than removed edge. It turns an
 #' unconditional lower trim into a validated one: cut at
 #' the empirical `q_cut` quantile, then measure how far the surviving minimum
 #' shifted toward the reference quantile at `2 * q_cut`,
@@ -373,11 +367,11 @@ rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
 #' @details
 #' # EZ support screen
 #'
-#' `rule_ez_support()` flags trials the fitted model says are impossible. In
-#' the simulation it failed where its own premise predicted: late delayed
-#' start-ups drag the fitted non-decision time below zero and the rule reverts
-#' to keeping everything, while across-trial variability in non-decision time
-#' pushes genuine trials under the bound and the rule removes them. Every
+#' `rule_ez_support()` flags trials the fitted model says are impossible. Its
+#' two failure modes follow from that premise: late delayed start-ups drag the
+#' fitted non-decision time below zero and the rule reverts to keeping
+#' everything, while across-trial variability in non-decision time pushes
+#' genuine trials under the bound and the rule removes them. Every
 #' evidence accumulation model writes a response time as
 #' non-decision time plus a strictly positive decision time, so no valid trial
 #' can undercut non-decision time. The rule fits the closed-form EZ model to a
@@ -468,9 +462,8 @@ rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
 #'
 #' ## What is known so far, and it is not all good
 #'
-#' The staging is deliberate, and the reasons are concrete. Three things are
-#' already established by the package's own tests, before the simulation has
-#' been run:
+#' The staging is deliberate, and the reasons are concrete. Three things the
+#' package's own tests establish:
 #'
 #' * **It can order overlapping guesses better than response time alone.** Where
 #'   contaminants fall inside the valid distribution's range — the case RT-only
