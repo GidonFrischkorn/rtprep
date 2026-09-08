@@ -250,7 +250,12 @@ test_that("the ex-Gaussian collapses on a tight block of fast contaminants", {
   exg <- fit_one("exgaussian")
   expect_true(exg$converged)
   expect_lt(exg$contaminant_prop, 0.001)
-  expect_lt(as.numeric(exg$par["tau"]), 0.001) # tau driven to its lower bound
+  # tau driven far below the value it started from: the initialiser proposes
+  # sd(x)/3 (0.065 here) and the generating tau was 0.15. The threshold is a
+  # long way above where tau actually lands, because how close the optimiser
+  # gets to its 1e-6 lower bound depends on the arithmetic -- 6.7e-05 on a
+  # long-double build, 2.0e-03 on an R built without long doubles (r-hub nold).
+  expect_lt(as.numeric(exg$par["tau"]), 0.01)
 
   # the other two find the block
   expect_gt(fit_one("lognormal")$contaminant_prop, 0.1)
