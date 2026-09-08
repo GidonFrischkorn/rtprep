@@ -135,8 +135,10 @@ The simple and robust moments agree exactly; the mixture moments agree to
 the optimiser's tolerance. Two defaults differ. `bmm` defaults to
 `method = "mixture"` and `rtprep` to `"simple"`, because a package about
 preprocessing choices should not make one of them silently. And `rtprep`
-defaults to `maxit = 500`, the companion simulation's setting, where `bmm`
-keeps 100. For `version = "4par"` with mixture moments both packages resolve
+defaults to `maxit = 500` where `bmm` keeps 100;
+[the mixture article](mixture-screening.html) shows what the cap does to a
+fit that has not converged. For `version = "4par"` with mixture moments both
+packages resolve
 the contaminant bounds once on the pooled response times before splitting by
 boundary, so the two halves are fitted against the same uniform component.
 
