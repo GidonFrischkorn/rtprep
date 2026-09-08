@@ -89,16 +89,20 @@ rt_screen(c(0.1799, 0.1800, 0.1801), rule_cutoff(0.18, 3))
 
 The failure of an absolute cutoff is a failure of transfer. The pair was
 written for a task with a particular speed, and it meets a different one.
-`rt_example` is a fast task; the companion simulation's slowest anchor cell
-has a mean correct response time of 2.5 s, an accuracy of .80, and a
-coefficient of variation of .50. `ez_ddm()` inverts those three observables
-into diffusion parameters when it is given a very large trial count, and
-`r_contaminated()` with `rate = 0` then generates clean data at exactly that
-regime:
+`rt_example` is a fast task. To meet the same pair with a slow, variable
+one, pick three observables well away from it: a mean correct response time
+of 2.5 s, an accuracy of .80, and a coefficient of variation of .50.
+`ez_ddm()` inverts those three into diffusion parameters when it is given a
+very large trial count, and `r_contaminated()` with `rate = 0` then
+generates clean data at exactly that regime:
 
 ```{r slow-task}
+slow_obs <- c(mean_rt = 2.5, accuracy = 0.80, cv = 0.50)
 slow_par <- ez_ddm(
-  mean_rt = 2.5, var_rt = 1.25^2, accuracy = 0.80, n_trials = 1e6
+  mean_rt = slow_obs[["mean_rt"]],
+  var_rt = (slow_obs[["cv"]] * slow_obs[["mean_rt"]])^2,
+  accuracy = slow_obs[["accuracy"]],
+  n_trials = 1e6
 )
 slow_par
 
@@ -205,8 +209,8 @@ clean trials in groups of 10,
 `r round(drop_at("sd(2.5, mean, sd)", 20), 1)`% in groups of 20, and
 `r round(drop_at("sd(2.5, mean, sd)", 200), 1)`% in groups of 200. Small
 groups underestimate the spread of a skewed distribution and the multiplier
-bites less, which is the dependence Miller described; at the trial counts
-most designs use, the rate has settled. The modified recursive criterion in
+bites less, which is the dependence Miller described; by 200 trials the
+rate has settled. The modified recursive criterion in
 the second column was built to remove that dependence, and its rate moves
 from `r round(drop_at("recursive(modified)", 10), 1)`% at 10 trials to
 `r round(drop_at("recursive(modified)", 200), 1)`% at 200. The third column
@@ -293,9 +297,9 @@ from the other side: with 10 trials per group the chart has barely started
 when the group ends, and it removes
 `r round(drop_at("ewma(0.01, 1.5)", 10))`% of clean trials; with 200 it
 removes `r round(drop_at("ewma(0.01, 1.5)", 200), 1)`%. Ratcliff and Kang
-(2021) note that the rule has not found much use. It is here as the published
-accuracy-based comparator, and because it is the only rule in the roster that
-can see an anticipation at all.
+(2021) note that the rule has not found much use. It is in the package as
+the published accuracy-based rule, and the cross-table above shows what its
+removals contained.
 
 ## The mixture, in one paragraph
 
@@ -344,9 +348,9 @@ table(keep = drawn$.keep, reason = drawn$.reason, useNA = "ifany")
 ```
 
 The same split appears: trials the rule flagged, and trials a draw against a
-fractional `.prob` happened to remove. A probabilistic screen is the honest
-way to carry the mixture's uncertainty into a resampling analysis, and
-[the aggregation article](aggregation.html) shows the alternative, which is
+fractional `.prob` happened to remove. A probabilistic screen carries the
+mixture's uncertainty into a resampling analysis one draw at a time;
+[the aggregation article](aggregation.html) shows the other route, which is
 to hand `.prob` to `rt_summary()` as a weight and remove nothing.
 
 ## A rule that cannot be evaluated removes nothing
@@ -430,9 +434,8 @@ your own.
 ## Where next
 
 `?rules` documents every constructor with the reference it implements and
-the columns it adds to the fits table. Two further rules that the companion
-simulation evaluated and did not recommend are kept unexported and described
-in `?rules_experimental`. The mixture has
+the columns it adds to the fits table. Two further, experimental rules are
+unexported and described in `?rules_experimental`. The mixture has
 [its own article](mixture-screening.html),
 [the aggregation article](aggregation.html) covers what happens to the
 surviving trials, and [the comparison article](comparing-rules.html) applies
