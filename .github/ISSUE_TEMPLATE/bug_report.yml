@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in rtprep does not do what its documentation says
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. The single most useful thing
+        you can include is a **reprex** — a small, self-contained example that
+        reproduces the problem on a machine that is not yours. The
+        [reprex package](https://reprex.tidyverse.org/) will format one for you.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reprex
+    attributes:
+      label: Reproducible example
+      description: >
+        Simulated data is fine, and is preferred over your own — `r_contaminated()`
+        will generate response times with contaminants of a known type. Please do
+        not paste identifiable participant data into a public issue.
+      render: r
+    validations:
+      required: true
+
+  - type: textarea
+    id: session-info
+    attributes:
+      label: Session info
+      description: "Output of `sessioninfo::session_info()`, or `sessionInfo()`."
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: rtprep version
+      description: "`packageVersion('rtprep')`, and whether it came from CRAN or GitHub."
+    validations:
+      required: true

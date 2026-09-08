@@ -1,0 +1,7 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Reference and articles
+    url: https://www.gfrischkorn.org/rtprep/
+    about: >
+      Function reference and worked articles on screening rules, mixture
+      screening, aggregation, and testing a pipeline against known ground truth.

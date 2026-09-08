@@ -33,12 +33,13 @@ below.
 
 ## Test environments
 
-* local macOS (Darwin 25.6.0), R 4.6, 2026-09-05: `devtools::check(cran =
-  TRUE)` 0 errors, 0 warnings, 0 notes; `rcmdcheck --as-cran` with
-  `_R_CHECK_CRAN_INCOMING_=TRUE` (remote check off) 0/0/0;
-  `_R_CHECK_DEPENDS_ONLY_=true` 0/0/0; `urlchecker::url_check()` reports only
-  the repository, site, and CRAN pages that do not exist before the first
-  release
+* local macOS (Darwin 25.6.0), R 4.6.1, aarch64-apple-darwin23, 2026-09-05 and
+  re-run on the submitted tree 2026-09-08: `devtools::check(cran = TRUE)` 0
+  errors, 0 warnings, 0 notes (36.5 s, tests 26 s, vignettes re-built OK);
+  `rcmdcheck --as-cran` with `_R_CHECK_CRAN_INCOMING_=TRUE` (remote check off)
+  0/0/0; `_R_CHECK_DEPENDS_ONLY_=true` 0/0/0; `urlchecker::url_check()`
+  reports only the repository, site, and CRAN pages that do not exist before
+  the first release
 * win-builder, R Under development (unstable) (2026-09-06 r90498 ucrt),
   x86_64-w64-mingw32, Windows Server 2022 x64, 2026-09-08: **Status: 1 NOTE**
   -- the new-submission and DESCRIPTION-spelling NOTE quoted above, no other
@@ -49,13 +50,33 @@ below.
   **Status: OK** -- 0 errors, 0 warnings, 0 notes. Tests OK (14 s), vignettes
   re-built OK, PDF manual OK. This builder does not run the CRAN incoming
   check, which is why the spelling NOTE above does not appear here.
-* R-hub v2, 2026-09-08, all five platforms: linux (R-devel), windows
-  (R-devel), macos (R-devel), and atlas all **Status: OK**. `nold` (R built
-  without long doubles) reported 1 ERROR from a single test whose tolerance
-  was pinned to a value only reachable with extended precision; the threshold
-  has since been widened and the claim the test encodes is unchanged. Re-run
-  on `nold` pending.
-* win-builder (release): not yet run.
+* R-hub v2, 2026-09-08, all five platforms **Status: OK** -- 0 errors, 0
+  warnings, 0 notes each (these runs do not perform the CRAN incoming check,
+  so the spelling NOTE above does not appear on any of them):
+  * `linux`, R-devel (2026-09-07 r90504), x86_64-pc-linux-gnu, Ubuntu 24.04.4
+    LTS: tests OK (29 s), vignettes re-built OK
+  * `windows`, R-devel (2026-09-07 r90504 ucrt), x86_64-w64-mingw32, Windows
+    Server 2022 x64: tests OK (44 s), vignettes re-built OK
+  * `macos`, R-devel (2026-09-07 r90502), x86_64-apple-darwin20, macOS
+    Sequoia 15.7.9: tests OK (58 s), vignettes re-built OK
+  * `nold` (R built without long doubles), R-devel (2026-09-07 r90504),
+    Ubuntu 22.04.5 LTS: tests OK (29 s), vignettes not re-built on this
+    container image
+  * `atlas` (ATLAS BLAS/LAPACK), R-devel (2026-06-21 r90185), Fedora Linux 42,
+    GCC 15.2.1: tests OK (19 s), vignettes not re-built on this container
+    image
+
+  An earlier R-hub run the same day showed 1 ERROR on `nold` only. One test
+  asserted that the ex-Gaussian mixture drives its `tau` parameter to the
+  optimiser's lower bound, at a threshold (1e-3) that sits between where the
+  parameter lands with extended precision (6.7e-05) and without it (2.0e-03).
+  The threshold is now 1e-2, still well below both the value `tau` is
+  initialised at (0.065) and the value that generated the data (0.15). The
+  assertion that carries the claim the test encodes -- that this core reports
+  no contamination at all on a tight block of fast contaminants, fitted
+  proportion below 0.001 -- was not touched, and neither were the two
+  assertions that the other cores do find the block.
+* win-builder (release): submitted 2026-09-08, result pending.
 
 ## Notes for the reviewers
 

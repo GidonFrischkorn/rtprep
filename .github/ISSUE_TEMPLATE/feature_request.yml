@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a screening rule, an aggregation method, or an interface change
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What preprocessing problem does this solve?
+      description: >
+        Describe the analysis you cannot currently carry out, rather than the
+        function you would like added. The package exists to make preprocessing
+        choices comparable, so the question is usually what comparison is
+        blocked.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like rtprep to do?
+      description: "Sketch the call and the return value, if you have one in mind."
+      render: r
+
+  - type: input
+    id: reference
+    attributes:
+      label: Published source
+      description: >
+        If this implements a rule from the literature, give the DOI. Screening
+        rules in rtprep follow a published algorithm and are tested against it.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: >
+            I have checked that this is not already covered by an existing rule
+            (`rule_cutoff()`, `rule_sd()`, `rule_recursive()`, `rule_mixture()`).
