@@ -37,7 +37,8 @@ Suggests:
     tibble,
     ggplot2,
     knitr,
-    rmarkdown
+    rmarkdown,
+    spelling
 Config/testthat/edition: 3
 URL: https://github.com/GidonFrischkorn/rtprep, https://www.gfrischkorn.org/rtprep/
 BugReports: https://github.com/GidonFrischkorn/rtprep/issues
@@ -45,3 +46,4 @@ Config/Needs/website: rmarkdown, ggplot2, dplyr, tidyr, here, readr
 Config/roxygen2/version: 8.1.0
 VignetteBuilder: knitr
 LazyData: true
+Language: en-GB
