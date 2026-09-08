@@ -22,6 +22,16 @@ manuscript/*.docx
 # Untracked working material: literature PDFs, run logs, planning notes
 local/
 
+# Withheld until the manuscript is published. The tutorial manuscript, the
+# frozen simulation design, the study scripts and their helpers are kept out of
+# the public repository until the paper is accepted; the files stay on disk and
+# are versioned in the author's private copy. Delete this block (and re-add the
+# files) on acceptance.
+/manuscript/
+/DESIGN.md
+/scripts/
+/functions/
+
 # Fitted objects and simulation results are large and regenerable
 output/
 

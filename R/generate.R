@@ -387,8 +387,8 @@
 #' premature responding, late starts, disengagement — and the arguments
 #' (`anticipation_anchor`, `anticipation_depth`, `delay_min`/`delay_max`,
 #' `lapse_prop`) sweep within the cluster. Which implementations a simulation
-#' uses, and how many per cluster, is a design decision recorded in the
-#' project's `DESIGN.md`, not a package default.
+#' uses, and how many per cluster, is a design decision for that simulation to
+#' record and defend, not a package default.
 #'
 #' @references
 #' Ratcliff, R. (1993). Methods for dealing with reaction time outliers.

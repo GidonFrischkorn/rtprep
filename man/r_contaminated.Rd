@@ -113,8 +113,8 @@ Each named process is one implementation of a psychological cluster —
 premature responding, late starts, disengagement — and the arguments
 (\code{anticipation_anchor}, \code{anticipation_depth}, \code{delay_min}/\code{delay_max},
 \code{lapse_prop}) sweep within the cluster. Which implementations a simulation
-uses, and how many per cluster, is a design decision recorded in the
-project's \code{DESIGN.md}, not a package default.
+uses, and how many per cluster, is a design decision for that simulation to
+record and defend, not a package default.
 }
 
 \examples{

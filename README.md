@@ -15,10 +15,10 @@ status](https://www.r-pkg.org/badges/version/rtprep)](https://CRAN.R-project.org
 Screening, trimming, and aggregating response time data before fitting
 an evidence accumulation model.
 
-This repository is a research compendium. The `rtprep` package is at the
-root; the tutorial manuscript it validates lives in
-[`manuscript/`](manuscript/) and the simulation studies in
-[`scripts/`](scripts/).
+The package was written for a tutorial manuscript on response time
+preprocessing. That manuscript and the simulation studies behind it are
+held back until the paper is published; this repository carries the
+package itself.
 
 ## The problem
 

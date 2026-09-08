@@ -9,12 +9,6 @@ template:
 development:
   mode: auto
 
-# DESIGN.md is the compendium's design record, not package documentation. It is
-# removed from the built site by the pkgdown workflow; keeping it out of the
-# search index here is the belt to that step's braces.
-search:
-  exclude: [DESIGN.html]
-
 navbar:
   structure:
     left: [intro, reference, articles, news] # `news` is the NEWS.md component

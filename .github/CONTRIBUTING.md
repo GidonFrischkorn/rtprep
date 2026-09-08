@@ -13,17 +13,18 @@ known type, which usually reproduces a screening bug just as well.
 
 ## What this repository is
 
-`rtprep` is an R package that lives at the root of a research compendium. The
-package is `R/`, `man/`, `tests/`, `data/`, `vignettes/`; the sibling
-directories `manuscript/`, `scripts/`, `output/`, `functions/`, `data-raw/`
-and `local/` belong to the tutorial the package was written for and are all
-listed in `.Rbuildignore`. A change to the package should not need to touch
-them.
+`rtprep` is an R package that lives at the root of a research compendium. What
+this repository publishes is the package: `R/`, `man/`, `tests/`, `data/`,
+`vignettes/`, plus `data-raw/`. The tutorial manuscript the package was written
+for, and the simulation studies reported in it, are held back until the paper is
+published, so they are not in the repository and a change to the package does
+not need them.
 
-The simulation design those scripts implement is fixed in `DESIGN.md`, which is
-authoritative and changes only by adding a numbered decision-log entry — never
-by editing an earlier one. If a code change would alter what a study measures,
-that entry comes first.
+One consequence is worth knowing before you open a pull request: the package's
+defaults and the answers its rules give were fixed by that simulation. A change
+that alters what a rule returns is a change to a published result, not only to
+code, so it needs a rationale in the pull request and will usually be asked to
+land behind a new argument rather than by moving a default.
 
 ## Getting set up
 
