@@ -174,11 +174,12 @@ narrow |>
 ```
 
 The warning says the same thing the two `bound_excludes_` columns say: some
-observed trials fall outside the bounds, and the rule cannot flag them. That
-is the right behaviour for bounds chosen from the design, where the question
-is whether anything inside a plausible window is a contaminant, and the
-wrong behaviour for bounds guessed too tight. The mixed form
-`bound = c(0.1, "max")` fixes one side and leaves the other to the data.
+observed trials fall outside the bounds, and the rule cannot flag them.
+Bounds chosen from the design ask whether anything inside a plausible window
+is a contaminant, and keep everything outside it by construction; bounds
+tighter than the data drop trials from a fit that never sees them, and the
+two columns are where that shows. The mixed form `bound = c(0.1, "max")`
+fixes one side and leaves the other to the data.
 
 ## Convergence and `maxit`
 
@@ -197,14 +198,35 @@ impatient |>
   select(.group, converged, iterations, n_dropped)
 ```
 
-The default is `maxit = 500`, the setting the companion simulation used
-throughout. `bmm::flag_contaminant_rts()` uses 100, and at 100 the lognormal
-core left a quarter of its fits unconverged on heavy-tailed data in the
-package's own measurement. An unconverged fit is not a wrong fit, but it is
-a fit that removed nothing, and a comparison between the two packages should
-pass `maxit` explicitly on both sides. `bmm` also returns `NA` probabilities
-where its fit fails; `rtprep` keeps the trials instead, because an `NA` would
-propagate into `.keep`.
+The default is `maxit = 500`; `bmm::flag_contaminant_rts()` uses 100.
+Whether the cap binds depends on the data. Shifted-exponential response
+times are a shape the lognormal core fits slowly, and on 50 groups of 100
+such trials the two caps leave different numbers of groups unconverged:
+
+```{r maxit-compare}
+set.seed(2026093)
+heavy <- data.frame(
+  grp = rep(seq_len(50), each = 100),
+  rt = 0.3 + rexp(5000, rate = 1 / 0.3)
+)
+
+unconverged_at <- function(maxit) {
+  fits <- screen_fits(
+    heavy$rt, rule_mixture("lognormal", maxit = maxit), .by = heavy$grp
+  )
+  sum(!fits$converged)
+}
+
+unconverged <- c(at_100 = unconverged_at(100), at_500 = unconverged_at(500))
+unconverged
+```
+
+At 100 iterations `r unconverged[["at_100"]]` of the 50 groups stop at the
+cap; at 500, `r unconverged[["at_500"]]`. An unconverged fit is not a wrong
+fit, but it is a fit that removed nothing, and a comparison between the two
+packages should pass `maxit` explicitly on both sides. `bmm` also returns
+`NA` probabilities where its fit fails; `rtprep` keeps the trials instead,
+because an `NA` would propagate into `.keep`.
 
 ## The posterior as a weight
 
@@ -298,9 +320,10 @@ and removes
 `r exg_result$n_dropped[exg_result$distribution == "exgaussian"]` trials, of
 which `r round(40 * exg_result$sensitivity[exg_result$distribution == "exgaussian"])`
 come from the block. It absorbs the guesses by widening its Gaussian
-part and driving $\tau$ toward zero, and `bmm`'s EM does the same from the
-same starting values, so this is a property of the model rather than of
-either implementation. The ex-Gaussian is the default in both packages.
+part and driving $\tau$ toward zero. The package's equivalence tests fit a
+block built the same way with `bmm`'s EM and reach the same decisions, so
+this is a property of the model rather than of either implementation. The
+ex-Gaussian is the default in both packages.
 
 Now the same block on a core produced by the diffusion generator at
 `rt_example`'s regime, which has a sharper leading edge and a heavier tail:
@@ -336,10 +359,10 @@ by_rate
 
 The block of 20 is found, at the cost of
 `r by_rate$n_dropped[by_rate$n_block == 20] - 20` genuine trials removed
-with it; the block of 40 and everything larger is lost entirely. There is
-no setting of the core that makes the mixture safe on data of unknown
-shape; there is only the check, which is `collapsed` and `contaminant_prop`
-read against the rate the design makes plausible.
+with it; the block of 40 and everything larger is lost entirely. On this
+core the size of the block changes the answer, and not monotonically;
+`collapsed` and `contaminant_prop`, read against the rate the design makes
+plausible, are the columns that show which case occurred.
 
 ### Accuracy in the likelihood orders better and removes nothing
 
@@ -395,25 +418,38 @@ tibble(
 )
 ```
 
-The accuracy term does what it was meant to do in one respect: the ranking
-improves. It does not do the other thing. The fitted proportion stays near
-1% against a true 15%, and the number of trials removed does not move.
-The accuracy factor favours the core on every correct trial, which widens
-the basin of the zero-contamination fixed point; in the package's tests, on
-a tighter core, the same construction converges to a proportion below
-$10^{-6}$ and removes nothing at all. The better ordering is one the keep
-policy never gets to act on.
+```{r overlap-values, include = FALSE}
+sens <- c(
+  rt = sensitivity_at(rt_only$.prob, lapses$contaminant),
+  joint = sensitivity_at(joint$.prob, lapses$contaminant)
+)
+prop <- c(
+  rt = attr(rt_only, "fits")$contaminant_prop,
+  joint = attr(joint, "fits")$contaminant_prop
+)
+```
+
+The ranking sensitivity moves from `r round(sens[["rt"]], 2)` under the
+RT-only model to `r round(sens[["joint"]], 2)` under the joint model. The
+fitted proportion is `r round(100 * prop[["rt"]], 1)`% and
+`r round(100 * prop[["joint"]], 1)`% against a true 15%, and the two models
+remove `r sum(!rt_only$.keep)` and `r sum(!joint$.keep)` trials. The
+accuracy factor favours the core on every correct trial, which widens the
+basin of the zero-contamination fixed point; the package's tests build the
+same construction on a tighter core, where the fit collapses outright and
+removes nothing at all. Whatever the ordering gains, the keep policy never
+gets to act on it while the proportion sits at the floor.
 
 ### Accuracy deflates the evidence when contaminants are accurate
 
 A delayed start-up runs the decision process, only later, so it is usually
 correct. Under the joint model every correct contaminant has its contaminant
 evidence attenuated by $\gamma / p_c$, and that is not neutrality. The
-package's tests show it on a tight ex-Gaussian core with a fixed 250 ms
-delay, where the RT-only model is well off the floor and the joint model
-loses a large part of its sensitivity. On diffusion-shaped data the
-comparison cannot even be made, because every core collapses on delayed
-start-ups first:
+package's tests construct the separable case, a tight ex-Gaussian core with
+a fixed delay, where the RT-only model is well off the floor and the joint
+model's sensitivity falls below it. On diffusion-shaped data the comparison
+cannot even be made, because every core collapses on delayed start-ups
+first:
 
 ```{r delays}
 set.seed(2026093)
@@ -436,28 +472,26 @@ bind_rows(
 
 A uniform shift of 300 to 900 ms placed on 15% of trials is a heavy upper
 tail, and the cores absorb it as their own tail rather than as
-contamination. The deflation itself is a property of the likelihood, not of
-this data set: it applies whenever observed accuracy is well above chance,
-which in most response time paradigms is always, so a contaminant
-proportion below the RT-only estimate should be read as expected rather
-than as evidence of a cleaner data set. Two further things
-the variant cannot enforce: it assumes contaminants respond at `chance`,
-and `response` must be coded correct/error rather than upper/lower boundary,
-which `rtprep` cannot tell apart because both are 0/1. When a fit returns
-$p_c$ below chance the component labels have swapped, and
-`accuracy_inverted` says so. `check_guessing()` is the diagnostic
-counterpart of this variant, testing accuracy after the flagging rather
-than during it, and given what is shown above it is the safer of the two
-instruments.
+contamination. The deflation itself follows from the likelihood above: each
+correct contaminant's evidence for the uniform component is multiplied by
+$\gamma / p_c$, which is below 1 whenever $p_c$ is above chance, so a joint
+fit that reports a smaller proportion than the RT-only fit is doing what
+the equation says rather than finding a cleaner data set. Two further
+things the variant cannot enforce: it assumes contaminants respond at
+`chance`, and `response` must be coded correct/error rather than
+upper/lower boundary, which `rtprep` cannot tell apart because both are
+0/1. When a fit returns $p_c$ below chance the component labels have
+swapped, and `accuracy_inverted` says so. `check_guessing()` is the
+diagnostic counterpart of this variant: it tests the accuracy of the
+removed fast trials after the flagging, and because it does not enter the
+likelihood it cannot move the fit.
 
-## What to report
+## The fits table across groups
 
-A mixture screen that is reported as "we removed contaminants with a
-mixture model" has reported nothing. Four columns of the fits table make it
-a result: `distribution`, `contaminant_prop` against the rate the design
-made plausible, `n_dropped` or `prop_dropped`, and the share of groups with
-`collapsed = TRUE` or `converged = FALSE`. On `rt_example` that table is
-one call:
+Naming the rule does not say what it did. Four columns of the fits table
+do: `distribution`, `contaminant_prop`, `n_dropped` or `prop_dropped`, and
+the share of groups with `collapsed = TRUE` or `converged = FALSE`. On
+`rt_example` that summary is one call:
 
 ```{r report}
 rt_example |>
@@ -472,9 +506,8 @@ rt_example |>
   )
 ```
 
-How often the collapse happens at scale, by core and by contaminant
-process, is what the companion simulation measured, and its numbers live in
-[the simulation article](simulation-studies.html). The rule is in the
-roster because the idea is sound
-and widely used; the columns above are how you find out whether it did
-anything on your data.
+`true_rate` is there only because `rt_example` carries the truth; on real
+data the number to read `mean_contaminant_prop` against is the rate the
+design makes plausible. The rule is in the package because the idea is
+sound and widely used; the columns above are how you find out whether it
+did anything on your data.
