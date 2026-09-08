@@ -30,8 +30,8 @@ frame here, a vector of probabilities there, a set of summary statistics
 somewhere else. With one return shape the comparison is one call, and this
 article is about that call: what `screen_compare()` returns, which of its
 two agreement measures answers which question, how to see what each rule
-removed and why, and how to turn the result into the thing the manuscript
-asks for, a pipeline reported as a result rather than as a method detail.
+removed and why, and how to tabulate the roster's settings and realised
+drop rates from the result object.
 
 ```{r setup, message = FALSE}
 library(rtprep)
@@ -202,9 +202,8 @@ vapply(c(0.3, 0.5, 0.7), function(th) {
   setNames(c("0.3", "0.5", "0.7"))
 ```
 
-A comparison that names the rule and not the threshold has not named the
-pipeline. The deterministic rules are unaffected, because their `.prob` is
-0 or 1 and every threshold strictly between falls on the same side.
+The deterministic rules are unaffected, because their `.prob` is 0 or 1 and
+every threshold strictly between falls on the same side.
 
 ## With ground truth: score every rule at once
 
@@ -221,21 +220,14 @@ round(colMeans(cmp$keep[!contaminant, ]), 3)
 
 The most aggressive rule finds the most contaminants and pays the most
 genuine trials for them; the cutoff finds nothing because nothing in this
-fast task reaches its bounds. Which of these is the right trade depends on
-what the estimate is for, and that is the question the companion
-simulation's Study 2 and Study 3 answer, on 200 replications rather than
-eight cells. [The ground-truth article](ground-truth.html) shows the same
-scoring on data matched to your own task.
+fast task reaches its bounds. [The ground-truth article](ground-truth.html)
+shows the same scoring on data matched to your own task.
 
-## Reporting a pipeline as a result
+## The roster as a table
 
-The manuscript's recommendation is to report the pipeline as a result
-rather than as a method detail: name the rule and its setting, report the
-realised drop rate, and report the substantive analysis under at least two
-pipelines plus the no-preprocessing baseline. Where the conclusion moves
-across pipelines, that movement is a finding about the data's contamination
-and belongs in the paper. `screen_compare()` produces the first two columns
-of that table directly, and the rule objects carry their own settings:
+The comparison object carries what it was given: `cmp$rules` holds the rule
+objects, each with its `label`, and a column mean of `!cmp$keep` is the
+realised drop rate per rule. Together they give one row per pipeline:
 
 ```{r report}
 tibble(
@@ -245,9 +237,9 @@ tibble(
 )
 ```
 
-The third column, the analysis under each pipeline, is the `keep` matrix
-applied to whatever comes next: filter with a column, aggregate, estimate,
-and repeat per column. [The aggregation article](aggregation.html) carries
-one such table through to drift estimates, and
+Applying each column of `keep` to what comes next repeats the downstream
+analysis per pipeline: filter with a column, aggregate, estimate, and
+repeat. [The aggregation article](aggregation.html) carries one such table
+through to drift estimates, and
 [the ground-truth article](ground-truth.html) adds the column a real data
 set never has, which is how far each pipeline sits from the truth.
