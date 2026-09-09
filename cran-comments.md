@@ -4,7 +4,8 @@
 
 * This is a new release.
 
-The single NOTE comes from the CRAN incoming check on win-builder (R-devel):
+The single NOTE comes from the CRAN incoming check on win-builder, identical on
+R-devel and R-release:
 
 ```text
 Maintainer: 'Gidon T. Frischkorn <gidon.frischkorn@psychologie.uzh.ch>'
@@ -45,6 +46,11 @@ below.
   -- the new-submission and DESCRIPTION-spelling NOTE quoted above, no other
   finding. Installation clean, examples OK, tests OK (49 s), vignettes
   re-built OK, PDF and HTML manuals OK.
+* win-builder, R version 4.6.1 (2026-06-24 ucrt), x86_64-w64-mingw32, Windows
+  Server 2022 x64, 2026-09-08: **Status: 1 NOTE** -- the same new-submission
+  and DESCRIPTION-spelling NOTE quoted above, word for word, no other finding.
+  Installation clean, examples OK, tests OK (54 s), vignettes re-built OK, PDF
+  (14 s) and HTML manuals OK.
 * macOS builder (`r-release-macosx-arm64`), R 4.6.1 Patched (2026-07-27
   r90311), aarch64-apple-darwin23, macOS Tahoe 26.6 on Apple M1, 2026-09-08:
   **Status: OK** -- 0 errors, 0 warnings, 0 notes. Tests OK (14 s), vignettes
@@ -76,7 +82,6 @@ below.
   no contamination at all on a tight block of fast contaminants, fitted
   proportion below 0.001 -- was not touched, and neither were the two
   assertions that the other cores do find the block.
-* win-builder (release): submitted 2026-09-08, result pending.
 
 ## Notes for the reviewers
 
