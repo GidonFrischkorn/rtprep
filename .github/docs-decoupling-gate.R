@@ -10,10 +10,9 @@
 # preparation") are seen rather than hidden. Base R only, so the CI step needs
 # nothing installed.
 #
-# The shared chunk file vignettes/articles/ground-truth-chunks.R keeps one
-# section, gt-residual, that another document uses and the site does not; that
-# region is excluded from the scan, and in exchange the gate asserts that no
-# page under vignettes/ references the chunk.
+# Nothing is excluded from the scan: every source file is read whole. The gate
+# still asserts that no page references gt-residual, the one section that used
+# to read the archived summaries, so that it cannot come back unnoticed.
 
 list_under <- function(dir, pattern) {
   if (!dir.exists(dir)) {
@@ -63,22 +62,8 @@ soft <- c(
   "the paper", "AMPPS"
 )
 
-chunk_file <- "vignettes/articles/ground-truth-chunks.R"
-excluded_label <- "gt-residual"
-
 read_scannable <- function(path) {
-  lines <- readLines(path, warn = FALSE, encoding = "UTF-8")
-  if (normalizePath(path, mustWork = FALSE) ==
-    normalizePath(chunk_file, mustWork = FALSE)) {
-    headers <- grep("^## ---- ", lines)
-    start <- grep(paste0("^## ---- ", excluded_label, " "), lines)
-    if (length(start) == 1L) {
-      later <- headers[headers > start]
-      end <- if (length(later)) min(later) - 1L else length(lines)
-      lines[start:end] <- ""
-    }
-  }
-  lines
+  readLines(path, warn = FALSE, encoding = "UTF-8")
 }
 
 scan <- function(files, patterns) {
