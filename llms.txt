@@ -1,0 +1,211 @@
+# rtprep
+
+Screening, trimming, and aggregating response time data before fitting
+an evidence accumulation model.
+
+The package was written for a tutorial manuscript on response time
+preprocessing. That manuscript and the simulation studies behind it are
+held back until the paper is published; this repository carries the
+package itself.
+
+## The problem
+
+Every response time analysis makes an exclusion decision, and most
+inherit it by convention — 200 ms and 3 s because that is what the last
+paper did, or ±2.5 SD because that is what the field does. The
+consequences are invisible in the data the researcher can see, and they
+are not small: contaminant trials bias evidence accumulation model
+parameters, and which contaminants a method can reach depends on how far
+they sit from the RT distribution the decision process itself produces.
+
+The methods to deal with this exist and are scattered. What does not
+exist is a way to compare them, because every implementation returns a
+different kind of object: a trimmed data frame, a vector of per-trial
+probabilities, a set of summary statistics. `rtprep` gives them one
+interface, so a preprocessing choice can be evaluated rather than
+assumed.
+
+## What it provides
+
+- **Screening** under one return type: absolute cutoffs, standard
+  deviation and median absolute deviation criteria, recursive moving
+  criteria, and model-based mixture flagging
+- **Aggregation** into EZ-diffusion summary statistics, with mixture
+  down-weighting and accuracy adjustment
+- **Diagnostics** reporting what each rule removed, per cell, and where
+  rules disagree
+- **Generators** for response time data with contaminants of known type,
+  so a chosen pipeline can be tested against ground truth on data shaped
+  like yours
+
+That last one matters most. Contamination is invisible in your own data;
+simulating it is the only way to check whether your pipeline did what
+you thought it did.
+
+## Installation
+
+``` r
+
+# the development version, from GitHub
+# install.packages("remotes")
+remotes::install_github("GidonFrischkorn/rtprep")
+
+# from CRAN, once the first release is accepted
+# install.packages("rtprep")
+```
+
+## A first look
+
+Every rule is a constructor, one engine applies it, and the result has
+the same four columns whichever rule went in:
+
+``` r
+
+library(rtprep)
+
+set.seed(1)
+dat <- r_contaminated(400, process = "mixed", rate = 0.1)
+
+scr <- rt_screen(dat$rt, rule_sd(2.5))
+head(scr)
+#>   .keep .prob             .rule .reason
+#> 1  TRUE     1 sd(2.5, mean, sd)    <NA>
+#> 2  TRUE     1 sd(2.5, mean, sd)    <NA>
+#> 3  TRUE     1 sd(2.5, mean, sd)    <NA>
+#> 4  TRUE     1 sd(2.5, mean, sd)    <NA>
+#> 5  TRUE     1 sd(2.5, mean, sd)    <NA>
+#> 6  TRUE     1 sd(2.5, mean, sd)    <NA>
+
+# how much each rule would have removed, and how much the removed sets overlap
+cmp <- screen_compare(
+  dat$rt,
+  list(cutoff = rule_cutoff(0.18, 3), sd = rule_sd(2.5), mad = rule_mad(2.5))
+)
+cmp
+#> <rtprep comparison> 400 trials, 3 rules
+#> 
+#>   cutoff                       dropped   0.0%
+#>   sd                           dropped   3.8%
+#>   mad                          dropped  10.8%
+#> 
+#>   least agreement: cutoff vs mad, 89.2% of decisions (Jaccard 0.00)
+```
+
+Because
+[`r_contaminated()`](https://www.gfrischkorn.org/rtprep/reference/r_contaminated.md)
+carries the ground truth, the screen can be scored rather than trusted:
+
+``` r
+
+table(flagged = !scr$.keep, contaminant = dat$contaminant)
+#>        contaminant
+#> flagged FALSE TRUE
+#>   FALSE   357   28
+#>   TRUE      2   13
+```
+
+## Relationship to other packages
+
+`rtprep` implements its screening rules itself and carries no runtime
+dependency on other preprocessing packages. Where reference
+implementations exist — [`trimr`](https://github.com/JimGrange/trimr)
+for the trimming families, [`bmm`](https://github.com/popov-lab/bmm) for
+the mixture EM and EZ aggregation — the test suite checks equivalence
+against them.
+
+## Citation
+
+Manuscript in preparation. Until it appears, cite the package:
+`citation("rtprep")`.
+
+## License
+
+GPL (\>= 3)
+
+# Package index
+
+## About rtprep
+
+- [`rtprep`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
+  [`rtprep-package`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
+  : rtprep: Screening, Trimming, and Aggregating Response Time Data
+
+## Screening
+
+One engine, one return shape, whichever rule is applied.
+
+- [`rt_screen()`](https://www.gfrischkorn.org/rtprep/reference/rt_screen.md)
+  : Screen response times with any rule
+- [`rt_keep()`](https://www.gfrischkorn.org/rtprep/reference/rt_keep.md)
+  : Keep vector from a screening rule
+- [`screen_fits()`](https://www.gfrischkorn.org/rtprep/reference/screen_fits.md)
+  : Per-group fit diagnostics from a screening rule
+- [`rule_cutoff()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_mad()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_recursive()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_mixture()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_none()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`print(`*`<rtprep_rule>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  : Screening rules
+
+## Aggregation and estimation
+
+From surviving trials to EZ-diffusion inputs and parameters.
+
+- [`rt_summary()`](https://www.gfrischkorn.org/rtprep/reference/rt_summary.md)
+  : Aggregate response times into EZ-diffusion summary statistics
+- [`adjust_accuracy()`](https://www.gfrischkorn.org/rtprep/reference/adjust_accuracy.md)
+  : Correct accuracy counts for contamination
+- [`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md) :
+  Invert summary statistics into diffusion parameters
+
+## Comparison and diagnostics
+
+What a different choice would have removed, and whether the removed
+trials were what you thought.
+
+- [`screen_compare()`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+  [`print(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+  [`summary(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+  [`plot(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+  : Compare what several screening rules would remove
+- [`check_guessing()`](https://www.gfrischkorn.org/rtprep/reference/check_guessing.md)
+  : Test whether the fast trials a rule removed were really guesses
+
+## Ground truth
+
+Generate data with contaminants of known type, so a pipeline can be
+tested instead of trusted.
+
+- [`r_contaminated()`](https://www.gfrischkorn.org/rtprep/reference/r_contaminated.md)
+  : Generate response time data with contaminants of known type
+
+## Data
+
+- [`rt_example`](https://www.gfrischkorn.org/rtprep/reference/rt_example.md)
+  : Simulated response times from four participants, with ground truth
+
+# Articles
+
+### Using rtprep
+
+- [Screening rules: what each one
+  removes](https://www.gfrischkorn.org/rtprep/articles/screening-rules.md):
+- [Mixture screening: the contaminant mixture and where it
+  fails](https://www.gfrischkorn.org/rtprep/articles/mixture-screening.md):
+- [Aggregation: from surviving trials to
+  parameters](https://www.gfrischkorn.org/rtprep/articles/aggregation.md):
+
+### Checking your pipeline
+
+- [Ground truth: testing a pipeline on data shaped like
+  yours](https://www.gfrischkorn.org/rtprep/articles/ground-truth.md):
+- [Comparing rules: what a different choice would have
+  removed](https://www.gfrischkorn.org/rtprep/articles/comparing-rules.md):
+
+### Ecosystem
+
+- [rtprep and bmm: the correspondence, function by
+  function](https://www.gfrischkorn.org/rtprep/articles/rtprep-and-bmm.md):

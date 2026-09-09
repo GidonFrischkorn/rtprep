@@ -1,0 +1,15 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  articles/aggregation: aggregation.html
+  articles/comparing-rules: comparing-rules.html
+  articles/ground-truth: ground-truth.html
+  articles/mixture-screening: mixture-screening.html
+  articles/rtprep-and-bmm: rtprep-and-bmm.html
+  rtprep: rtprep.html
+  articles/screening-rules: screening-rules.html
+last_built: 2026-09-08T19:47Z
+urls:
+  reference: https://www.gfrischkorn.org/rtprep/reference
+  article: https://www.gfrischkorn.org/rtprep/articles
