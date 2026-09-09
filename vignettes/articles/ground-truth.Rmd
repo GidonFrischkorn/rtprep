@@ -1,0 +1,335 @@
+---
+title: "Ground truth: testing a pipeline on data shaped like yours"
+---
+
+```{r, include = FALSE}
+can_run <- requireNamespace("dplyr", quietly = TRUE) &&
+  requireNamespace("tidyr", quietly = TRUE) &&
+  requireNamespace("ggplot2", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center",
+  # dplyr, tidyr, and ggplot2 are Suggests: the article reads without them and
+  # runs with them
+  eval = can_run
+)
+# CI must fail rather than publish a page whose chunks silently did not run
+if (nzchar(Sys.getenv("CI"))) stopifnot(can_run)
+
+# The code of this article lives in one file, ground-truth-chunks.R, that
+# another document in the repository reads as well, so the two cannot drift
+# apart. The call goes through
+# do.call() on purpose: pkgdown runs knitr::purl() on the article after
+# rendering it, to find its images, and purl evaluates any literal call of
+# the chunk reader it sees, even in a comment, on its own and from the
+# package root, where the relative path does not resolve. Written this way
+# the line is left alone.
+article_dir <- Find(
+  function(d) file.exists(file.path(d, "ground-truth-chunks.R")),
+  c(".", "vignettes/articles")
+)
+if (is.null(article_dir)) stop("cannot find ground-truth-chunks.R from ", getwd())
+do.call(knitr::read_chunk, list(file.path(article_dir, "ground-truth-chunks.R")))
+okabe_ito <- c(
+  "#0072B2", "#E69F00", "#009E73", "#D55E00",
+  "#56B4E9", "#CC79A7", "#F0E442", "#000000"
+)
+```
+
+Contamination is invisible in the data you have. A trial that came from a
+lapse looks like a trial that came from the decision process, only slower,
+or faster, or wrong, and every screening rule is a bet about which of those
+it can tell apart. Every published evaluation of a rule scored that bet on a
+design that was not yours. This article closes the gap the only way it can
+be closed: by generating data shaped like your task, contaminating it the
+way your design plausibly would, running the pipeline you intend to use, and
+scoring it against the truth the generator carried. That costs a few
+seconds, and it is the one situation in which a researcher can find out what
+their pipeline actually does.
+
+The code on this page lives in one file, `ground-truth-chunks.R`, next to
+the article; sourcing it end to end reruns the whole example.
+
+```{r setup, message = FALSE}
+library(rtprep)
+library(dplyr)
+library(ggplot2)
+```
+
+## Three numbers from a pilot
+
+Locate your task by three numbers a pilot gives directly: the mean correct
+response time, the proportion correct, and the coefficient of variation of
+correct response times. The example uses a moderate task, the three values
+in `pilot` below; the get-started vignette's data is faster, and
+[the screening-rules article](screening-rules.html) shows what a slow one
+does to an absolute cutoff.
+
+```{r gt-pilot}
+```
+
+`ez_ddm()` inverts the three into diffusion parameters. At a very large
+trial count it is exactly the inversion the generator's own matching uses,
+so no internal function is needed:
+
+```{r gt-match}
+```
+
+One check to make by eye: the implied non-decision time. The generator's
+matching accepts targets whose non-decision time falls between 0.206 and
+0.942 s, the range published diffusion fits span, and a target outside it is
+a task no diffusion process reaches with plausible parameters. Here it is
+`r round(matched$ndt, 2)` s. A clean draw of 10,000 trials confirms that the
+parameters reproduce the three observables:
+
+```{r gt-check-match}
+```
+
+The match is not available for the racing generator, whose parameters have
+no closed-form inversion; the solver that matches it is internal to the
+package, and the diffusion generator is the one to use here.
+
+## Contaminate it the way your design would
+
+Which contaminants a design produces is a question about the design, not
+about the data. A task with short stimulus onsets, speed pressure, or a
+rhythmic pace invites anticipations. A long, low-stakes, unsupervised
+session invites informationless responses and late starts. The example
+takes the second case, and it lets participants differ in two things: how
+much they contaminate, and how able they are.
+
+```{r gt-design}
+```
+
+```{r gt-generate}
+```
+
+```{r gt-generate-values, include = FALSE}
+n_contaminants <- sum(simulated$contaminant)
+```
+
+`r n_contaminants` of `r nrow(simulated)` trials are contaminants, at
+participant rates from `r round(100 * min(traits$rate), 1)`% to
+`r round(100 * max(traits$rate), 1)`%. Every one of them is labelled, and
+every participant's true drift is known, which is what the rest of the page
+uses.
+
+## What the rules disagree about
+
+With real data the comparison of rules ends at agreement, because nothing
+says which rule is right. It is still worth running first, because the
+disagreements tell you where the bet is being placed:
+
+```{r gt-compare}
+```
+
+```{r gt-agreement}
+```
+
+```{r gt-agreement-values, include = FALSE}
+drop_rate <- colMeans(!comparison$keep)
+mad_ratio <- drop_rate[["mad"]] / drop_rate[c("recursive", "mixture")]
+involves <- function(pairs, rule) pairs$rule_x == rule | pairs$rule_y == rule
+ewma_jaccard <- comparison$agreement$jaccard[involves(comparison$agreement, "ewma")]
+mad_pairs <- comparison$agreement[
+  involves(comparison$agreement, "mad") &
+    (involves(comparison$agreement, "recursive") |
+      involves(comparison$agreement, "mixture")),
+]
+mad_ratio_text <- if (diff(round(range(mad_ratio), 1)) == 0) {
+  as.character(round(min(mad_ratio), 1))
+} else {
+  paste(round(min(mad_ratio), 1), "to", round(max(mad_ratio), 1))
+}
+```
+
+Two things stand out before any truth is consulted. The chart removes a set
+of trials `r if (all(ewma_jaccard == 0, na.rm = TRUE)) "no other rule touches: its Jaccard overlap with every other rule is zero" else "the other rules barely touch: its Jaccard overlap with every other rule is near zero"`,
+because it cuts from below and the others cut from above. And the ±2.5 MAD
+criterion removes `r mad_ratio_text` times as many trials as the recursive
+criterion or the mixture, while
+agreeing with them on more than `r floor(100 * min(mad_pairs$agree))`% of
+decisions, which is the case the agreement statistic was built to expose.
+
+## Score the pipeline against the carried truth
+
+The truth turns the same keep matrix into detection rates, overall and by
+contaminant process:
+
+```{r gt-score}
+```
+
+```{r gt-score-values, include = FALSE}
+score_of <- function(rule, column) scored[[column]][scored$rule == rule]
+rt_only_anticipations <- scored$anticipations[scored$rule != "ewma"]
+```
+
+`r if (all(rt_only_anticipations == 0)) "No rule that reads only response times finds a single anticipation" else "The rules that read only response times find almost no anticipations"`;
+the chart finds `r round(100 * score_of("ewma", "anticipations"))`% of them.
+Delayed start-ups are found in proportion to how aggressive the rule is,
+from `r round(100 * score_of("recursive", "delays"))`% for the modified
+recursive criterion to `r round(100 * score_of("mad", "delays"))`% for
+±2.5 MAD, and the aggressive rule pays for it in specificity.
+Informationless responses are found by almost nothing: every rule's hit rate
+on them sits at or near its own false-alarm rate, because those trials have
+the decision process's own timing.
+
+The rest of the page carries one rule forward, the modified recursive
+criterion, the one [the screening-rules article](screening-rules.html)
+shows was built to hold its false-alarm rate across group sizes; swapping it
+for another is one column of `comparison$keep`, which the last section does.
+On this data it removes
+`r round(100 * score_of("recursive", "dropped"), 1)`% of trials and finds
+`r round(100 * score_of("recursive", "sensitivity"))`% of the contaminants.
+
+## Was what you removed what you thought?
+
+Two diagnostics apply here. `check_guessing()` asks whether the fast trials
+a rule removed were guesses, by testing their accuracy against chance. It
+tests only trials that were both removed and fast, so a rule that removes
+nothing from below gives it nothing to test:
+
+```{r gt-guessing}
+```
+
+```{r gt-guessing-values, include = FALSE}
+pooled_guessing <- check_guessing(ewma_keep, simulated$rt, simulated$response)
+n_median <- round(median(per_participant$n_tested))
+# The largest Bayes factor for guessing that n_median tested trials can
+# produce: an exactly even split, every trial counted as fast.
+bf_ceiling <- check_guessing(
+  keep = rep(FALSE, n_median),
+  rt = rep(0.1, n_median),
+  response = rep(c(1L, 0L), length.out = n_median),
+  threshold_type = "absolute", rt_threshold = 1
+)
+```
+
+The recursive criterion has no testable trial. The chart does, and pooled
+across participants the evidence is `r sub("_", " ", sub("_guessing$", " guessing", pooled_guessing$bf_evidence))`:
+the accuracy of what it removed is `r round(pooled_guessing$prop_upper, 2)`,
+because the removed set is mostly genuine trials that happened to be fast,
+with the anticipations a minority inside it. Per participant the check
+tests a median of `r n_median` trials, and the largest Bayes factor for
+guessing that `r n_median` trials can produce, on an exactly even split, is
+`r round(bf_ceiling$bf_01, 2)` (`r sub("_", " ", sub("_guessing$", " guessing", bf_ceiling$bf_evidence))`).
+The pooled call is the one with the trials behind it; the per-participant
+calls spread over the categories the count allows:
+
+```{r gt-guessing-per-participant}
+table(per_participant$bf_evidence, useNA = "ifany")
+```
+
+The leading-edge shift statistic asks, after a cut at the 5th percentile,
+how far the surviving minimum moved toward the original 10th percentile.
+Near 1 means the removed mass was displaced from the core, which is what
+anticipations look like; near 0 means a genuine edge was cut:
+
+```{r gt-leading-edge}
+```
+
+```{r gt-leading-edge-values, include = FALSE}
+# The clean draw from the matching step, cut into blocks of n_trials, gives
+# a reference for what the statistic does on data with no anticipations.
+n_slices <- nrow(clean_check) %/% n_trials
+clean_slice <- rep(seq_len(n_slices), each = n_trials)
+clean_shift <- tapply(
+  clean_check$rt[seq_along(clean_slice)], clean_slice, leading_edge_shift
+)
+```
+
+Across participants the statistic averages
+`r round(mean(shift_by_participant), 2)` with a standard deviation of
+`r round(sd(shift_by_participant), 2)`, while anticipations make up
+`r round(100 * mean(simulated$process == "leading_edge"), 1)`% of the
+trials. The clean draw from the matching step gives the reference: cut into
+`r n_slices` blocks of `r n_trials` trials, it averages
+`r round(mean(clean_shift), 2)` with a standard deviation of
+`r round(sd(clean_shift), 2)`. The function returns a value to compare
+across participants or against a clean reference like this one; it defines
+no cutpoint.
+
+## What the pipeline leaves behind
+
+The question that matters to an individual-differences study is not the
+mean error but whether each participant's error tracks their own
+contamination rate. Three pipelines, each ending in `ez_ddm()`: nothing
+removed, the recursive criterion, and the oracle that removes exactly the
+contaminants:
+
+```{r gt-estimate}
+```
+
+```{r gt-figure}
+```
+
+```{r gt-figure-print, fig.alt = "Three scatter plots of estimated against true drift for 20 participants, one per pipeline (none, recursive, oracle), with points coloured by each participant's contamination rate and the identity line dashed."}
+drift_plot + theme_minimal() + theme(legend.position = "bottom")
+```
+
+```{r gt-estimate-values, include = FALSE}
+pipeline_stat <- function(p, stat) {
+  s <- estimates |>
+    summarise(
+      mean_error = mean(error),
+      rate_error_r = cor(rate, error),
+      validity_r = cor(true_drift, drift),
+      .by = pipeline
+    )
+  s[[stat]][s$pipeline == p]
+}
+```
+
+On this sample the recursive criterion moves the mean error from
+`r round(pipeline_stat("none", "mean_error"), 2)` to
+`r round(pipeline_stat("recursive", "mean_error"), 2)`. The correlation
+between a participant's rate and their error is the harder quantity: it
+moves from `r round(pipeline_stat("none", "rate_error_r"), 2)` to
+`r round(pipeline_stat("recursive", "rate_error_r"), 2)` where the oracle
+gives `r round(pipeline_stat("oracle", "rate_error_r"), 2)`. The scoring
+table above says why the rule cannot close that gap: the informationless
+responses, which have the decision process's own timing, are found at the
+rule's false-alarm rate, and a participant's share of them scales with their
+contamination rate. Twenty participants make these correlations noisy.
+
+## Swap the rule and run it again
+
+Everything on this page is a function of one column of `comparison$keep`.
+Swapping the modified recursive criterion for the ±2.5 MAD criterion is one
+line, and the same summary puts the two next to the no-preprocessing
+baseline and the oracle, with the detection columns the truth provides
+alongside:
+
+```{r gt-swap}
+scored_all <- bind_rows(
+  scored,
+  score_rule(rep(TRUE, nrow(simulated))) |> mutate(rule = "none"),
+  score_rule(!simulated$contaminant) |> mutate(rule = "oracle")
+)
+
+bind_rows(estimates, estimate_drift(comparison$keep[, "mad"], "mad")) |>
+  summarise(
+    mean_error = mean(error),
+    rate_error_r = cor(rate, error),
+    .by = pipeline
+  ) |>
+  inner_join(
+    select(scored_all, rule, dropped, sensitivity, specificity),
+    by = join_by(pipeline == rule)
+  ) |>
+  mutate(
+    pipeline = factor(pipeline, levels = c("none", "recursive", "mad", "oracle")),
+    across(where(is.numeric), \(x) round(x, 3))
+  ) |>
+  arrange(pipeline)
+```
+
+This is the table [the comparison article](comparing-rules.html) builds
+from real data, with the columns only generated data has. Twenty
+participants and one seed produced it, and it is a property of this
+generator, this process mix, and this roster. `n_participants`, `n_trials`,
+`process_mix`, and the three numbers in `pilot` are what to change to make
+it yours; `ground-truth-chunks.R` sourced end to end reruns the page.

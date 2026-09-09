@@ -1,0 +1,319 @@
+---
+title: "Aggregation: from surviving trials to parameters"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center",
+  # dplyr, tidyr, and ggplot2 are Suggests: the article reads without them and
+  # runs with them
+  eval = requireNamespace("dplyr", quietly = TRUE) &&
+    requireNamespace("tidyr", quietly = TRUE) &&
+    requireNamespace("ggplot2", quietly = TRUE)
+)
+# CI must fail rather than publish a page whose chunks silently did not run
+if (nzchar(Sys.getenv("CI"))) stopifnot(knitr::opts_chunk$get("eval"))
+okabe_ito <- c(
+  "#0072B2", "#E69F00", "#009E73", "#D55E00",
+  "#56B4E9", "#CC79A7", "#F0E442", "#000000"
+)
+```
+
+Screening decides which trials survive. Aggregation decides what the
+survivors are summarised as, and the two fail differently, which is why
+`rtprep` keeps them apart. The same trials summarised three ways give three
+different sets of summary statistics, and the parameters follow from those.
+This article walks through `rt_summary()`'s three methods and its weights,
+the accuracy correction that goes with the mixture route, the `ez_ddm()`
+inversion and its scaling convention, and then puts four routes side by
+side on `rt_example`, whose cells carry the drift they were generated from.
+
+```{r setup, message = FALSE}
+library(rtprep)
+library(dplyr)
+library(ggplot2)
+```
+
+## What `rt_summary()` returns
+
+The EZ-diffusion equations need three things per cell: the mean response
+time, its variance, and the proportion correct. `rt_summary()` returns the
+first two and the counts behind the third, one row per call, so it fits
+inside `reframe()` the way `rt_screen()` fits inside `mutate()`:
+
+```{r summary}
+p3_hard <- rt_example |>
+  filter(id == "p3", condition == "hard")
+
+rt_summary(p3_hard$rt, p3_hard$response)
+```
+
+`contaminant_prop` is `NA` for every method but `"mixture"`, which is the
+only one that estimates it. `version = "4par"` summarises the two response
+boundaries separately, for the version of the model that lets the starting
+point sit off centre:
+
+```{r fourpar}
+rt_summary(p3_hard$rt, p3_hard$response, version = "4par")
+```
+
+One caveat carries over from `bmm`. A trial whose response is missing
+belongs to neither boundary and is left out of `n_upper`, but it still
+counts towards `n_trials`, so the ratio understates accuracy when responses
+are missing. Drop those trials before aggregating if that matters.
+
+## Robust moments
+
+`method = "robust"` replaces the mean with the median and the variance with
+a robust spread: the interquartile range divided by 1.349, squared, or the
+median absolute deviation. This is robustness at the level of the statistic,
+after Chávez De la Peña et al. (2026): no trial is removed, and a contaminant
+in the tail moves the median very little and the interquartile range not at
+all.
+
+```{r robust}
+moments <- bind_rows(
+  simple = rt_summary(p3_hard$rt, p3_hard$response),
+  robust_iqr = rt_summary(p3_hard$rt, p3_hard$response, method = "robust"),
+  robust_mad = rt_summary(
+    p3_hard$rt, p3_hard$response, method = "robust", robust_scale = "mad"
+  ),
+  .id = "method"
+)
+moments |>
+  select(method, mean_rt, var_rt)
+```
+
+```{r robust-values, include = FALSE}
+var_of <- function(m) moments$var_rt[moments$method == m]
+```
+
+The median sits well below the mean, as it does for any right-skewed
+distribution, and the IQR-based robust variance is
+`r round(100 * var_of("robust_iqr") / var_of("simple"))`% of the sample
+variance. Those are not corrections for contamination; they are different
+statistics, and they feed the same equations. The last section puts the
+four routes side by side.
+
+## Mixture moments
+
+`method = "mixture"` fits the same contaminant mixture `rule_mixture()`
+fits, then reads the mean and variance off the fitted core rather than off
+the data. A trial the uniform component owns contributes nothing to the
+moments, and the estimated contaminant proportion comes back alongside
+them. This is the summary-level version of modelling the contaminant
+instead of deleting it:
+
+```{r mixture}
+bind_rows(lapply(c("exgaussian", "lognormal", "invgaussian"), function(core) {
+  rt_summary(
+    p3_hard$rt, p3_hard$response, method = "mixture", distribution = core
+  ) |>
+    mutate(distribution = core, .before = 1)
+})) |>
+  select(distribution, mean_rt, var_rt, contaminant_prop)
+```
+
+The `...` arguments go to the fit as in `rule_mixture()`, with the same
+defaults, including `maxit = 500` where `bmm::ezdm_summary_stats()` uses
+100. When the fit fails the moments fall back to the robust ones with a
+warning, as in `bmm`. That differs from `rt_screen()`, where the analogous
+failure keeps every trial, and the difference is deliberate: a screen that
+cannot be evaluated should remove nothing, but a summary still has to
+return a number.
+
+```{r mixture-fallback}
+rt_summary(p3_hard$rt, p3_hard$response, method = "mixture", maxit = 2)
+```
+
+## Weights: the other way of not letting contaminants count
+
+The mixture screen's `.prob` can go into `rt_summary()` as a weight vector
+instead of through a threshold. Weighted moments let a doubtful trial
+contribute a little, where mixture moments let a trial the uniform
+component owns contribute nothing at all. The two are different models of
+the same doubt, and the package refuses to combine them:
+
+```{r weights}
+screened <- rt_screen(p3_hard$rt, rule_mixture("lognormal"))
+
+rt_summary(p3_hard$rt, p3_hard$response, weights = screened$.prob)
+
+try(rt_summary(
+  p3_hard$rt, p3_hard$response, weights = screened$.prob, method = "mixture"
+))
+```
+
+The weighted variance uses the reliability-weight denominator
+$\sum w - \sum w^2 / \sum w$, which reduces to $n - 1$ when the weights are
+equal. Frequency weights would use $\sum w - 1$ and are the wrong model,
+because `.prob` is a probability, not a count. The same reasoning governs
+`min_trials`: with weights, the comparison uses Kish's effective sample size
+$(\sum w)^2 / \sum w^2$, so two unit weights among ninety-eight zeros count
+as two trials, and the moments come back `NA` rather than as noise:
+
+```{r kish}
+two_trials <- c(rep(1, 2), rep(0, 98))
+rt_summary(p3_hard$rt, p3_hard$response, weights = two_trials)
+```
+
+## Correcting the accuracy counts
+
+Mixture moments take the contaminants out of the response times, but the
+accuracy counts still include them. `adjust_accuracy()` removes the
+estimated contaminants from the counts on the assumption that they respond
+correctly at `guess_rate`. It is stochastic by design: how many trials were
+contaminants, and how many of those happened to be correct, are both
+binomial draws, and a point estimate would understate that uncertainty.
+There is no `set.seed()` inside the package, so the seed is yours:
+
+```{r adjust}
+set.seed(2026094)
+adjust_accuracy(n_upper = 84, n_trials = 100, contaminant_prop = 0.10)
+
+# NA or zero leaves the counts alone, so the column of a summary table
+# drops in as it is
+adjust_accuracy(n_upper = 84, n_trials = 100, contaminant_prop = NA)
+```
+
+The function is vectorised over its rows and draws each row independently,
+so it takes the columns of a summary table directly. For a single row the
+two draws are made in the same order as `bmm::adjust_ezdm_accuracy()`, and
+the two functions agree draw for draw from the same seed.
+
+## `ez_ddm()` and the scaling constant
+
+`ez_ddm()` is the closed-form inversion of Wagenmakers, van der Maas, and
+Grasman (2007): mean, variance, and accuracy in; drift, bound, and
+non-decision time out. It is exported so that the whole chain from screening
+to parameters runs with `rtprep` alone. The one argument that needs a
+sentence is `s`. Wagenmakers et al. fix the diffusion coefficient at 0.1,
+`rtprep` at 1, and the choice is a units convention rather than a modelling
+one: drift and bound scale linearly with `s`, non-decision time does not.
+Their worked example under both conventions:
+
+```{r scaling}
+bind_rows(
+  wagenmakers = ez_ddm(
+    mean_rt = 0.723, var_rt = 0.112, accuracy = 0.802, n_trials = 100, s = 0.1
+  ),
+  rtprep = ez_ddm(
+    mean_rt = 0.723, var_rt = 0.112, accuracy = 0.802, n_trials = 100
+  ),
+  .id = "convention"
+)
+```
+
+A drift of 0.1 at `s = 0.1` and a drift of 1 at `s = 1` describe the same
+process. Anything compared across packages or papers has to be on one scale
+first; `bmm` uses 1 as well.
+
+The equations divide by the logit of accuracy and break down at 0, 0.5, and
+1. The published edge correction moves the offending value by
+$1 / (2n)$, and `ez_ddm()` applies it silently, because a warning per cell
+would bury a simulation run. Which rows it touched comes back as a column,
+so that it survives subsetting and the dplyr verbs:
+
+```{r edge}
+edges <- ez_ddm(
+  mean_rt = 0.5, var_rt = 0.02, accuracy = c(1, 0.5, 0.9), n_trials = 50
+)
+edges
+```
+
+A cell at perfect accuracy gets a drift of `r round(edges$drift[1], 1)`
+rather than infinity, and `edge_corrected` is the flag to count in a
+results table.
+
+## Four routes on `rt_example`
+
+The routes above are alternatives to trimming, not additions to it. Four
+pipelines on `rt_example`, each applied per cell: no preprocessing, the
+±2.5 SD trim with simple moments, robust moments on all trials, and mixture
+moments on all trials with the accuracy counts adjusted. Each ends in
+`ez_ddm()`, and the data carry the drift each cell was generated from:
+
+```{r routes}
+summarise_cells <- function(data, ...) {
+  data |>
+    reframe(rt_summary(rt, response, ...), .by = c(id, condition))
+}
+
+routes <- bind_rows(
+  none = summarise_cells(rt_example),
+  trimmed = rt_example |>
+    filter(rt_keep(rt, rule_sd(2.5), .by = list(id, condition))) |>
+    summarise_cells(),
+  robust = summarise_cells(rt_example, method = "robust"),
+  mixture = summarise_cells(
+    rt_example, method = "mixture", distribution = "lognormal"
+  ),
+  .id = "route"
+)
+
+set.seed(2026094)
+estimates <- routes |>
+  mutate(adjust_accuracy(n_upper, n_trials, contaminant_prop)) |>
+  mutate(ez_ddm(mean_rt, var_rt, n_upper_adj / n_trials_adj, n_trials_adj)) |>
+  left_join(
+    distinct(rt_example, id, condition, true_drift, contam_rate),
+    by = c("id", "condition")
+  ) |>
+  mutate(
+    route = factor(route, levels = c("none", "trimmed", "robust", "mixture")),
+    error = drift - true_drift
+  )
+
+estimates |>
+  summarise(
+    mean_error = mean(error),
+    mean_abs_error = mean(abs(error)),
+    .by = route
+  )
+```
+
+```{r routes-figure, fig.alt = "Dot plot of the estimated drift of each participant and condition under four aggregation routes, with the true drift drawn as a black bar in each cell."}
+ggplot(estimates, aes(x = condition, y = drift, colour = route)) +
+  geom_point(
+    aes(y = true_drift), shape = 95, size = 8, colour = "black"
+  ) +
+  geom_point(position = position_dodge(width = 0.5), size = 2) +
+  scale_colour_manual(values = okabe_ito[c(8, 1, 3, 2)]) +
+  facet_wrap(~id, nrow = 1) +
+  labs(x = NULL, y = "Estimated drift", colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+The table is each route's mean signed and mean absolute error against the
+generating drift over the eight cells; the figure puts the four estimates
+of every cell next to its true drift. Two mechanical differences separate
+the mixture route from the other three, and both enter `ez_ddm()` in the
+same direction: its variance is read off the fitted core rather than the
+sample, and `adjust_accuracy()` raises the proportion correct; a smaller
+variance and a higher accuracy both raise the drift.
+
+Eight cells of 100 trials cannot rank four pipelines, and this page does not
+try. What they show is that the same trials summarised four ways give four
+drift estimates per cell, and the `route` column is the whole difference
+between them. [The ground-truth article](ground-truth.html) carries the
+same chain through on data matched to a task of your own, with a
+perfect-exclusion oracle as the ceiling.
+
+## Differences from `bmm`
+
+`bmm::ezdm_summary_stats()` returns the same columns under the same names,
+and the two functions are compared over the full grid of methods, versions,
+and cores in `rtprep`'s test suite. Three defaults differ. `rt_summary()`
+defaults to `method = "simple"` where `bmm` defaults to `"mixture"`, because
+a package about preprocessing choices should not make one of them silently.
+The mixture route defaults to `maxit = 500` where `bmm` uses 100. And for
+`version = "4par"` with mixture moments, the contaminant bounds are resolved
+once on the pooled response times before the split, so that the two halves
+are fitted against the same uniform component. The correspondence between
+the two packages, function by function, is the subject of
+[its own article](rtprep-and-bmm.html).
