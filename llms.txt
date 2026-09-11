@@ -177,6 +177,19 @@ edge; these put two together.
 - [`rule_hierarchical()`](https://www.gfrischkorn.org/rtprep/reference/rule_hierarchical.md)
   : Hierarchical screening
 
+## Reporting
+
+The Methods paragraph a screen owes a reader, written from the screen
+rather than from memory.
+
+- [`report_screening()`](https://www.gfrischkorn.org/rtprep/reference/report_screening.md)
+  : Report a screening procedure in prose
+- [`format(`*`<rtprep_report>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_report.md)
+  [`print(`*`<rtprep_report>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_report.md)
+  [`as.character(`*`<rtprep_report>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_report.md)
+  [`toBibtex(`*`<rtprep_report>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_report.md)
+  : Methods for a screening report
+
 ## Aggregation and estimation
 
 From surviving trials to EZ-diffusion inputs and parameters.

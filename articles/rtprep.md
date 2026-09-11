@@ -424,21 +424,63 @@ rt_example |>
 ```
 
 Which gives a Methods sentence that can be written from the output
-rather than around it:
+rather than around it.
+[`report_screening()`](https://www.gfrischkorn.org/rtprep/reference/report_screening.md)
+writes it:
 
-> Response times were screened with a ±2.5 SD criterion around the mean,
-> computed separately within each participant and condition (8 cells).
-> This removed 26 of 800 trials (3.2%), between 2% and 5% per cell; all
-> exclusions were slow trials. Error trials were screened alongside
-> correct ones, and accuracy was computed after screening.
+``` r
 
-That last clause is the one most often left out and the one that most
-often changes the answer. The criterion here never looked at `response`,
-so error trials passed through it on their response times alone; a rule
-that does read accuracy, such as
+scr <- rt_screen(
+  rt_example$rt, rule,
+  .by = list(participant = rt_example$id, condition = rt_example$condition)
+)
+
+report_screening(scr)
+#> Response times were screened with a criterion of 2.5 standard
+#> deviations around the mean, computed separately within each combination
+#> of participant and condition (8 cells). This removed 26 of the 800
+#> trials it screened (3.2%), between 2% and 5% per cell. All the
+#> exclusions were slow trials. The criterion did not read accuracy, so
+#> error trials passed through the screen on their response times alone.
+#> The criterion is described by Miller (1991).
+#> 
+#> [72 words; 1 reference; toBibtex(x) for BibTeX]
+```
+
+Nothing in that paragraph was typed from memory, which is the point of
+generating it. Edit the rule above and the sentence follows; write the
+sentence by hand and it goes stale the first time the rule changes, with
+no warning and nothing to catch it.
+
+The numbers it quotes stay reachable, for a sentence that has to be
+written differently:
+
+``` r
+
+rep <- report_screening(scr)
+c(excluded = rep$n_excluded, screened = rep$n_screened, missing = rep$n_missing)
+#> excluded screened  missing 
+#>       26      800        0
+rep$cells
+#>   n fitted  min  max
+#> 1 8      8 0.02 0.05
+```
+
+Note which denominator the percentage uses: the trials the criterion
+actually saw. `rt_example` has no missing response times, so here it is
+every trial. Where there are some, they never reached the criterion, and
+counting them among its exclusions would overstate what the rule did, so
+they get a sentence of their own instead.
+
+The clause about accuracy is the one most often left out and the one
+that most often changes the answer. The criterion here never looked at
+`response`, so error trials passed through it on their response times
+alone; a rule that does read accuracy, such as
 [`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
-or `rule_mixture(use_accuracy = TRUE)`, needs saying explicitly, because
-it makes the screen and the dependent variable share information.
+or `rule_mixture(use_accuracy = TRUE)`, makes the screen and the
+dependent variable share information, and
+[`report_screening()`](https://www.gfrischkorn.org/rtprep/reference/report_screening.md)
+says so without being asked.
 
 ## Where to go next
 

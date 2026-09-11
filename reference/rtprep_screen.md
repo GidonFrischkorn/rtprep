@@ -68,6 +68,11 @@ its `n_dropped` and `prop_dropped` count rows that are no longer there,
 and carrying it along would attach a table that quietly disagrees with
 the object. The class survives for as long as the four columns do.
 
+The `rule` and `group_names` attributes, which
+[`report_screening()`](https://www.gfrischkorn.org/rtprep/reference/report_screening.md)
+reads, name the screen rather than count it, so they survive row
+subsetting too.
+
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) strips
 the class and the attributes, for when a plain frame is wanted.
 

@@ -23,6 +23,17 @@ with known ground truth.
 - [`screen_fits()`](https://www.gfrischkorn.org/rtprep/reference/screen_fits.md)
   returns the per-group fit diagnostics of a rule as a data frame.
 
+- [`report_screening()`](https://www.gfrischkorn.org/rtprep/reference/report_screening.md)
+  turns a screen into a Methods paragraph: the rule and its setting, the
+  grouping the criterion was computed within, how much it removed in
+  total and per cell, what it caught, whether it read accuracy, the keep
+  policy, and the references for the criteria used. It separates what
+  the rule excluded from what it never saw, so a missing response time
+  is not counted as an exclusion. The returned object carries every
+  number the paragraph quotes, and
+  [`toBibtex()`](https://rdrr.io/r/utils/toLatex.html) on it gives the
+  BibTeX entries.
+
 - [`rule_cutoff()`](https://www.gfrischkorn.org/rtprep/reference/rules.md),
   [`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md),
   [`rule_mad()`](https://www.gfrischkorn.org/rtprep/reference/rules.md),

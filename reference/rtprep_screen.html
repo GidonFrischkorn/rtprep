@@ -123,6 +123,8 @@ and is dropped by row subsetting: after <code>scr[scr$.keep, ]</code> its <code>
 and <code>prop_dropped</code> count rows that are no longer there, and carrying it along
 would attach a table that quietly disagrees with the object. The class
 survives for as long as the four columns do.</p>
+<p>The <code>rule</code> and <code>group_names</code> attributes, which <code><a href="report_screening.html">report_screening()</a></code> reads,
+name the screen rather than count it, so they survive row subsetting too.</p>
 <p><code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> strips the class and the attributes, for when a plain frame
 is wanted.</p>
     </div>

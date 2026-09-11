@@ -443,22 +443,50 @@ checking before describing it:</p>
 <span><span class="co">#&gt; 1 sd(2.5, mean, sd) too_slow  26</span></span>
 <span><span class="co">#&gt; 2 sd(2.5, mean, sd)     &lt;NA&gt; 774</span></span></code></pre></div>
 <p>Which gives a Methods sentence that can be written from the output
-rather than around it:</p>
-<blockquote>
-<p>Response times were screened with a ±2.5 SD criterion around the
-mean, computed separately within each participant and condition (8
-cells). This removed 26 of 800 trials (3.2%), between 2% and 5% per
-cell; all exclusions were slow trials. Error trials were screened
-alongside correct ones, and accuracy was computed after screening.</p>
-</blockquote>
-<p>That last clause is the one most often left out and the one that most
-often changes the answer. The criterion here never looked at
+rather than around it. <code><a href="../reference/report_screening.html">report_screening()</a></code> writes it:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rt_screen.html">rt_screen</a></span><span class="op">(</span></span>
+<span>  <span class="va">rt_example</span><span class="op">$</span><span class="va">rt</span>, <span class="va">rule</span>,</span>
+<span>  .by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>participant <span class="op">=</span> <span class="va">rt_example</span><span class="op">$</span><span class="va">id</span>, condition <span class="op">=</span> <span class="va">rt_example</span><span class="op">$</span><span class="va">condition</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/report_screening.html">report_screening</a></span><span class="op">(</span><span class="va">scr</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Response times were screened with a criterion of 2.5 standard</span></span>
+<span><span class="co">#&gt; deviations around the mean, computed separately within each combination</span></span>
+<span><span class="co">#&gt; of participant and condition (8 cells). This removed 26 of the 800</span></span>
+<span><span class="co">#&gt; trials it screened (3.2%), between 2% and 5% per cell. All the</span></span>
+<span><span class="co">#&gt; exclusions were slow trials. The criterion did not read accuracy, so</span></span>
+<span><span class="co">#&gt; error trials passed through the screen on their response times alone.</span></span>
+<span><span class="co">#&gt; The criterion is described by Miller (1991).</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [72 words; 1 reference; toBibtex(x) for BibTeX]</span></span></code></pre></div>
+<p>Nothing in that paragraph was typed from memory, which is the point
+of generating it. Edit the rule above and the sentence follows; write
+the sentence by hand and it goes stale the first time the rule changes,
+with no warning and nothing to catch it.</p>
+<p>The numbers it quotes stay reachable, for a sentence that has to be
+written differently:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/report_screening.html">report_screening</a></span><span class="op">(</span><span class="va">scr</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>excluded <span class="op">=</span> <span class="va">rep</span><span class="op">$</span><span class="va">n_excluded</span>, screened <span class="op">=</span> <span class="va">rep</span><span class="op">$</span><span class="va">n_screened</span>, missing <span class="op">=</span> <span class="va">rep</span><span class="op">$</span><span class="va">n_missing</span><span class="op">)</span></span>
+<span><span class="co">#&gt; excluded screened  missing </span></span>
+<span><span class="co">#&gt;       26      800        0</span></span>
+<span><span class="va">rep</span><span class="op">$</span><span class="va">cells</span></span>
+<span><span class="co">#&gt;   n fitted  min  max</span></span>
+<span><span class="co">#&gt; 1 8      8 0.02 0.05</span></span></code></pre></div>
+<p>Note which denominator the percentage uses: the trials the criterion
+actually saw. <code>rt_example</code> has no missing response times, so
+here it is every trial. Where there are some, they never reached the
+criterion, and counting them among its exclusions would overstate what
+the rule did, so they get a sentence of their own instead.</p>
+<p>The clause about accuracy is the one most often left out and the one
+that most often changes the answer. The criterion here never looked at
 <code>response</code>, so error trials passed through it on their
 response times alone; a rule that does read accuracy, such as
 <code><a href="../reference/rules.html">rule_ewma()</a></code> or
-<code>rule_mixture(use_accuracy = TRUE)</code>, needs saying explicitly,
-because it makes the screen and the dependent variable share
-information.</p>
+<code>rule_mixture(use_accuracy = TRUE)</code>, makes the screen and the
+dependent variable share information, and
+<code><a href="../reference/report_screening.html">report_screening()</a></code> says so without being asked.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
