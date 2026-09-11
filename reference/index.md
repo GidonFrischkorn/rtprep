@@ -107,12 +107,14 @@ so a screen can be scored and read against perfect exclusion.
 
 ## Extending rtprep
 
-Adding a screening rule from your own package.
+Adding a screening rule of your own, from a function or from a method.
 
 - [`new_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
   [`apply_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
   [`apply_rule_grouped()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
   : Add a screening rule
+- [`rule_custom()`](https://www.gfrischkorn.org/rtprep/reference/rule_custom.md)
+  : A screening rule from a function, in one call
 
 ## Data
 

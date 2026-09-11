@@ -89,8 +89,3 @@ to add a rule of your own.
 **Maintainer**: Gidon T. Frischkorn
 <gidon.frischkorn@psychologie.uzh.ch>
 ([ORCID](https://orcid.org/0000-0002-5055-9764)) \[copyright holder\]
-
-Authors:
-
-- Gidon T. Frischkorn <gidon.frischkorn@psychologie.uzh.ch>
-  ([ORCID](https://orcid.org/0000-0002-5055-9764)) \[copyright holder\]

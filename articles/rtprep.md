@@ -508,6 +508,9 @@ removes exactly the labelled contaminants, which is the ceiling any real
 rule is read against.
 
 `?rtprep-glossary` defines the terms the rest of the documentation
-assumes, and
+assumes.
+[`rule_custom()`](https://www.gfrischkorn.org/rtprep/reference/rule_custom.md)
+turns a function of your own into a rule in one call, and
 [`?extending`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
-gives the contract a rule from another package has to meet.
+gives the full contract: what the function receives, and what it has to
+return.

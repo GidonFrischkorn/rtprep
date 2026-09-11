@@ -124,13 +124,31 @@ with known ground truth.
   result prints as a summary of the screen, reporting what was removed
   and why, rather than as one row per trial.
 
+- `new_rule(fun = )` takes the screening function itself, so adding a
+  rule needs neither an S3 method nor a
+  [`registerS3method()`](https://rdrr.io/r/base/ns-internal.html) call.
+  The function declares what it needs by name – `rt`, `response`,
+  `rule`, `idx_by_group` for a grouped rule, and any parameter stored on
+  the rule – and the engine passes exactly that; an argument it cannot
+  supply is an error when the rule is built rather than in the middle of
+  a screen. The function may return a logical vector (`TRUE` = keep), a
+  numeric vector of probabilities, or the full
+  `list(prob, reason, fit)`. `description =` gives the rule a sentence
+  for [`print()`](https://rdrr.io/r/base/print.html), and `reason =`
+  names what a dropped trial was dropped for.
+
+- [`rule_custom()`](https://www.gfrischkorn.org/rtprep/reference/rule_custom.md)
+  does the whole thing in one call, for a rule used once:
+  `rule_custom("fast(0.35)", function(rt, cut) rt >= cut, cut = 0.35)`.
+
 - [`new_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
   and the
   [`apply_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
-  generic are exported, so another package can add a screening rule with
-  one constructor and one method.
+  generic are exported, so a package can add a screening family with one
+  constructor and one method instead.
   [`?extending`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
-  documents the contract, which the engine now checks on every return.
+  documents both routes, and the engine checks the contract on every
+  return.
 
 - [`?rtprep`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
   describes the package and `?rtprep-glossary` defines the terms the

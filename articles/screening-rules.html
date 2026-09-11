@@ -713,6 +713,41 @@ truth, and <a href="ground-truth.html">the ground-truth article</a> does
 so for a task matched to your own.</p>
 </div>
 <div class="section level2">
+<h2 id="a-rule-of-your-own">A rule of your own<a class="anchor" aria-label="anchor" href="#a-rule-of-your-own"></a>
+</h2>
+<p>None of the rules above is privileged. A rule is a function that says
+which trials to keep, and <code><a href="../reference/rule_custom.html">rule_custom()</a></code> turns one into an
+object the rest of the package treats like any other. Suppose the task
+has a floor below which a response cannot be a decision, and you want to
+see what that assumption costs next to a conventional criterion:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">anticipation</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rule_custom.html">rule_custom</a></span><span class="op">(</span></span>
+<span>  <span class="st">"floor(0.3)"</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="va">rt</span>, <span class="va">cut</span><span class="op">)</span> <span class="va">rt</span> <span class="op">&gt;=</span> <span class="va">cut</span>,</span>
+<span>  cut <span class="op">=</span> <span class="fl">0.3</span>,</span>
+<span>  description <span class="op">=</span> <span class="st">"Exclude trials faster than the task's motor floor."</span>,</span>
+<span>  reason <span class="op">=</span> <span class="st">"too_fast"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/screen_compare.html">screen_compare</a></span><span class="op">(</span></span>
+<span>  <span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>floor <span class="op">=</span> <span class="va">anticipation</span>, mad <span class="op">=</span> <span class="fu"><a href="../reference/rules.html">rule_mad</a></span><span class="op">(</span><span class="fl">2.5</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  response <span class="op">=</span> <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;rtprep comparison&gt; 100 trials, 2 rules</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   floor                        dropped   1.0%</span></span>
+<span><span class="co">#&gt;   mad                          dropped   8.0%</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   least agreement: floor vs mad, 91.0% of decisions (Jaccard 0.00)</span></span></code></pre></div>
+<p>The function returns <code>TRUE</code> for a trial to keep — the same
+direction as the <code>.keep</code> column, and the opposite of how an
+exclusion criterion is usually written down, which is worth checking
+once on data whose answer you know. A rule that needs to report a
+criterion per participant, or to drop different trials for different
+reasons, returns a list instead; <code><a href="../reference/extending.html">?extending</a></code> gives both.</p>
+</div>
+<div class="section level2">
 <h2 id="where-next">Where next<a class="anchor" aria-label="anchor" href="#where-next"></a>
 </h2>
 <p><code><a href="../reference/rules.html">?rules</a></code> documents every constructor with the reference it
@@ -720,8 +755,9 @@ implements and the columns it adds to the fits table, and
 <code><a href="../reference/rules_compose.html">?rules_compose</a></code> covers the three combining rules. Two
 further, experimental rules are unexported and described in
 <code><a href="../reference/rules_experimental.html">?rules_experimental</a></code>. <code><a href="../reference/extending.html">?extending</a></code> gives the
-contract a rule of your own has to meet, which is one constructor and
-one <code><a href="../reference/extending.html">apply_rule()</a></code> method. The mixture has <a href="mixture-screening.html">its own article</a>, <a href="aggregation.html">the aggregation article</a> covers what happens
+contract a rule of your own has to meet: what the screening function
+receives, what it has to return, and how a package ships a whole family
+with an <code><a href="../reference/extending.html">apply_rule()</a></code> method instead. The mixture has <a href="mixture-screening.html">its own article</a>, <a href="aggregation.html">the aggregation article</a> covers what happens
 to the surviving trials, and <a href="comparing-rules.html">the
 comparison article</a> applies a whole roster at once with
 <code><a href="../reference/screen_compare.html">screen_compare()</a></code> and reports where the rules disagree.</p>

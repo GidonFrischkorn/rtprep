@@ -725,6 +725,47 @@ cannot answer; the vignette scores it against the generator’s truth, and
 article](https://www.gfrischkorn.org/rtprep/articles/ground-truth.md)
 does so for a task matched to your own.
 
+## A rule of your own
+
+None of the rules above is privileged. A rule is a function that says
+which trials to keep, and
+[`rule_custom()`](https://www.gfrischkorn.org/rtprep/reference/rule_custom.md)
+turns one into an object the rest of the package treats like any other.
+Suppose the task has a floor below which a response cannot be a
+decision, and you want to see what that assumption costs next to a
+conventional criterion:
+
+``` r
+
+anticipation <- rule_custom(
+  "floor(0.3)",
+  function(rt, cut) rt >= cut,
+  cut = 0.3,
+  description = "Exclude trials faster than the task's motor floor.",
+  reason = "too_fast"
+)
+
+screen_compare(
+  p3_hard$rt,
+  list(floor = anticipation, mad = rule_mad(2.5)),
+  response = p3_hard$response
+)
+#> <rtprep comparison> 100 trials, 2 rules
+#> 
+#>   floor                        dropped   1.0%
+#>   mad                          dropped   8.0%
+#> 
+#>   least agreement: floor vs mad, 91.0% of decisions (Jaccard 0.00)
+```
+
+The function returns `TRUE` for a trial to keep — the same direction as
+the `.keep` column, and the opposite of how an exclusion criterion is
+usually written down, which is worth checking once on data whose answer
+you know. A rule that needs to report a criterion per participant, or to
+drop different trials for different reasons, returns a list instead;
+[`?extending`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+gives both.
+
 ## Where next
 
 [`?rules`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
@@ -735,10 +776,11 @@ covers the three combining rules. Two further, experimental rules are
 unexported and described in
 [`?rules_experimental`](https://www.gfrischkorn.org/rtprep/reference/rules_experimental.md).
 [`?extending`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
-gives the contract a rule of your own has to meet, which is one
-constructor and one
+gives the contract a rule of your own has to meet: what the screening
+function receives, what it has to return, and how a package ships a
+whole family with an
 [`apply_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
-method. The mixture has [its own
+method instead. The mixture has [its own
 article](https://www.gfrischkorn.org/rtprep/articles/mixture-screening.md),
 [the aggregation
 article](https://www.gfrischkorn.org/rtprep/articles/aggregation.md)
