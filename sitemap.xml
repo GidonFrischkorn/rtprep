@@ -16,6 +16,7 @@
 <url><loc>https://www.gfrischkorn.org/rtprep/news/index.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/adjust_accuracy.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/check_guessing.html</loc></url>
+<url><loc>https://www.gfrischkorn.org/rtprep/reference/extending.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/ez_ddm.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/index.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/r_contaminated.html</loc></url>
@@ -23,8 +24,12 @@
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/rt_keep.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/rt_screen.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/rt_summary.html</loc></url>
+<url><loc>https://www.gfrischkorn.org/rtprep/reference/rtprep-glossary.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/rtprep-package.html</loc></url>
+<url><loc>https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.html</loc></url>
+<url><loc>https://www.gfrischkorn.org/rtprep/reference/rule_hierarchical.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/rules.html</loc></url>
+<url><loc>https://www.gfrischkorn.org/rtprep/reference/rules_compose.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/rules_experimental.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/screen_compare.html</loc></url>
 <url><loc>https://www.gfrischkorn.org/rtprep/reference/screen_fits.html</loc></url>

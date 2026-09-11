@@ -88,8 +88,8 @@
 <div class="section level2">
 <h2 id="the-problem">The problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
 </h2>
-<p>Every response time analysis makes an exclusion decision, and most inherit it by convention — 200 ms and 3 s because that is what the last paper did, or ±2.5 SD because that is what the field does. The consequences are invisible in the data the researcher can see, and they are not small: contaminant trials bias evidence accumulation model parameters, and which contaminants a method can reach depends on how far they sit from the RT distribution the decision process itself produces.</p>
-<p>The methods to deal with this exist and are scattered. What does not exist is a way to compare them, because every implementation returns a different kind of object: a trimmed data frame, a vector of per-trial probabilities, a set of summary statistics. <code>rtprep</code> gives them one interface, so a preprocessing choice can be evaluated rather than assumed.</p>
+<p>Every response time analysis makes an exclusion decision, and most inherit it by convention: 200 ms and 3 s because that is what the last paper did, or ±2.5 SD because that is what the field does. The consequences are invisible in the data the researcher can see, and they are not small: contaminant trials bias evidence accumulation model parameters, and which contaminants a method can reach depends on how far they sit from the RT distribution the decision process itself produces.</p>
+<p>The methods to deal with this exist and are scattered. What does not exist is a way to compare them, because every implementation returns a different kind of object: a trimmed data frame, a vector of per-trial probabilities, a set of summary statistics. <code>rtprep</code> gives them one interface, so you can ask what a different cutoff would have removed, and how far two defensible choices disagree on your own data.</p>
 </div>
 <div class="section level2">
 <h2 id="what-it-provides">What it provides<a class="anchor" aria-label="anchor" href="#what-it-provides"></a>
@@ -129,6 +129,11 @@
 <span></span>
 <span><span class="va">scr</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rt_screen.html">rt_screen</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span>, <span class="fu"><a href="reference/rules.html">rule_sd</a></span><span class="op">(</span><span class="fl">2.5</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">scr</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;rtprep screen&gt; 6 trials, sd(2.5, mean, sd)</span></span>
+<span><span class="co">#&gt;   kept 6 (100.0%), dropped 0 (0.0%)</span></span>
+<span><span class="co">#&gt;   policy: keep where .prob &gt; 0.5</span></span>
+<span><span class="co">#&gt;   per-group diagnostics: dropped by subsetting; screen_fits() to refit</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   .keep .prob             .rule .reason</span></span>
 <span><span class="co">#&gt; 1  TRUE     1 sd(2.5, mean, sd)    &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 2  TRUE     1 sd(2.5, mean, sd)    &lt;NA&gt;</span></span>
@@ -161,7 +166,7 @@
 <div class="section level2">
 <h2 id="relationship-to-other-packages">Relationship to other packages<a class="anchor" aria-label="anchor" href="#relationship-to-other-packages"></a>
 </h2>
-<p><code>rtprep</code> implements its screening rules itself and carries no runtime dependency on other preprocessing packages. Where reference implementations exist — <a href="https://github.com/JimGrange/trimr" class="external-link"><code>trimr</code></a> for the trimming families, <a href="https://github.com/popov-lab/bmm" class="external-link"><code>bmm</code></a> for the mixture EM and EZ aggregation — the test suite checks equivalence against them.</p>
+<p><code>rtprep</code> implements its screening rules itself and carries no runtime dependency on other preprocessing packages. Where reference implementations exist, namely <a href="https://github.com/JimGrange/trimr" class="external-link"><code>trimr</code></a> for the trimming families and <a href="https://github.com/popov-lab/bmm" class="external-link"><code>bmm</code></a> for the mixture EM and EZ aggregation, the test suite checks equivalence against them.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>

@@ -44,7 +44,7 @@ screen_fits(
 
 - .by:
 
-  Optional grouping of the same length as `rt` — a vector, factor, list
+  Optional grouping of the same length as `rt`: a vector, factor, list
   of vectors, or data frame. Rules are fitted separately within each
   group. `NULL` treats all trials as one group.
 

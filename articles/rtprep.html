@@ -399,15 +399,86 @@ Where <code>n_tested</code> is zero the test is silent, which is itself
 informative about the rule.</p>
 </div>
 <div class="section level2">
+<h2 id="reporting-what-you-did">Reporting what you did<a class="anchor" aria-label="anchor" href="#reporting-what-you-did"></a>
+</h2>
+<p>A preprocessing step is part of the analysis, and a reader cannot
+repeat it from “outliers were removed”. Four things pin it down: which
+rule and at which setting, the grouping the criterion was computed
+within, how much it removed, and whether error trials went through the
+screen with the correct ones. All four are in the objects the code
+already produced, so none of them has to be typed from memory.</p>
+<p>The rule and its setting print themselves, and the per-cell counts
+come from <code><a href="../reference/screen_fits.html">screen_fits()</a></code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rule</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rules.html">rule_sd</a></span><span class="op">(</span><span class="fl">2.5</span><span class="op">)</span></span>
+<span><span class="va">rule</span></span>
+<span><span class="co">#&gt; &lt;rtprep rule&gt; sd(2.5, mean, sd) </span></span>
+<span><span class="co">#&gt;  Exclude trials more than 2.5 x sd from the mean, computed per group.</span></span>
+<span></span>
+<span><span class="va">fits</span> <span class="op">&lt;-</span> <span class="va">rt_example</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/reframe.html" class="external-link">reframe</a></span><span class="op">(</span><span class="fu"><a href="../reference/screen_fits.html">screen_fits</a></span><span class="op">(</span><span class="va">rt</span>, <span class="va">rule</span><span class="op">)</span>, .by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">id</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fits</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
+<span>    cells <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    trials <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">n_trials</span><span class="op">)</span>,</span>
+<span>    dropped <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">n_dropped</span><span class="op">)</span>,</span>
+<span>    prop <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">n_dropped</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">n_trials</span><span class="op">)</span>,</span>
+<span>    lowest_cell <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">prop_dropped</span><span class="op">)</span>,</span>
+<span>    highest_cell <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">prop_dropped</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co">#&gt;   cells trials dropped   prop lowest_cell highest_cell</span></span>
+<span><span class="co">#&gt; 1     8    800      26 0.0325        0.02         0.05</span></span></code></pre></div>
+<p>Report the range across cells as well as the total. A criterion that
+removes 3.2% overall can be removing much more from one participant than
+another, and that spread is the thing this package exists to make
+visible.</p>
+<p>The reasons say what the rule actually caught, which is worth
+checking before describing it:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rt_example</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="fu"><a href="../reference/rt_screen.html">rt_screen</a></span><span class="op">(</span><span class="va">rt</span>, <span class="va">rule</span><span class="op">)</span>, .by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">id</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">.rule</span>, <span class="va">.reason</span><span class="op">)</span></span>
+<span><span class="co">#&gt;               .rule  .reason   n</span></span>
+<span><span class="co">#&gt; 1 sd(2.5, mean, sd) too_slow  26</span></span>
+<span><span class="co">#&gt; 2 sd(2.5, mean, sd)     &lt;NA&gt; 774</span></span></code></pre></div>
+<p>Which gives a Methods sentence that can be written from the output
+rather than around it:</p>
+<blockquote>
+<p>Response times were screened with a ±2.5 SD criterion around the
+mean, computed separately within each participant and condition (8
+cells). This removed 26 of 800 trials (3.2%), between 2% and 5% per
+cell; all exclusions were slow trials. Error trials were screened
+alongside correct ones, and accuracy was computed after screening.</p>
+</blockquote>
+<p>That last clause is the one most often left out and the one that most
+often changes the answer. The criterion here never looked at
+<code>response</code>, so error trials passed through it on their
+response times alone; a rule that does read accuracy, such as
+<code><a href="../reference/rules.html">rule_ewma()</a></code> or
+<code>rule_mixture(use_accuracy = TRUE)</code>, needs saying explicitly,
+because it makes the screen and the dependent variable share
+information.</p>
+</div>
+<div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
 </h2>
 <p><code><a href="../reference/rules.html">?rules</a></code> documents every rule with the reference it
-implements and the columns it adds to the fits table.
-<code><a href="../reference/rt_summary.html">?rt_summary</a></code> covers the robust and mixture aggregation
-routes, <code><a href="../reference/adjust_accuracy.html">?adjust_accuracy</a></code> the accuracy correction that goes
-with the mixture route, and <code><a href="../reference/r_contaminated.html">?r_contaminated</a></code> the three
-contaminant processes and how to match the generator to a task of your
-own.</p>
+implements and the columns it adds to the fits table, and
+<code><a href="../reference/rules_compose.html">?rules_compose</a></code> covers <code><a href="../reference/rules_compose.html">rule_all()</a></code>,
+<code><a href="../reference/rules_compose.html">rule_any()</a></code> and <code><a href="../reference/rules_compose.html">rule_then()</a></code>, which combine
+them. No single conventional rule reaches both ends of the distribution,
+so combining a spread criterion with an accuracy control chart is often
+better than tuning either. <code><a href="../reference/rt_summary.html">?rt_summary</a></code> covers the robust,
+trimmed and mixture aggregation routes, <code><a href="../reference/adjust_accuracy.html">?adjust_accuracy</a></code>
+the accuracy correction that goes with the mixture route, and
+<code><a href="../reference/r_contaminated.html">?r_contaminated</a></code> the three contaminant processes and how to
+match the generator to a task of your own. <code><a href="../reference/rules.html">?rule_oracle</a></code>
+removes exactly the labelled contaminants, which is the ceiling any real
+rule is read against.</p>
+<p><code>?rtprep-glossary</code> defines the terms the rest of the
+documentation assumes, and <code><a href="../reference/extending.html">?extending</a></code> gives the contract a
+rule from another package has to meet.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

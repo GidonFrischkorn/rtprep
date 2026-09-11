@@ -12,10 +12,11 @@ preprocessing choice as consequential as the exclusion rule.
 rt_summary(
   rt,
   response = NULL,
-  method = c("simple", "robust", "mixture"),
+  method = c("simple", "robust", "trimmed", "winsorized", "mixture"),
   version = c("3par", "4par"),
   distribution = c("exgaussian", "lognormal", "invgaussian"),
   robust_scale = c("iqr", "mad"),
+  trim = 0.1,
   weights = NULL,
   min_trials = 10,
   ...
@@ -34,24 +35,32 @@ rt_summary(
   [`rt_screen()`](https://www.gfrischkorn.org/rtprep/reference/rt_screen.md)
   accepts. Required for `version = "4par"`; without it `n_upper` is
   `NA`. A trial whose response is missing belongs to neither boundary
-  and is left out of both, but still counts towards `n_trials` — as in
-  `bmm` — so `n_upper / n_trials` understates accuracy when responses
-  are missing. Drop those trials first if that matters.
+  and is left out of both, but still counts towards `n_trials`, as in
+  `bmm`, so `n_upper / n_trials` understates accuracy when responses are
+  missing. Drop those trials first if that matters.
 
 - method:
 
   How the moments are computed.
 
-  - `"simple"` — the sample mean and variance. The baseline, and what
-    almost everyone does.
+  - `"simple"` gives the sample mean and variance. The baseline, and
+    what almost everyone does.
 
-  - `"robust"` — the median, with the variance from the interquartile
-    range (divided by 1.349) or the median absolute deviation.
-    Statistic-level robustness, after Chávez De la Peña et al. (2026).
+  - `"robust"` gives the median, with the variance from the
+    interquartile range (divided by 1.349) or the median absolute
+    deviation. Statistic-level robustness, after Chávez De la Peña et
+    al. (2026).
 
-  - `"mixture"` — the analytic moments of the response time component of
-    a fitted contaminant mixture, and its estimated contaminant
-    proportion.
+  - `"trimmed"` gives the mean of the middle `1 - 2 * trim` of the
+    trials, with the variance from the Winsorized sample. The
+    robust-statistics answer.
+
+  - `"winsorized"` gives the same variance, with the mean of the
+    Winsorized sample rather than the trimmed one.
+
+  - `"mixture"` gives the analytic moments of the response time
+    component of a fitted contaminant mixture, and its estimated
+    contaminant proportion.
 
 - version:
 
@@ -66,6 +75,13 @@ rt_summary(
 - robust_scale:
 
   Spread statistic for `method = "robust"`.
+
+- trim:
+
+  Proportion of trials cut from *each* tail by `method = "trimmed"` and
+  `method = "winsorized"`, as in
+  [`base::mean()`](https://rdrr.io/r/base/mean.html). `floor(n * trim)`
+  trials go from each end.
 
 - weights:
 
@@ -92,7 +108,7 @@ rt_summary(
 
 ## Value
 
-A one-row `data.frame` — the inputs
+A one-row `data.frame` holding the inputs
 [`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md)
 needs.
 
@@ -120,6 +136,35 @@ Weighted variances use the reliability-weight denominator
 are equal. Frequency weights would use `sum(w) - 1` and are the wrong
 model: `.prob` is a probability, not a count.
 
+## Trimming and Winsorizing
+
+Both cut the same `floor(n * trim)` trials from each tail. Trimming
+drops them; Winsorizing replaces each with the nearest surviving value,
+so the count stays the same and the extremes stop pulling. The variance
+comes from the Winsorized sample either way, rescaled so that it
+estimates the variance of the response time distribution rather than the
+variance of the trimmed mean. It is the same kind of correction as the
+1.349 that `robust_scale = "iqr"` applies, and it is necessary because
+[`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md)
+reads `var_rt` as a moment of the distribution.
+
+The divisor is not the familiar `(1 - 2 * trim)^2` of Tukey and
+McLaughlin (1963). That one estimates `n` times the variance of the
+trimmed *mean*, and using it here would report a variance 6% high at
+`trim = 0.1` and 14% high at `trim = 0.2`, which
+[`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md)
+would read as a slower drift.
+
+`contaminant_prop` stays `NA`. `trim` is the proportion removed, not an
+estimate of the proportion contaminated, and
+[`adjust_accuracy()`](https://www.gfrischkorn.org/rtprep/reference/adjust_accuracy.md)
+would apply a second correction to counts that have already been
+trimmed.
+
+Under `version = "4par"` the trim applies within each boundary, so the
+surviving count per boundary is about `(1 - 2 * trim)` of what arrived;
+set `min_trials` with that in mind.
+
 ## Differences from `bmm`
 
 [`bmm::ezdm_summary_stats()`](https://venpopov.com/bmm/reference/ezdm_summary_stats.html)
@@ -134,11 +179,12 @@ depend on which side happened to have the wider range, so the two halves
 would be fitted against different models.
 
 When the mixture fit fails the moments fall back to `"robust"` with a
-warning, as in `bmm` — and unlike
-[`rt_screen()`](https://www.gfrischkorn.org/rtprep/reference/rt_screen.md),
-where the analogous failure keeps every trial. The two differ because
-they answer different questions: a screen that cannot be evaluated
-should not remove trials, but a summary still has to return a number.
+warning, as in `bmm`.
+[`rt_screen()`](https://www.gfrischkorn.org/rtprep/reference/rt_screen.md)
+resolves the analogous failure the other way and keeps every trial (see
+[extending](https://www.gfrischkorn.org/rtprep/reference/extending.md)).
+The two layers differ because a screen can decline to act, and a summary
+still has to return a number.
 
 ## References
 

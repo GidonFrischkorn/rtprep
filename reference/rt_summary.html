@@ -75,10 +75,11 @@ as consequential as the exclusion rule.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">rt_summary</span><span class="op">(</span></span>
 <span>  <span class="va">rt</span>,</span>
 <span>  response <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"simple"</span>, <span class="st">"robust"</span>, <span class="st">"mixture"</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"simple"</span>, <span class="st">"robust"</span>, <span class="st">"trimmed"</span>, <span class="st">"winsorized"</span>, <span class="st">"mixture"</span><span class="op">)</span>,</span>
 <span>  version <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"3par"</span>, <span class="st">"4par"</span><span class="op">)</span>,</span>
 <span>  distribution <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"exgaussian"</span>, <span class="st">"lognormal"</span>, <span class="st">"invgaussian"</span><span class="op">)</span>,</span>
 <span>  robust_scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"iqr"</span>, <span class="st">"mad"</span><span class="op">)</span>,</span>
+<span>  trim <span class="op">=</span> <span class="fl">0.1</span>,</span>
 <span>  weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_trials <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -97,19 +98,25 @@ as consequential as the exclusion rule.</p>
 <dd><p>Optional response coding of the same length as <code>rt</code>, in any
 form <code><a href="rt_screen.html">rt_screen()</a></code> accepts. Required for <code>version = "4par"</code>; without it
 <code>n_upper</code> is <code>NA</code>. A trial whose response is missing belongs to neither
-boundary and is left out of both, but still counts towards <code>n_trials</code> — as
-in <code>bmm</code> — so <code>n_upper / n_trials</code> understates accuracy when responses are
+boundary and is left out of both, but still counts towards <code>n_trials</code>, as
+in <code>bmm</code>, so <code>n_upper / n_trials</code> understates accuracy when responses are
 missing. Drop those trials first if that matters.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>How the moments are computed.</p><ul><li><p><code>"simple"</code> — the sample mean and variance. The baseline, and what almost
-everyone does.</p></li>
-<li><p><code>"robust"</code> — the median, with the variance from the interquartile range
-(divided by 1.349) or the median absolute deviation. Statistic-level
-robustness, after Chávez De la Peña et al. (2026).</p></li>
-<li><p><code>"mixture"</code> — the analytic moments of the response time component of a
-fitted contaminant mixture, and its estimated contaminant proportion.</p></li>
+<dd><p>How the moments are computed.</p><ul><li><p><code>"simple"</code> gives the sample mean and variance. The baseline, and what
+almost everyone does.</p></li>
+<li><p><code>"robust"</code> gives the median, with the variance from the interquartile
+range (divided by 1.349) or the median absolute deviation.
+Statistic-level robustness, after Chávez De la Peña et al. (2026).</p></li>
+<li><p><code>"trimmed"</code> gives the mean of the middle <code>1 - 2 * trim</code> of the trials,
+with the variance from the Winsorized sample. The robust-statistics
+answer.</p></li>
+<li><p><code>"winsorized"</code> gives the same variance, with the mean of the Winsorized
+sample rather than the trimmed one.</p></li>
+<li><p><code>"mixture"</code> gives the analytic moments of the response time component
+of a fitted contaminant mixture, and its estimated contaminant
+proportion.</p></li>
 </ul></dd>
 
 
@@ -125,6 +132,12 @@ summarises each separately.</p></dd>
 
 <dt id="arg-robust-scale">robust_scale<a class="anchor" aria-label="anchor" href="#arg-robust-scale"></a></dt>
 <dd><p>Spread statistic for <code>method = "robust"</code>.</p></dd>
+
+
+<dt id="arg-trim">trim<a class="anchor" aria-label="anchor" href="#arg-trim"></a></dt>
+<dd><p>Proportion of trials cut from <em>each</em> tail by
+<code>method = "trimmed"</code> and <code>method = "winsorized"</code>, as in
+<code><a href="https://rdrr.io/r/base/mean.html" class="external-link">base::mean()</a></code>. <code>floor(n * trim)</code> trials go from each end.</p></dd>
 
 
 <dt id="arg-weights">weights<a class="anchor" aria-label="anchor" href="#arg-weights"></a></dt>
@@ -147,7 +160,7 @@ including <code>maxit = 500</code> where <code><a href="https://venpopov.com/bmm
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A one-row <code>data.frame</code> — the inputs <code><a href="ez_ddm.html">ez_ddm()</a></code> needs.</p>
+    <p>A one-row <code>data.frame</code> holding the inputs <code><a href="ez_ddm.html">ez_ddm()</a></code> needs.</p>
 <p><code>version = "3par"</code>: <code>mean_rt</code>, <code>var_rt</code>, <code>n_upper</code>, <code>n_trials</code>,
 <code>contaminant_prop</code>.</p>
 <p><code>version = "4par"</code>: <code>mean_rt_upper</code>, <code>mean_rt_lower</code>, <code>var_rt_upper</code>,
@@ -169,6 +182,27 @@ equal. Frequency weights would use <code>sum(w) - 1</code> and are the wrong mod
 <code>.prob</code> is a probability, not a count.</p>
     </div>
     <div class="section level2">
+    <h2 id="trimming-and-winsorizing">Trimming and Winsorizing<a class="anchor" aria-label="anchor" href="#trimming-and-winsorizing"></a></h2>
+    <p>Both cut the same <code>floor(n * trim)</code> trials from each tail. Trimming drops
+them; Winsorizing replaces each with the nearest surviving value, so the
+count stays the same and the extremes stop pulling. The variance comes from
+the Winsorized sample either way, rescaled so that it estimates the variance
+of the response time distribution rather than the variance of the trimmed
+mean. It is the same kind of correction as the 1.349 that
+<code>robust_scale = "iqr"</code> applies, and it is necessary because <code><a href="ez_ddm.html">ez_ddm()</a></code> reads
+<code>var_rt</code> as a moment of the distribution.</p>
+<p>The divisor is not the familiar <code>(1 - 2 * trim)^2</code> of Tukey and McLaughlin
+(1963). That one estimates <code>n</code> times the variance of the trimmed <em>mean</em>, and
+using it here would report a variance 6% high at <code>trim = 0.1</code> and 14% high at
+<code>trim = 0.2</code>, which <code><a href="ez_ddm.html">ez_ddm()</a></code> would read as a slower drift.</p>
+<p><code>contaminant_prop</code> stays <code>NA</code>. <code>trim</code> is the proportion removed, not an
+estimate of the proportion contaminated, and <code><a href="adjust_accuracy.html">adjust_accuracy()</a></code> would apply
+a second correction to counts that have already been trimmed.</p>
+<p>Under <code>version = "4par"</code> the trim applies within each boundary, so the
+surviving count per boundary is about <code>(1 - 2 * trim)</code> of what arrived; set
+<code>min_trials</code> with that in mind.</p>
+    </div>
+    <div class="section level2">
     <h2 id="differences-from-bmm">Differences from <code>bmm</code><a class="anchor" aria-label="anchor" href="#differences-from-bmm"></a></h2>
     <p><code><a href="https://venpopov.com/bmm/reference/ezdm_summary_stats.html" class="external-link">bmm::ezdm_summary_stats()</a></code> defaults to <code>method = "mixture"</code>; this function
 defaults to <code>"simple"</code>. A package about preprocessing choices should not
@@ -179,10 +213,9 @@ per boundary would make the uniform component's density depend on which side
 happened to have the wider range, so the two halves would be fitted against
 different models.</p>
 <p>When the mixture fit fails the moments fall back to <code>"robust"</code> with a
-warning, as in <code>bmm</code> — and unlike <code><a href="rt_screen.html">rt_screen()</a></code>, where the analogous failure
-keeps every trial. The two differ because they answer different questions: a
-screen that cannot be evaluated should not remove trials, but a summary still
-has to return a number.</p>
+warning, as in <code>bmm</code>. <code><a href="rt_screen.html">rt_screen()</a></code> resolves the analogous failure the other
+way and keeps every trial (see <a href="extending.html">extending</a>). The two layers differ because a
+screen can decline to act, and a summary still has to return a number.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

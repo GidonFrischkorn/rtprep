@@ -5,15 +5,13 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Screen response times with any rule — rt_screen"><meta name="description" content="Applies a screening rule and returns one row per input trial, whichever rule
-was used. That uniformity is the package's reason to exist: absolute cutoffs,
-standard deviation criteria, recursive criteria, and model-based mixtures all
-come back in the same shape, so a preprocessing choice can be compared rather
-than assumed."><meta property="og:description" content="Applies a screening rule and returns one row per input trial, whichever rule
-was used. That uniformity is the package's reason to exist: absolute cutoffs,
-standard deviation criteria, recursive criteria, and model-based mixtures all
-come back in the same shape, so a preprocessing choice can be compared rather
-than assumed."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Screen response times with any rule — rt_screen"><meta name="description" content="Applies a screening rule and returns one row per input trial: the keep
+decision, the probability behind it, the rule's label, and the reason for a
+flag. The four columns are the same whichever rule went in, so changing the
+rule changes one word and nothing around it."><meta property="og:description" content="Applies a screening rule and returns one row per input trial: the keep
+decision, the probability behind it, the rule's label, and the reason for a
+flag. The four columns are the same whichever rule went in, so changing the
+rule changes one word and nothing around it."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -63,11 +61,10 @@ than assumed."><meta property="og:image" content="https://www.gfrischkorn.org/rt
     </div>
 
     <div class="ref-description section level2">
-    <p>Applies a screening rule and returns one row per input trial, whichever rule
-was used. That uniformity is the package's reason to exist: absolute cutoffs,
-standard deviation criteria, recursive criteria, and model-based mixtures all
-come back in the same shape, so a preprocessing choice can be compared rather
-than assumed.</p>
+    <p>Applies a screening rule and returns one row per input trial: the keep
+decision, the probability behind it, the rule's label, and the reason for a
+flag. The four columns are the same whichever rule went in, so changing the
+rule changes one word and nothing around it.</p>
     </div>
 
     <div class="section level2">
@@ -103,7 +100,7 @@ by <code><a href="rules.html">rule_mixture()</a></code> with <code>use_accuracy 
 
 
 <dt id="arg--by">.by<a class="anchor" aria-label="anchor" href="#arg--by"></a></dt>
-<dd><p>Optional grouping of the same length as <code>rt</code> — a vector, factor,
+<dd><p>Optional grouping of the same length as <code>rt</code>: a vector, factor,
 list of vectors, or data frame. Rules are fitted separately within each
 group. <code>NULL</code> treats all trials as one group.</p></dd>
 
@@ -134,7 +131,7 @@ decision process, that is <strong>P(valid)</strong>. Deterministic rules return 
 <dd><p>character; the rule's label.</p></dd>
 
 <dt><code>.reason</code></dt>
-<dd><p>character; why the <strong>rule</strong> flagged the trial —
+<dd><p>character; why the <strong>rule</strong> flagged the trial:
 <code>"too_fast"</code>, <code>"too_slow"</code>, <code>"contaminant"</code>, or <code>"missing"</code>. <code>NA</code>
 whenever the rule did not flag it, which includes trials the keep
 policy dropped anyway (at <code>threshold = 1</code>, or on a probabilistic draw
@@ -181,6 +178,12 @@ to apply several rules at once; <code><a href="rt_summary.html">rt_summary()</a>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">rt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.12</span>, <span class="fl">0.31</span>, <span class="fl">0.35</span>, <span class="fl">0.38</span>, <span class="fl">0.42</span>, <span class="fl">0.47</span>, <span class="fl">0.55</span>, <span class="fl">2.90</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">rt_screen</span><span class="op">(</span><span class="va">rt</span>, <span class="fu"><a href="rules.html">rule_cutoff</a></span><span class="op">(</span><span class="fl">0.18</span>, <span class="fl">2.5</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep screen&gt; 8 trials, cutoff(0.18, 2.5), 1 group</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   kept 6 (75.0%), dropped 2 (25.0%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   reasons: too_fast 1, too_slow 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   policy: keep where .prob &gt; 0.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   .keep .prob             .rule  .reason</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 FALSE     0 cutoff(0.18, 2.5) too_fast</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2  TRUE     1 cutoff(0.18, 2.5)     &lt;NA&gt;</span>
@@ -188,8 +191,7 @@ to apply several rules at once; <code><a href="rt_summary.html">rt_summary()</a>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4  TRUE     1 cutoff(0.18, 2.5)     &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5  TRUE     1 cutoff(0.18, 2.5)     &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6  TRUE     1 cutoff(0.18, 2.5)     &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7  TRUE     1 cutoff(0.18, 2.5)     &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8 FALSE     0 cutoff(0.18, 2.5) too_slow</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> # 2 more trials; as.data.frame(x) for all of them</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># rules are group-aware without the package depending on dplyr</span></span></span>
 <span class="r-in"><span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
@@ -202,6 +204,12 @@ to apply several rules at once; <code><a href="rt_summary.html">rt_summary()</a>
 <span class="r-in"><span><span class="co"># a rule that reads accuracy takes it by name</span></span></span>
 <span class="r-in"><span><span class="va">correct</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">rt_screen</span><span class="op">(</span><span class="va">rt</span>, <span class="fu"><a href="rules.html">rule_ewma</a></span><span class="op">(</span>lambda <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>, response <span class="op">=</span> <span class="va">correct</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep screen&gt; 8 trials, ewma(0.1, 1.5), 1 group</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   kept 1 (12.5%), dropped 7 (87.5%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   reasons: too_fast 7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   policy: keep where .prob &gt; 0.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   .keep .prob          .rule  .reason</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 FALSE     0 ewma(0.1, 1.5) too_fast</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2 FALSE     0 ewma(0.1, 1.5) too_fast</span>
@@ -209,8 +217,7 @@ to apply several rules at once; <code><a href="rt_summary.html">rt_summary()</a>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4 FALSE     0 ewma(0.1, 1.5) too_fast</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5 FALSE     0 ewma(0.1, 1.5) too_fast</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6 FALSE     0 ewma(0.1, 1.5) too_fast</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7 FALSE     0 ewma(0.1, 1.5) too_fast</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8  TRUE     1 ewma(0.1, 1.5)     &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> # 2 more trials; as.data.frame(x) for all of them</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

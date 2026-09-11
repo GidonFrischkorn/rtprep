@@ -89,12 +89,12 @@
     
 <p>Screening decides which trials survive. Aggregation decides what the
 survivors are summarised as, and the two fail differently, which is why
-<code>rtprep</code> keeps them apart. The same trials summarised three
-ways give three different sets of summary statistics, and the parameters
+<code>rtprep</code> keeps them apart. The same trials summarised two
+ways give two different sets of summary statistics, and the parameters
 follow from those. This article walks through
-<code><a href="../reference/rt_summary.html">rt_summary()</a></code>’s three methods and its weights, the accuracy
+<code><a href="../reference/rt_summary.html">rt_summary()</a></code>’s methods and its weights, the accuracy
 correction that goes with the mixture route, the <code><a href="../reference/ez_ddm.html">ez_ddm()</a></code>
-inversion and its scaling convention, and then puts four routes side by
+inversion and its scaling convention, and then puts five routes side by
 side on <code>rt_example</code>, whose cells carry the drift they were
 generated from.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -164,6 +164,53 @@ different statistics, and they feed the same equations. The last section
 puts the four routes side by side.</p>
 </div>
 <div class="section level2">
+<h2 id="trimmed-and-winsorized-moments">Trimmed and Winsorized moments<a class="anchor" aria-label="anchor" href="#trimmed-and-winsorized-moments"></a>
+</h2>
+<p><code>method = "trimmed"</code> takes the mean of the middle
+<code>1 - 2 * trim</code> of the trials;
+<code>method = "winsorized"</code> replaces the extremes with the
+nearest surviving value instead of dropping them, and takes the mean of
+that. Both read their variance off the Winsorized sample, so the count
+stays at <code>n_trials</code> either way and only the pull of the
+extremes is removed.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
+<span>  simple <span class="op">=</span> <span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span><span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span><span class="op">)</span>,</span>
+<span>  trimmed <span class="op">=</span> <span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span></span>
+<span>    <span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, method <span class="op">=</span> <span class="st">"trimmed"</span>, trim <span class="op">=</span> <span class="fl">0.1</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  winsorized <span class="op">=</span> <span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span></span>
+<span>    <span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, method <span class="op">=</span> <span class="st">"winsorized"</span>, trim <span class="op">=</span> <span class="fl">0.1</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  .id <span class="op">=</span> <span class="st">"method"</span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">method</span>, <span class="va">mean_rt</span>, <span class="va">var_rt</span>, <span class="va">n_trials</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       method   mean_rt     var_rt n_trials</span></span>
+<span><span class="co">#&gt; 1     simple 0.6412949 0.10461851      100</span></span>
+<span><span class="co">#&gt; 2    trimmed 0.5861795 0.05100875      100</span></span>
+<span><span class="co">#&gt; 3 winsorized 0.6043436 0.05100875      100</span></span></code></pre></div>
+<p>This is still statistic-level robustness, not trimming in the
+screening sense: no trial is excluded from the analysis,
+<code>n_trials</code> does not move, and nothing is written down about
+which trials were unusual. A reader cannot tell from the output which
+trials were trimmed, because the answer is “the extreme 10% of this
+cell, by construction” rather than “the ones a criterion flagged”.</p>
+<p>One thing about the variance is worth stating, because it is easy to
+get wrong. The Winsorized variance estimates the variance of the
+<em>Winsorized</em> distribution, which is too small for
+<code><a href="../reference/ez_ddm.html">ez_ddm()</a></code>: the EZ equations read <code>var_rt</code> as a
+moment of the response time distribution the decision process produced.
+<code><a href="../reference/rt_summary.html">rt_summary()</a></code> therefore rescales it. The familiar
+<code>(1 - 2 * trim)^2</code> divisor of Tukey and McLaughlin is not
+what it uses, because that divisor targets the variance of the trimmed
+<em>mean</em> and returns a variance that runs roughly 6% high at
+<code>trim = 0.1</code> and 14% high at <code>trim = 0.2</code> when the
+data are normal; <code>rtprep</code> uses the normal-consistency
+constant, which lands within half a percent. If you compare
+<code>var_rt</code> against a hand-computed Winsorized variance and the
+two differ, this is why.</p>
+</div>
+<div class="section level2">
 <h2 id="mixture-moments">Mixture moments<a class="anchor" aria-label="anchor" href="#mixture-moments"></a>
 </h2>
 <p><code>method = "mixture"</code> fits the same contaminant mixture
@@ -172,7 +219,7 @@ the fitted core rather than off the data. A trial the uniform component
 owns contributes nothing to the moments, and the estimated contaminant
 proportion comes back alongside them. This is the summary-level version
 of modelling the contaminant instead of deleting it:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"exgaussian"</span>, <span class="st">"lognormal"</span>, <span class="st">"invgaussian"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">core</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span></span>
 <span>    <span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, method <span class="op">=</span> <span class="st">"mixture"</span>, distribution <span class="op">=</span> <span class="va">core</span></span>
@@ -192,7 +239,7 @@ with a warning, as in <code>bmm</code>. That differs from
 <code><a href="../reference/rt_screen.html">rt_screen()</a></code>, where the analogous failure keeps every trial,
 and the difference is deliberate: a screen that cannot be evaluated
 should remove nothing, but a summary still has to return a number.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span><span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, method <span class="op">=</span> <span class="st">"mixture"</span>, maxit <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: The mixture fit did not converge; using robust moments instead.</span></span>
 <span><span class="co">#&gt;   mean_rt     var_rt n_upper n_trials contaminant_prop</span></span>
@@ -207,7 +254,7 @@ threshold. Weighted moments let a doubtful trial contribute a little,
 where mixture moments let a trial the uniform component owns contribute
 nothing at all. The two are different models of the same doubt, and the
 package refuses to combine them:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">screened</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rt_screen.html">rt_screen</a></span><span class="op">(</span><span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="fu"><a href="../reference/rules.html">rule_mixture</a></span><span class="op">(</span><span class="st">"lognormal"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span><span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, weights <span class="op">=</span> <span class="va">screened</span><span class="op">$</span><span class="va">.prob</span><span class="op">)</span></span>
@@ -217,7 +264,7 @@ package refuses to combine them:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span></span>
 <span>  <span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, weights <span class="op">=</span> <span class="va">screened</span><span class="op">$</span><span class="va">.prob</span>, method <span class="op">=</span> <span class="st">"mixture"</span></span>
 <span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error : 'weights' is defined for method = "simple" only. Both "robust" and "mixture" already have their own answer to contamination.</span></span></code></pre></div>
+<span><span class="co">#&gt; Error : 'weights' is defined for method = "simple" only. Every other method already carries its own answer to contamination, and combining two of them is an error rather than a convenience.</span></span></code></pre></div>
 <p>The weighted variance uses the reliability-weight denominator <span class="math inline">\(\sum w - \sum w^2 / \sum w\)</span>, which reduces
 to <span class="math inline">\(n - 1\)</span> when the weights are
 equal. Frequency weights would use <span class="math inline">\(\sum w -
@@ -228,7 +275,7 @@ effective sample size <span class="math inline">\((\sum w)^2 / \sum
 w^2\)</span>, so two unit weights among ninety-eight zeros count as two
 trials, and the moments come back <code>NA</code> rather than as
 noise:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">two_trials</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">98</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span><span class="va">p3_hard</span><span class="op">$</span><span class="va">rt</span>, <span class="va">p3_hard</span><span class="op">$</span><span class="va">response</span>, weights <span class="op">=</span> <span class="va">two_trials</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   mean_rt var_rt n_upper n_trials contaminant_prop</span></span>
@@ -245,7 +292,7 @@ by design: how many trials were contaminants, and how many of those
 happened to be correct, are both binomial draws, and a point estimate
 would understate that uncertainty. There is no <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code>
 inside the package, so the seed is yours:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026094</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/adjust_accuracy.html">adjust_accuracy</a></span><span class="op">(</span>n_upper <span class="op">=</span> <span class="fl">84</span>, n_trials <span class="op">=</span> <span class="fl">100</span>, contaminant_prop <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   n_upper_adj n_trials_adj</span></span>
@@ -276,7 +323,7 @@ Wagenmakers et al. fix the diffusion coefficient at 0.1,
 than a modelling one: drift and bound scale linearly with
 <code>s</code>, non-decision time does not. Their worked example under
 both conventions:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
 <span>  wagenmakers <span class="op">=</span> <span class="fu"><a href="../reference/ez_ddm.html">ez_ddm</a></span><span class="op">(</span></span>
 <span>    mean_rt <span class="op">=</span> <span class="fl">0.723</span>, var_rt <span class="op">=</span> <span class="fl">0.112</span>, accuracy <span class="op">=</span> <span class="fl">0.802</span>, n_trials <span class="op">=</span> <span class="fl">100</span>, s <span class="op">=</span> <span class="fl">0.1</span></span>
@@ -299,7 +346,7 @@ as well.</p>
 applies it silently, because a warning per cell would bury a simulation
 run. Which rows it touched comes back as a column, so that it survives
 subsetting and the dplyr verbs:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">edges</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ez_ddm.html">ez_ddm</a></span><span class="op">(</span></span>
 <span>  mean_rt <span class="op">=</span> <span class="fl">0.5</span>, var_rt <span class="op">=</span> <span class="fl">0.02</span>, accuracy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span><span class="op">)</span>, n_trials <span class="op">=</span> <span class="fl">50</span></span>
 <span><span class="op">)</span></span>
@@ -316,12 +363,14 @@ table.</p>
 <h2 id="four-routes-on-rt_example">Four routes on <code>rt_example</code><a class="anchor" aria-label="anchor" href="#four-routes-on-rt_example"></a>
 </h2>
 <p>The routes above are alternatives to trimming, not additions to it.
-Four pipelines on <code>rt_example</code>, each applied per cell: no
+Five pipelines on <code>rt_example</code>, each applied per cell: no
 preprocessing, the ±2.5 SD trim with simple moments, robust moments on
-all trials, and mixture moments on all trials with the accuracy counts
-adjusted. Each ends in <code><a href="../reference/ez_ddm.html">ez_ddm()</a></code>, and the data carry the
-drift each cell was generated from:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+all trials, a 10% trimmed mean on all trials, and mixture moments on all
+trials with the accuracy counts adjusted. Only the second removes a
+trial; the rest change the statistic. Each ends in
+<code><a href="../reference/ez_ddm.html">ez_ddm()</a></code>, and the data carry the drift each cell was
+generated from:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summarise_cells</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">...</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">data</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/reframe.html" class="external-link">reframe</a></span><span class="op">(</span><span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span><span class="va">rt</span>, <span class="va">response</span>, <span class="va">...</span><span class="op">)</span>, .by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">id</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span></span>
@@ -329,10 +378,11 @@ drift each cell was generated from:</p>
 <span></span>
 <span><span class="va">routes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
 <span>  none <span class="op">=</span> <span class="fu">summarise_cells</span><span class="op">(</span><span class="va">rt_example</span><span class="op">)</span>,</span>
-<span>  trimmed <span class="op">=</span> <span class="va">rt_example</span> <span class="op">|&gt;</span></span>
+<span>  sd_trim <span class="op">=</span> <span class="va">rt_example</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="../reference/rt_keep.html">rt_keep</a></span><span class="op">(</span><span class="va">rt</span>, <span class="fu"><a href="../reference/rules.html">rule_sd</a></span><span class="op">(</span><span class="fl">2.5</span><span class="op">)</span>, .by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">id</span>, <span class="va">condition</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu">summarise_cells</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  robust <span class="op">=</span> <span class="fu">summarise_cells</span><span class="op">(</span><span class="va">rt_example</span>, method <span class="op">=</span> <span class="st">"robust"</span><span class="op">)</span>,</span>
+<span>  trimmed <span class="op">=</span> <span class="fu">summarise_cells</span><span class="op">(</span><span class="va">rt_example</span>, method <span class="op">=</span> <span class="st">"trimmed"</span>, trim <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,</span>
 <span>  mixture <span class="op">=</span> <span class="fu">summarise_cells</span><span class="op">(</span></span>
 <span>    <span class="va">rt_example</span>, method <span class="op">=</span> <span class="st">"mixture"</span>, distribution <span class="op">=</span> <span class="st">"lognormal"</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -349,7 +399,10 @@ drift each cell was generated from:</p>
 <span>    by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"condition"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    route <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">route</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"trimmed"</span>, <span class="st">"robust"</span>, <span class="st">"mixture"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    route <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span>
+<span>      <span class="va">route</span>,</span>
+<span>      levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"sd_trim"</span>, <span class="st">"robust"</span>, <span class="st">"trimmed"</span>, <span class="st">"mixture"</span><span class="op">)</span></span>
+<span>    <span class="op">)</span>,</span>
 <span>    error <span class="op">=</span> <span class="va">drift</span> <span class="op">-</span> <span class="va">true_drift</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
@@ -361,32 +414,33 @@ drift each cell was generated from:</p>
 <span>  <span class="op">)</span></span>
 <span><span class="co">#&gt;     route  mean_error mean_abs_error</span></span>
 <span><span class="co">#&gt; 1    none -0.35712935     0.35712935</span></span>
-<span><span class="co">#&gt; 2 trimmed -0.05790345     0.13121618</span></span>
+<span><span class="co">#&gt; 2 sd_trim -0.05790345     0.13121618</span></span>
 <span><span class="co">#&gt; 3  robust  0.01250529     0.07332629</span></span>
-<span><span class="co">#&gt; 4 mixture  0.35405639     0.37006909</span></span></code></pre></div>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt; 4 trimmed -0.13078766     0.17284020</span></span>
+<span><span class="co">#&gt; 5 mixture  0.35405639     0.37006909</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">estimates</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">condition</span>, y <span class="op">=</span> <span class="va">drift</span>, colour <span class="op">=</span> <span class="va">route</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">true_drift</span><span class="op">)</span>, shape <span class="op">=</span> <span class="fl">95</span>, size <span class="op">=</span> <span class="fl">8</span>, colour <span class="op">=</span> <span class="st">"black"</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html" class="external-link">position_dodge</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">okabe_ito</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">2</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_colour_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">okabe_ito</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">6</span>, <span class="fl">2</span><span class="op">)</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">id</span>, nrow <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Estimated drift"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="aggregation_files/figure-html/routes-figure-1.png" class="r-plt" alt="Dot plot of the estimated drift of each participant and condition under four aggregation routes, with the true drift drawn as a black bar in each cell." width="672" style="display: block; margin: auto;"></p>
+<p><img src="aggregation_files/figure-html/routes-figure-1.png" class="r-plt" alt="Dot plot of the estimated drift of each participant and condition under five aggregation routes, with the true drift drawn as a black bar in each cell." width="672" style="display: block; margin: auto;"></p>
 <p>The table is each route’s mean signed and mean absolute error against
-the generating drift over the eight cells; the figure puts the four
+the generating drift over the eight cells; the figure puts the five
 estimates of every cell next to its true drift. Two mechanical
-differences separate the mixture route from the other three, and both
+differences separate the mixture route from the other four, and both
 enter <code><a href="../reference/ez_ddm.html">ez_ddm()</a></code> in the same direction: its variance is read
 off the fitted core rather than the sample, and
 <code><a href="../reference/adjust_accuracy.html">adjust_accuracy()</a></code> raises the proportion correct; a smaller
 variance and a higher accuracy both raise the drift.</p>
-<p>Eight cells of 100 trials cannot rank four pipelines, and this page
-does not try. What they show is that the same trials summarised four
-ways give four drift estimates per cell, and the <code>route</code>
+<p>Eight cells of 100 trials cannot rank five pipelines, and this page
+does not try. What they show is that the same trials summarised five
+ways give five drift estimates per cell, and the <code>route</code>
 column is the whole difference between them. <a href="ground-truth.html">The ground-truth article</a> carries the same
 chain through on data matched to a task of your own, with a
 perfect-exclusion oracle as the ceiling.</p>

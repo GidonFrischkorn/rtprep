@@ -84,9 +84,9 @@ plus a strictly positive decision time, so no valid trial can undercut
 non-decision time. The rule fits the closed-form EZ model to a group's
 trials, flags everything below `c_ndt` times the fitted non-decision
 time, refits once on the survivors (`refit = TRUE`), re-flags against
-the updated estimate, and stops — never iterating further, because
-lower-tail removal shrinks the variance and pushes the estimate upward,
-a one-way ratchet that unlimited iteration would run away with.
+the updated estimate, and stops there. It never iterates further,
+because lower-tail removal shrinks the variance and pushes the estimate
+upward, a one-way ratchet that unlimited iteration would run away with.
 
 The catch is the point: fast contaminants drag the fitted non-decision
 time down, so the rule's premise is poisoned by exactly the trials it

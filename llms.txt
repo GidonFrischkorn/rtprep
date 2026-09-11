@@ -11,7 +11,7 @@ package itself.
 ## The problem
 
 Every response time analysis makes an exclusion decision, and most
-inherit it by convention — 200 ms and 3 s because that is what the last
+inherit it by convention: 200 ms and 3 s because that is what the last
 paper did, or ±2.5 SD because that is what the field does. The
 consequences are invisible in the data the researcher can see, and they
 are not small: contaminant trials bias evidence accumulation model
@@ -22,8 +22,8 @@ The methods to deal with this exist and are scattered. What does not
 exist is a way to compare them, because every implementation returns a
 different kind of object: a trimmed data frame, a vector of per-trial
 probabilities, a set of summary statistics. `rtprep` gives them one
-interface, so a preprocessing choice can be evaluated rather than
-assumed.
+interface, so you can ask what a different cutoff would have removed,
+and how far two defensible choices disagree on your own data.
 
 ## What it provides
 
@@ -68,6 +68,11 @@ dat <- r_contaminated(400, process = "mixed", rate = 0.1)
 
 scr <- rt_screen(dat$rt, rule_sd(2.5))
 head(scr)
+#> <rtprep screen> 6 trials, sd(2.5, mean, sd)
+#>   kept 6 (100.0%), dropped 0 (0.0%)
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: dropped by subsetting; screen_fits() to refit
+#> 
 #>   .keep .prob             .rule .reason
 #> 1  TRUE     1 sd(2.5, mean, sd)    <NA>
 #> 2  TRUE     1 sd(2.5, mean, sd)    <NA>
@@ -108,10 +113,10 @@ table(flagged = !scr$.keep, contaminant = dat$contaminant)
 
 `rtprep` implements its screening rules itself and carries no runtime
 dependency on other preprocessing packages. Where reference
-implementations exist — [`trimr`](https://github.com/JimGrange/trimr)
-for the trimming families, [`bmm`](https://github.com/popov-lab/bmm) for
-the mixture EM and EZ aggregation — the test suite checks equivalence
-against them.
+implementations exist, namely
+[`trimr`](https://github.com/JimGrange/trimr) for the trimming families
+and [`bmm`](https://github.com/popov-lab/bmm) for the mixture EM and EZ
+aggregation, the test suite checks equivalence against them.
 
 ## Citation
 
@@ -129,6 +134,9 @@ GPL (\>= 3)
 - [`rtprep`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
   [`rtprep-package`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
   : rtprep: Screening, Trimming, and Aggregating Response Time Data
+- [`rtprep-glossary`](https://www.gfrischkorn.org/rtprep/reference/rtprep-glossary.md)
+  [`glossary`](https://www.gfrischkorn.org/rtprep/reference/rtprep-glossary.md)
+  : Terms used in rtprep
 
 ## Screening
 
@@ -143,12 +151,31 @@ One engine, one return shape, whichever rule is applied.
 - [`rule_cutoff()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_mad()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_iqr()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_recursive()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_mixture()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_none()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_oracle()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`print(`*`<rtprep_rule>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   : Screening rules
+- [`format(`*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  [`print(`*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  [`as.data.frame(`*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  [`` `[`( ``*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  : Methods for a screening result
+
+## Combining rules
+
+No single conventional rule reaches both the slow tail and the leading
+edge; these put two together.
+
+- [`rule_all()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+  [`rule_any()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+  [`rule_then()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+  : Combine screening rules
+- [`rule_hierarchical()`](https://www.gfrischkorn.org/rtprep/reference/rule_hierarchical.md)
+  : Hierarchical screening
 
 ## Aggregation and estimation
 
@@ -169,6 +196,7 @@ trials were what you thought.
 - [`screen_compare()`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   [`print(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   [`summary(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+  [`print(`*`<rtprep_comparison_summary>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   [`plot(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   : Compare what several screening rules would remove
 - [`check_guessing()`](https://www.gfrischkorn.org/rtprep/reference/check_guessing.md)
@@ -176,11 +204,31 @@ trials were what you thought.
 
 ## Ground truth
 
-Generate data with contaminants of known type, so a pipeline can be
-tested instead of trusted.
+Generate data whose contaminants are labelled, and remove exactly those,
+so a screen can be scored and read against perfect exclusion.
 
 - [`r_contaminated()`](https://www.gfrischkorn.org/rtprep/reference/r_contaminated.md)
   : Generate response time data with contaminants of known type
+- [`rule_cutoff()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_mad()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_iqr()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_recursive()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_mixture()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_none()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_oracle()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`print(`*`<rtprep_rule>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  : Screening rules
+
+## Extending rtprep
+
+Adding a screening rule from your own package.
+
+- [`new_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+  [`apply_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+  [`apply_rule_grouped()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+  : Add a screening rule
 
 ## Data
 

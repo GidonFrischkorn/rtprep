@@ -402,11 +402,23 @@ against a clean reference like this one; it defines no cutpoint.</p>
 the mean error but whether each participant’s error tracks their own
 contamination rate. Three pipelines, each ending in
 <code><a href="../reference/ez_ddm.html">ez_ddm()</a></code>: nothing removed, the recursive criterion, and the
-oracle that removes exactly the contaminants:</p>
+oracle that removes exactly the contaminants.</p>
+<p><code><a href="../reference/rules.html">rule_oracle()</a></code> is that last one. It takes the
+ground-truth vector and removes exactly the trials it marks, which makes
+it useless on real data and the only honest ceiling on generated data.
+It is a rule like any other, so it goes through <code><a href="../reference/rt_screen.html">rt_screen()</a></code>
+and reports in <code><a href="../reference/screen_fits.html">screen_fits()</a></code> the same way, and swapping it
+for a real rule changes one argument. Every pipeline below is read
+against it.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Drift per participant under three pipelines, against the drift each</span></span>
 <span><span class="co"># participant was generated with: nothing removed, the chosen rule, and the</span></span>
-<span><span class="co"># perfect-exclusion oracle that only generated data allows.</span></span>
+<span><span class="co"># perfect-exclusion oracle that only generated data allows. rule_oracle()</span></span>
+<span><span class="co"># carries the truth vector on the rule object, so the oracle goes through the</span></span>
+<span><span class="co"># same engine as every other rule rather than being a hand-built keep vector;</span></span>
+<span><span class="co"># it is the ceiling, not a rule anyone can run on real data.</span></span>
+<span><span class="va">oracle_keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rt_screen.html">rt_screen</a></span><span class="op">(</span><span class="va">simulated</span><span class="op">$</span><span class="va">rt</span>, <span class="fu"><a href="../reference/rules.html">rule_oracle</a></span><span class="op">(</span><span class="va">simulated</span><span class="op">$</span><span class="va">contaminant</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">.keep</span></span>
+<span></span>
 <span><span class="va">estimate_drift</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">keep</span>, <span class="va">label</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">simulated</span><span class="op">[</span><span class="va">keep</span>, <span class="op">]</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/reframe.html" class="external-link">reframe</a></span><span class="op">(</span><span class="fu"><a href="../reference/rt_summary.html">rt_summary</a></span><span class="op">(</span><span class="va">rt</span>, <span class="va">response</span><span class="op">)</span>, .by <span class="op">=</span> <span class="va">id</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -419,7 +431,7 @@ oracle that removes exactly the contaminants:</p>
 <span><span class="va">estimates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
 <span>  <span class="fu">estimate_drift</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">simulated</span><span class="op">)</span><span class="op">)</span>, <span class="st">"none"</span><span class="op">)</span>,</span>
 <span>  <span class="fu">estimate_drift</span><span class="op">(</span><span class="va">recursive_keep</span>, <span class="st">"recursive"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">estimate_drift</span><span class="op">(</span><span class="op">!</span><span class="va">simulated</span><span class="op">$</span><span class="va">contaminant</span>, <span class="st">"oracle"</span><span class="op">)</span></span>
+<span>  <span class="fu">estimate_drift</span><span class="op">(</span><span class="va">oracle_keep</span>, <span class="st">"oracle"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">estimates</span> <span class="op">|&gt;</span></span>
@@ -466,7 +478,7 @@ detection columns the truth provides alongside:</p>
 <code class="sourceCode R"><span><span class="va">scored_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
 <span>  <span class="va">scored</span>,</span>
 <span>  <span class="fu">score_rule</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">simulated</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>rule <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">score_rule</span><span class="op">(</span><span class="op">!</span><span class="va">simulated</span><span class="op">$</span><span class="va">contaminant</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>rule <span class="op">=</span> <span class="st">"oracle"</span><span class="op">)</span></span>
+<span>  <span class="fu">score_rule</span><span class="op">(</span><span class="va">oracle_keep</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>rule <span class="op">=</span> <span class="st">"oracle"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">estimates</span>, <span class="fu">estimate_drift</span><span class="op">(</span><span class="va">comparison</span><span class="op">$</span><span class="va">keep</span><span class="op">[</span>, <span class="st">"mad"</span><span class="op">]</span>, <span class="st">"mad"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>

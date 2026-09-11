@@ -9,12 +9,12 @@
 Grasman (2007): mean response time, response time variance, and accuracy in;
 drift rate, boundary separation, and non-decision time out.
 Exported so that the whole pipeline-to-parameters check runs with only
-rtprep installed — a reader can screen, aggregate, and estimate without
+rtprep installed: a reader can screen, aggregate, and estimate without
 reaching for a model-fitting package."><meta property="og:description" content="The closed-form EZ-diffusion equations of Wagenmakers, van der Maas and
 Grasman (2007): mean response time, response time variance, and accuracy in;
 drift rate, boundary separation, and non-decision time out.
 Exported so that the whole pipeline-to-parameters check runs with only
-rtprep installed — a reader can screen, aggregate, and estimate without
+rtprep installed: a reader can screen, aggregate, and estimate without
 reaching for a model-fitting package."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
@@ -69,7 +69,7 @@ reaching for a model-fitting package."><meta property="og:image" content="https:
 Grasman (2007): mean response time, response time variance, and accuracy in;
 drift rate, boundary separation, and non-decision time out.</p>
 <p>Exported so that the whole pipeline-to-parameters check runs with only
-<code>rtprep</code> installed — a reader can screen, aggregate, and estimate without
+<code>rtprep</code> installed: a reader can screen, aggregate, and estimate without
 reaching for a model-fitting package.</p>
     </div>
 
@@ -102,7 +102,7 @@ the size of the edge correction.</p></dd>
 
 <dt id="arg-s">s<a class="anchor" aria-label="anchor" href="#arg-s"></a></dt>
 <dd><p>Scaling constant. <code>1</code> here; Wagenmakers et al. use <code>0.1</code>. This is a
-units convention, not a modelling one — <code>drift</code> and <code>bound</code> scale linearly
+units convention, not a modelling one: <code>drift</code> and <code>bound</code> scale linearly
 with <code>s</code> and <code>ndt</code> does not, so a drift of 0.1 at <code>s = 0.1</code> and a drift of
 1.0 at <code>s = 1</code> describe the same process.</p></dd>
 
@@ -119,8 +119,8 @@ length). <code>edge_corrected</code> flags the rows that needed the correction b
 0.5, and 1. Wagenmakers et al.'s edge correction moves the offending value by
 <code>1 / (2 * n_trials)</code>: 1 becomes <code>1 - 1/(2n)</code>, 0 becomes <code>1/(2n)</code>, and 0.5
 becomes <code>0.5 + 1/(2n)</code>. It is applied silently, because it is the published
-behaviour and a warning per cell would bury a simulation run — but which
-cells were corrected comes back in the <code>edge_corrected</code> column, so a script
+behaviour and a warning per cell would bury a simulation run. Which cells
+were corrected comes back in the <code>edge_corrected</code> column, so a script
 can count them. It is a column rather than an attribute so that it survives
 <code>[</code>, <code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind()</a></code>, and the dplyr verbs.</p>
 <p>EZ is fragile under contamination: a handful of fast guesses moves the drift

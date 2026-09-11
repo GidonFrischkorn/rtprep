@@ -2,7 +2,7 @@
 
 Applies every rule once and reports where they disagree. This is the
 question the package exists to make askable: *what would a different
-preprocessing choice have removed?* — which is normally unanswerable
+preprocessing choice have removed?* That is normally unanswerable,
 because each rule's implementation returns a different shape.
 
 ## Usage
@@ -22,6 +22,9 @@ print(x, ...)
 
 # S3 method for class 'rtprep_comparison'
 summary(object, ...)
+
+# S3 method for class 'rtprep_comparison_summary'
+print(x, ...)
 
 # S3 method for class 'rtprep_comparison'
 plot(x, ...)
@@ -44,7 +47,8 @@ plot(x, ...)
 
 - x:
 
-  An `rtprep_comparison`.
+  An `rtprep_comparison`, or for `print.rtprep_comparison_summary()` an
+  `rtprep_comparison_summary`.
 
 - ...:
 
@@ -76,11 +80,23 @@ An object of class `rtprep_comparison`: a list with
 
   the per-group fit diagnostics, stacked, with a `.rule` column.
 
+[`summary()`](https://rdrr.io/r/base/summary.html) returns an
+`rtprep_comparison_summary`: the `drops` and `agreement` tables, printed
+by their own method. It is a value, not a side effect, so
+`s <- summary(cmp)` is quiet and `s$drops` is the table.
+[`print()`](https://rdrr.io/r/base/print.html) and
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) return their
+input invisibly.
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws with
+ggplot2 when it is installed and with
+[`graphics::barplot()`](https://rdrr.io/r/graphics/barplot.html) when it
+is not; the return value is the same either way.
+
 ## Details
 
 `agree` and `jaccard` answer different questions and diverge exactly
 where it matters. Two rules that each drop 2% of trials and never the
-same one agree on 96% of decisions — and have a Jaccard index of zero.
+same one agree on 96% of decisions, and have a Jaccard index of zero.
 Agreement alone would call them interchangeable. Jaccard is `NA`, not 1,
 when neither rule dropped anything: no overlap can be computed from two
 empty sets.

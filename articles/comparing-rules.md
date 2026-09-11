@@ -195,6 +195,8 @@ six screening rules on rt_example, ordered from the absolute cutoff at
 zero to the MAD criterion at about eleven
 percent.](comparing-rules_files/figure-html/plot-1.png)
 
+    #> NULL
+
 The agreement table draws as a tile plot of the Jaccard overlap, which
 makes the two clusters visible at once: the rules that cut from above
 overlap with each other and with nothing else.

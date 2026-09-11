@@ -47,7 +47,7 @@ back `NA`.
 **Stochastic by design.** How many trials were contaminants, and how
 many of those happened to be correct, are both binomial draws, so
 repeated calls differ. That is faithful to the uncertainty in a mixture
-estimate — a point estimate would understate it — and it matches `bmm`.
+estimate, which a point estimate would understate, and it matches `bmm`.
 There is no [`set.seed()`](https://rdrr.io/r/base/Random.html) anywhere
 in `rtprep`; reproducibility is the caller's.
 

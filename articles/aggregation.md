@@ -2,14 +2,14 @@
 
 Screening decides which trials survive. Aggregation decides what the
 survivors are summarised as, and the two fail differently, which is why
-`rtprep` keeps them apart. The same trials summarised three ways give
-three different sets of summary statistics, and the parameters follow
-from those. This article walks through
+`rtprep` keeps them apart. The same trials summarised two ways give two
+different sets of summary statistics, and the parameters follow from
+those. This article walks through
 [`rt_summary()`](https://www.gfrischkorn.org/rtprep/reference/rt_summary.md)’s
-three methods and its weights, the accuracy correction that goes with
-the mixture route, the
+methods and its weights, the accuracy correction that goes with the
+mixture route, the
 [`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md)
-inversion and its scaling convention, and then puts four routes side by
+inversion and its scaling convention, and then puts five routes side by
 side on `rt_example`, whose cells carry the drift they were generated
 from.
 
@@ -96,6 +96,55 @@ variance. Those are not corrections for contamination; they are
 different statistics, and they feed the same equations. The last section
 puts the four routes side by side.
 
+## Trimmed and Winsorized moments
+
+`method = "trimmed"` takes the mean of the middle `1 - 2 * trim` of the
+trials; `method = "winsorized"` replaces the extremes with the nearest
+surviving value instead of dropping them, and takes the mean of that.
+Both read their variance off the Winsorized sample, so the count stays
+at `n_trials` either way and only the pull of the extremes is removed.
+
+``` r
+
+bind_rows(
+  simple = rt_summary(p3_hard$rt, p3_hard$response),
+  trimmed = rt_summary(
+    p3_hard$rt, p3_hard$response, method = "trimmed", trim = 0.1
+  ),
+  winsorized = rt_summary(
+    p3_hard$rt, p3_hard$response, method = "winsorized", trim = 0.1
+  ),
+  .id = "method"
+) |>
+  select(method, mean_rt, var_rt, n_trials)
+#>       method   mean_rt     var_rt n_trials
+#> 1     simple 0.6412949 0.10461851      100
+#> 2    trimmed 0.5861795 0.05100875      100
+#> 3 winsorized 0.6043436 0.05100875      100
+```
+
+This is still statistic-level robustness, not trimming in the screening
+sense: no trial is excluded from the analysis, `n_trials` does not move,
+and nothing is written down about which trials were unusual. A reader
+cannot tell from the output which trials were trimmed, because the
+answer is “the extreme 10% of this cell, by construction” rather than
+“the ones a criterion flagged”.
+
+One thing about the variance is worth stating, because it is easy to get
+wrong. The Winsorized variance estimates the variance of the
+*Winsorized* distribution, which is too small for
+[`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md):
+the EZ equations read `var_rt` as a moment of the response time
+distribution the decision process produced.
+[`rt_summary()`](https://www.gfrischkorn.org/rtprep/reference/rt_summary.md)
+therefore rescales it. The familiar `(1 - 2 * trim)^2` divisor of Tukey
+and McLaughlin is not what it uses, because that divisor targets the
+variance of the trimmed *mean* and returns a variance that runs roughly
+6% high at `trim = 0.1` and 14% high at `trim = 0.2` when the data are
+normal; `rtprep` uses the normal-consistency constant, which lands
+within half a percent. If you compare `var_rt` against a hand-computed
+Winsorized variance and the two differ, this is why.
+
 ## Mixture moments
 
 `method = "mixture"` fits the same contaminant mixture
@@ -161,7 +210,7 @@ rt_summary(p3_hard$rt, p3_hard$response, weights = screened$.prob)
 try(rt_summary(
   p3_hard$rt, p3_hard$response, weights = screened$.prob, method = "mixture"
 ))
-#> Error : 'weights' is defined for method = "simple" only. Both "robust" and "mixture" already have their own answer to contamination.
+#> Error : 'weights' is defined for method = "simple" only. Every other method already carries its own answer to contamination, and combining two of them is an error rather than a convenience.
 ```
 
 The weighted variance uses the reliability-weight denominator \\\sum w -
@@ -271,11 +320,12 @@ A cell at perfect accuracy gets a drift of 3.2 rather than infinity, and
 
 ## Four routes on `rt_example`
 
-The routes above are alternatives to trimming, not additions to it. Four
+The routes above are alternatives to trimming, not additions to it. Five
 pipelines on `rt_example`, each applied per cell: no preprocessing, the
-±2.5 SD trim with simple moments, robust moments on all trials, and
-mixture moments on all trials with the accuracy counts adjusted. Each
-ends in
+±2.5 SD trim with simple moments, robust moments on all trials, a 10%
+trimmed mean on all trials, and mixture moments on all trials with the
+accuracy counts adjusted. Only the second removes a trial; the rest
+change the statistic. Each ends in
 [`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md),
 and the data carry the drift each cell was generated from:
 
@@ -288,10 +338,11 @@ summarise_cells <- function(data, ...) {
 
 routes <- bind_rows(
   none = summarise_cells(rt_example),
-  trimmed = rt_example |>
+  sd_trim = rt_example |>
     filter(rt_keep(rt, rule_sd(2.5), .by = list(id, condition))) |>
     summarise_cells(),
   robust = summarise_cells(rt_example, method = "robust"),
+  trimmed = summarise_cells(rt_example, method = "trimmed", trim = 0.1),
   mixture = summarise_cells(
     rt_example, method = "mixture", distribution = "lognormal"
   ),
@@ -308,7 +359,10 @@ estimates <- routes |>
     by = c("id", "condition")
   ) |>
   mutate(
-    route = factor(route, levels = c("none", "trimmed", "robust", "mixture")),
+    route = factor(
+      route,
+      levels = c("none", "sd_trim", "robust", "trimmed", "mixture")
+    ),
     error = drift - true_drift
   )
 
@@ -320,9 +374,10 @@ estimates |>
   )
 #>     route  mean_error mean_abs_error
 #> 1    none -0.35712935     0.35712935
-#> 2 trimmed -0.05790345     0.13121618
+#> 2 sd_trim -0.05790345     0.13121618
 #> 3  robust  0.01250529     0.07332629
-#> 4 mixture  0.35405639     0.37006909
+#> 4 trimmed -0.13078766     0.17284020
+#> 5 mixture  0.35405639     0.37006909
 ```
 
 ``` r
@@ -332,7 +387,7 @@ ggplot(estimates, aes(x = condition, y = drift, colour = route)) +
     aes(y = true_drift), shape = 95, size = 8, colour = "black"
   ) +
   geom_point(position = position_dodge(width = 0.5), size = 2) +
-  scale_colour_manual(values = okabe_ito[c(8, 1, 3, 2)]) +
+  scale_colour_manual(values = okabe_ito[c(8, 1, 3, 6, 2)]) +
   facet_wrap(~id, nrow = 1) +
   labs(x = NULL, y = "Estimated drift", colour = NULL) +
   theme_minimal() +
@@ -340,13 +395,13 @@ ggplot(estimates, aes(x = condition, y = drift, colour = route)) +
 ```
 
 ![Dot plot of the estimated drift of each participant and condition
-under four aggregation routes, with the true drift drawn as a black bar
+under five aggregation routes, with the true drift drawn as a black bar
 in each cell.](aggregation_files/figure-html/routes-figure-1.png)
 
 The table is each route’s mean signed and mean absolute error against
-the generating drift over the eight cells; the figure puts the four
+the generating drift over the eight cells; the figure puts the five
 estimates of every cell next to its true drift. Two mechanical
-differences separate the mixture route from the other three, and both
+differences separate the mixture route from the other four, and both
 enter
 [`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md) in
 the same direction: its variance is read off the fitted core rather than
@@ -355,9 +410,9 @@ the sample, and
 raises the proportion correct; a smaller variance and a higher accuracy
 both raise the drift.
 
-Eight cells of 100 trials cannot rank four pipelines, and this page does
-not try. What they show is that the same trials summarised four ways
-give four drift estimates per cell, and the `route` column is the whole
+Eight cells of 100 trials cannot rank five pipelines, and this page does
+not try. What they show is that the same trials summarised five ways
+give five drift estimates per cell, and the `route` column is the whole
 difference between them. [The ground-truth
 article](https://www.gfrischkorn.org/rtprep/articles/ground-truth.md)
 carries the same chain through on data matched to a task of your own,

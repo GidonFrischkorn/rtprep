@@ -1,10 +1,9 @@
 # Screen response times with any rule
 
-Applies a screening rule and returns one row per input trial, whichever
-rule was used. That uniformity is the package's reason to exist:
-absolute cutoffs, standard deviation criteria, recursive criteria, and
-model-based mixtures all come back in the same shape, so a preprocessing
-choice can be compared rather than assumed.
+Applies a screening rule and returns one row per input trial: the keep
+decision, the probability behind it, the rule's label, and the reason
+for a flag. The four columns are the same whichever rule went in, so
+changing the rule changes one word and nothing around it.
 
 ## Usage
 
@@ -43,7 +42,7 @@ rt_screen(
 
 - .by:
 
-  Optional grouping of the same length as `rt` — a vector, factor, list
+  Optional grouping of the same length as `rt`: a vector, factor, list
   of vectors, or data frame. Rules are fitted separately within each
   group. `NULL` treats all trials as one group.
 
@@ -80,7 +79,7 @@ A `data.frame` with one row per element of `rt`, in input order:
 
 - `.reason`:
 
-  character; why the **rule** flagged the trial — `"too_fast"`,
+  character; why the **rule** flagged the trial: `"too_fast"`,
   `"too_slow"`, `"contaminant"`, or `"missing"`. `NA` whenever the rule
   did not flag it, which includes trials the keep policy dropped anyway
   (at `threshold = 1`, or on a probabilistic draw against a fractional
@@ -142,6 +141,12 @@ to aggregate what survives.
 ``` r
 rt <- c(0.12, 0.31, 0.35, 0.38, 0.42, 0.47, 0.55, 2.90)
 rt_screen(rt, rule_cutoff(0.18, 2.5))
+#> <rtprep screen> 8 trials, cutoff(0.18, 2.5), 1 group
+#>   kept 6 (75.0%), dropped 2 (25.0%)
+#>   reasons: too_fast 1, too_slow 1
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row
+#> 
 #>   .keep .prob             .rule  .reason
 #> 1 FALSE     0 cutoff(0.18, 2.5) too_fast
 #> 2  TRUE     1 cutoff(0.18, 2.5)     <NA>
@@ -149,8 +154,7 @@ rt_screen(rt, rule_cutoff(0.18, 2.5))
 #> 4  TRUE     1 cutoff(0.18, 2.5)     <NA>
 #> 5  TRUE     1 cutoff(0.18, 2.5)     <NA>
 #> 6  TRUE     1 cutoff(0.18, 2.5)     <NA>
-#> 7  TRUE     1 cutoff(0.18, 2.5)     <NA>
-#> 8 FALSE     0 cutoff(0.18, 2.5) too_slow
+#> # 2 more trials; as.data.frame(x) for all of them
 
 # rules are group-aware without the package depending on dplyr
 id <- rep(c("a", "b"), each = 4)
@@ -163,6 +167,12 @@ attr(scr, "fits")
 # a rule that reads accuracy takes it by name
 correct <- c(0, 1, 1, 1, 0, 1, 1, 1)
 rt_screen(rt, rule_ewma(lambda = 0.1), response = correct)
+#> <rtprep screen> 8 trials, ewma(0.1, 1.5), 1 group
+#>   kept 1 (12.5%), dropped 7 (87.5%)
+#>   reasons: too_fast 7
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row
+#> 
 #>   .keep .prob          .rule  .reason
 #> 1 FALSE     0 ewma(0.1, 1.5) too_fast
 #> 2 FALSE     0 ewma(0.1, 1.5) too_fast
@@ -170,6 +180,5 @@ rt_screen(rt, rule_ewma(lambda = 0.1), response = correct)
 #> 4 FALSE     0 ewma(0.1, 1.5) too_fast
 #> 5 FALSE     0 ewma(0.1, 1.5) too_fast
 #> 6 FALSE     0 ewma(0.1, 1.5) too_fast
-#> 7 FALSE     0 ewma(0.1, 1.5) too_fast
-#> 8  TRUE     1 ewma(0.1, 1.5)     <NA>
+#> # 2 more trials; as.data.frame(x) for all of them
 ```

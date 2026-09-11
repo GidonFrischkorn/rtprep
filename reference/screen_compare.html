@@ -7,10 +7,10 @@
   };
 </script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Compare what several screening rules would remove — screen_compare"><meta name="description" content="Applies every rule once and reports where they disagree. This is the question
 the package exists to make askable: what would a different preprocessing
-choice have removed? — which is normally unanswerable because each rule's
+choice have removed? That is normally unanswerable, because each rule's
 implementation returns a different shape."><meta property="og:description" content="Applies every rule once and reports where they disagree. This is the question
 the package exists to make askable: what would a different preprocessing
-choice have removed? — which is normally unanswerable because each rule's
+choice have removed? That is normally unanswerable, because each rule's
 implementation returns a different shape."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
@@ -63,7 +63,7 @@ implementation returns a different shape."><meta property="og:image" content="ht
     <div class="ref-description section level2">
     <p>Applies every rule once and reports where they disagree. This is the question
 the package exists to make askable: <em>what would a different preprocessing
-choice have removed?</em> — which is normally unanswerable because each rule's
+choice have removed?</em> That is normally unanswerable, because each rule's
 implementation returns a different shape.</p>
     </div>
 
@@ -84,6 +84,9 @@ implementation returns a different shape.</p>
 <span><span class="co"># S3 method for class 'rtprep_comparison'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># S3 method for class 'rtprep_comparison_summary'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># S3 method for class 'rtprep_comparison'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -103,7 +106,8 @@ in the output; unnamed entries take the rule's own label.</p></dd>
 
 
 <dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>An <code>rtprep_comparison</code>.</p></dd>
+<dd><p>An <code>rtprep_comparison</code>, or for
+<code>print.rtprep_comparison_summary()</code> an <code>rtprep_comparison_summary</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -134,12 +138,18 @@ counts behind them.</p></dd>
 column.</p></dd>
 
 
-</dl></div>
+</dl><p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> returns an <code>rtprep_comparison_summary</code>: the <code>drops</code> and
+<code>agreement</code> tables, printed by their own method. It is a value, not a side
+effect, so <code>s &lt;- summary(cmp)</code> is quiet and <code>s$drops</code> is the table.
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> return their input invisibly. <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> draws with
+ggplot2 when it is installed and with <code><a href="https://rdrr.io/r/graphics/barplot.html" class="external-link">graphics::barplot()</a></code> when it is not;
+the return value is the same either way.</p>
+    </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code>agree</code> and <code>jaccard</code> answer different questions and diverge exactly where it
 matters. Two rules that each drop 2% of trials and never the same one agree
-on 96% of decisions — and have a Jaccard index of zero. Agreement alone would
+on 96% of decisions, and have a Jaccard index of zero. Agreement alone would
 call them interchangeable. Jaccard is <code>NA</code>, not 1, when neither rule dropped
 anything: no overlap can be computed from two empty sets.</p>
     </div>

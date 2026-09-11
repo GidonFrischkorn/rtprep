@@ -105,9 +105,9 @@ back <code>NA</code>.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><strong>Stochastic by design.</strong> How many trials were contaminants, and how many of
 those happened to be correct, are both binomial draws, so repeated calls
-differ. That is faithful to the uncertainty in a mixture estimate — a point
-estimate would understate it — and it matches <code>bmm</code>. There is no <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code>
-anywhere in <code>rtprep</code>; reproducibility is the caller's.</p>
+differ. That is faithful to the uncertainty in a mixture estimate, which a
+point estimate would understate, and it matches <code>bmm</code>. There is no
+<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> anywhere in <code>rtprep</code>; reproducibility is the caller's.</p>
 <p>Each row draws independently. For a single row the two draws are made in
 the same order as <code><a href="https://venpopov.com/bmm/reference/adjust_ezdm_accuracy.html" class="external-link">bmm::adjust_ezdm_accuracy()</a></code>, so the two functions give
 the same answer from the same random seed.</p>

@@ -5,15 +5,23 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="rtprep: Screening, Trimming, and Aggregating Response Time Data — rtprep-package"><meta name="description" content="
-A uniform interface to the response time preprocessing decisions that precede fitting an evidence accumulation model. Screening rules from incompatible families – absolute cutoffs, standard deviation and median absolute deviation criteria, recursive moving criteria, and model-based mixture flagging – all return the same per-trial object, so that the consequences of a preprocessing choice can be compared rather than assumed. Also provides aggregation into EZ-diffusion summary statistics, diagnostics reporting what each rule removed and where rules disagree, and generators for response time data with contaminants of known type, so that a chosen pipeline can be tested against ground truth. Screening criteria follow Van Selst and Jolicoeur (1994) doi:10.1080/14640749408401131
-, the contaminant mixture Ratcliff and Tuerlinckx (2002) doi:10.3758/BF03196302
-, and the EZ-diffusion equations Wagenmakers, van der Maas and Grasman (2007) doi:10.3758/BF03194023
-."><meta property="og:description" content="
-A uniform interface to the response time preprocessing decisions that precede fitting an evidence accumulation model. Screening rules from incompatible families – absolute cutoffs, standard deviation and median absolute deviation criteria, recursive moving criteria, and model-based mixture flagging – all return the same per-trial object, so that the consequences of a preprocessing choice can be compared rather than assumed. Also provides aggregation into EZ-diffusion summary statistics, diagnostics reporting what each rule removed and where rules disagree, and generators for response time data with contaminants of known type, so that a chosen pipeline can be tested against ground truth. Screening criteria follow Van Selst and Jolicoeur (1994) doi:10.1080/14640749408401131
-, the contaminant mixture Ratcliff and Tuerlinckx (2002) doi:10.3758/BF03196302
-, and the EZ-diffusion equations Wagenmakers, van der Maas and Grasman (2007) doi:10.3758/BF03194023
-."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="rtprep: Screening, Trimming, and Aggregating Response Time Data — rtprep-package"><meta name="description" content="Tools for the decisions made about response times before a model is fitted:
+which trials to keep, how to summarise the ones that survive, and how to
+check what either choice did.
+The screening rules come from families that were never built to be compared:
+absolute cutoffs, criteria based on a centre and a spread, the recursive
+criteria, a control chart on accuracy, a fitted contaminant mixture. Every
+published implementation returns something different. Here they all
+return one row per trial with the same four columns, so swapping one for
+another is a one-word change and the difference between them can be measured."><meta property="og:description" content="Tools for the decisions made about response times before a model is fitted:
+which trials to keep, how to summarise the ones that survive, and how to
+check what either choice did.
+The screening rules come from families that were never built to be compared:
+absolute cutoffs, criteria based on a centre and a spread, the recursive
+criteria, a control chart on accuracy, a fitted contaminant mixture. Every
+published implementation returns something different. Here they all
+return one row per trial with the same four columns, so swapping one for
+another is a one-word change and the difference between them can be measured."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -63,20 +71,73 @@ A uniform interface to the response time preprocessing decisions that precede fi
     </div>
 
     <div class="ref-description section level2">
-    <p></p>
-<p>A uniform interface to the response time preprocessing decisions that precede fitting an evidence accumulation model. Screening rules from incompatible families – absolute cutoffs, standard deviation and median absolute deviation criteria, recursive moving criteria, and model-based mixture flagging – all return the same per-trial object, so that the consequences of a preprocessing choice can be compared rather than assumed. Also provides aggregation into EZ-diffusion summary statistics, diagnostics reporting what each rule removed and where rules disagree, and generators for response time data with contaminants of known type, so that a chosen pipeline can be tested against ground truth. Screening criteria follow Van Selst and Jolicoeur (1994) <a href="https://doi.org/10.1080/14640749408401131" class="external-link">doi:10.1080/14640749408401131</a>
-, the contaminant mixture Ratcliff and Tuerlinckx (2002) <a href="https://doi.org/10.3758/BF03196302" class="external-link">doi:10.3758/BF03196302</a>
-, and the EZ-diffusion equations Wagenmakers, van der Maas and Grasman (2007) <a href="https://doi.org/10.3758/BF03194023" class="external-link">doi:10.3758/BF03194023</a>
-.</p>
+    <p>Tools for the decisions made about response times before a model is fitted:
+which trials to keep, how to summarise the ones that survive, and how to
+check what either choice did.</p>
+<p>The screening rules come from families that were never built to be compared:
+absolute cutoffs, criteria based on a centre and a spread, the recursive
+criteria, a control chart on accuracy, a fitted contaminant mixture. Every
+published implementation returns something different. Here they all
+return one row per trial with the same four columns, so swapping one for
+another is a one-word change and the difference between them can be measured.</p>
     </div>
 
 
     <div class="section level2">
+    <h2 id="the-four-layers">The four layers<a class="anchor" aria-label="anchor" href="#the-four-layers"></a></h2>
+
+
+<dl><dt>Screening</dt>
+<dd><p><code><a href="rt_screen.html">rt_screen()</a></code> applies a rule and returns the keep
+decision, the probability behind it, and the reason. <code><a href="rt_keep.html">rt_keep()</a></code> gives
+the decision alone for <code><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter()</a></code>; <code><a href="screen_fits.html">screen_fits()</a></code> gives the per-group
+diagnostics. The rules are in <a href="rules.html">rules</a>, and <code><a href="rules_compose.html">rule_all()</a></code> and its
+companions combine them.</p></dd>
+
+<dt>Aggregation</dt>
+<dd><p><code><a href="rt_summary.html">rt_summary()</a></code> turns surviving trials into the mean,
+variance and accuracy the EZ-diffusion equations take, by sample moments,
+robust moments, trimming, or a fitted mixture. <code><a href="ez_ddm.html">ez_ddm()</a></code> inverts them
+into parameters; <code><a href="adjust_accuracy.html">adjust_accuracy()</a></code> corrects the counts.</p></dd>
+
+<dt>Comparison</dt>
+<dd><p><code><a href="screen_compare.html">screen_compare()</a></code> applies several rules at once and
+reports how much each removed and how far they disagree.
+<code><a href="check_guessing.html">check_guessing()</a></code> asks whether the fast trials a rule removed were
+really guesses.</p></dd>
+
+<dt>Ground truth</dt>
+<dd><p><code><a href="r_contaminated.html">r_contaminated()</a></code> generates response times with
+contaminants labelled, and <code><a href="rules.html">rule_oracle()</a></code> removes exactly those, which
+is the ceiling every real rule is read against.</p></dd>
+
+
+</dl></div>
+    <div class="section level2">
+    <h2 id="two-things-that-hold-everywhere">Two things that hold everywhere<a class="anchor" aria-label="anchor" href="#two-things-that-hold-everywhere"></a></h2>
+
+
+<p><code>.prob</code> is always the probability that a trial came from the decision
+process, never the probability that it is a contaminant, and the keep
+decision is a separate step. A deterministic rule returns 0 and 1; a mixture
+returns a posterior; both can feed <code>rt_summary(weights = )</code> without a
+threshold being chosen.</p>
+<p>A rule that cannot be evaluated removes nothing: too few trials, zero spread
+or a fit that did not converge keeps every trial in the group and records why
+in <code><a href="screen_fits.html">screen_fits()</a></code>. <a href="extending.html">extending</a> states the contract that follows from.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="terms">Terms<a class="anchor" aria-label="anchor" href="#terms"></a></h2>
+
+
+<p>See <a href="rtprep-glossary.html">rtprep-glossary</a> for <em>contaminant</em>, <em>drift</em>, <em>bound</em>, <em>ndt</em>,
+<em>leading edge</em>, and the difference between screening, trimming and
+aggregation.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p>Useful links:</p><ul><li><p><a href="https://github.com/GidonFrischkorn/rtprep" class="external-link">https://github.com/GidonFrischkorn/rtprep</a></p></li>
-<li><p><a href="https://www.gfrischkorn.org/rtprep/">https://www.gfrischkorn.org/rtprep/</a></p></li>
-<li><p>Report bugs at <a href="https://github.com/GidonFrischkorn/rtprep/issues" class="external-link">https://github.com/GidonFrischkorn/rtprep/issues</a></p></li>
-</ul></div>
+    <div class="dont-index"><p><code><a href="../articles/rtprep.html">vignette("rtprep")</a></code> for the whole chain on one data set;
+<a href="extending.html">extending</a> to add a rule of your own.</p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>

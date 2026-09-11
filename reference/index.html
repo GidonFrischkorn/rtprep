@@ -68,6 +68,13 @@
 
         </dt>
         <dd>rtprep: Screening, Trimming, and Aggregating Response Time Data</dd>
+
+        <dt>
+
+          <code><a href="rtprep-glossary.html">rtprep-glossary</a></code> <code><a href="rtprep-glossary.html">glossary</a></code>
+
+        </dt>
+        <dd>Terms used in rtprep</dd>
       </dl></div><div class="section level2">
       <h2 id="screening">Screening<a class="anchor" aria-label="anchor" href="#screening"></a></h2>
 
@@ -101,10 +108,40 @@
 
         <dt>
 
-          <code><a href="rules.html">rule_cutoff()</a></code> <code><a href="rules.html">rule_sd()</a></code> <code><a href="rules.html">rule_mad()</a></code> <code><a href="rules.html">rule_recursive()</a></code> <code><a href="rules.html">rule_ewma()</a></code> <code><a href="rules.html">rule_mixture()</a></code> <code><a href="rules.html">rule_none()</a></code> <code><a href="rules.html">print(<i>&lt;rtprep_rule&gt;</i>)</a></code>
+          <code><a href="rules.html">rule_cutoff()</a></code> <code><a href="rules.html">rule_sd()</a></code> <code><a href="rules.html">rule_mad()</a></code> <code><a href="rules.html">rule_iqr()</a></code> <code><a href="rules.html">rule_recursive()</a></code> <code><a href="rules.html">rule_ewma()</a></code> <code><a href="rules.html">rule_mixture()</a></code> <code><a href="rules.html">rule_none()</a></code> <code><a href="rules.html">rule_oracle()</a></code> <code><a href="rules.html">print(<i>&lt;rtprep_rule&gt;</i>)</a></code>
 
         </dt>
         <dd>Screening rules</dd>
+
+        <dt>
+
+          <code><a href="rtprep_screen.html">format(<i>&lt;rtprep_screen&gt;</i>)</a></code> <code><a href="rtprep_screen.html">print(<i>&lt;rtprep_screen&gt;</i>)</a></code> <code><a href="rtprep_screen.html">as.data.frame(<i>&lt;rtprep_screen&gt;</i>)</a></code> <code><a href="rtprep_screen.html">`[`(<i>&lt;rtprep_screen&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Methods for a screening result</dd>
+      </dl></div><div class="section level2">
+      <h2 id="combining-rules">Combining rules<a class="anchor" aria-label="anchor" href="#combining-rules"></a></h2>
+
+      <div class="section-desc"><p>No single conventional rule reaches both the slow tail and the leading edge; these put two together.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="rules_compose.html">rule_all()</a></code> <code><a href="rules_compose.html">rule_any()</a></code> <code><a href="rules_compose.html">rule_then()</a></code>
+
+        </dt>
+        <dd>Combine screening rules</dd>
+
+        <dt>
+
+          <code><a href="rule_hierarchical.html">rule_hierarchical()</a></code>
+
+        </dt>
+        <dd>Hierarchical screening</dd>
       </dl></div><div class="section level2">
       <h2 id="aggregation-and-estimation">Aggregation and estimation<a class="anchor" aria-label="anchor" href="#aggregation-and-estimation"></a></h2>
 
@@ -147,7 +184,7 @@
 
       <dl><dt>
 
-          <code><a href="screen_compare.html">screen_compare()</a></code> <code><a href="screen_compare.html">print(<i>&lt;rtprep_comparison&gt;</i>)</a></code> <code><a href="screen_compare.html">summary(<i>&lt;rtprep_comparison&gt;</i>)</a></code> <code><a href="screen_compare.html">plot(<i>&lt;rtprep_comparison&gt;</i>)</a></code>
+          <code><a href="screen_compare.html">screen_compare()</a></code> <code><a href="screen_compare.html">print(<i>&lt;rtprep_comparison&gt;</i>)</a></code> <code><a href="screen_compare.html">summary(<i>&lt;rtprep_comparison&gt;</i>)</a></code> <code><a href="screen_compare.html">print(<i>&lt;rtprep_comparison_summary&gt;</i>)</a></code> <code><a href="screen_compare.html">plot(<i>&lt;rtprep_comparison&gt;</i>)</a></code>
 
         </dt>
         <dd>Compare what several screening rules would remove</dd>
@@ -161,7 +198,7 @@
       </dl></div><div class="section level2">
       <h2 id="ground-truth">Ground truth<a class="anchor" aria-label="anchor" href="#ground-truth"></a></h2>
 
-      <div class="section-desc"><p>Generate data with contaminants of known type, so a pipeline can be tested instead of trusted.</p></div>
+      <div class="section-desc"><p>Generate data whose contaminants are labelled, and remove exactly those, so a screen can be scored and read against perfect exclusion.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -174,6 +211,29 @@
 
         </dt>
         <dd>Generate response time data with contaminants of known type</dd>
+
+        <dt>
+
+          <code><a href="rules.html">rule_cutoff()</a></code> <code><a href="rules.html">rule_sd()</a></code> <code><a href="rules.html">rule_mad()</a></code> <code><a href="rules.html">rule_iqr()</a></code> <code><a href="rules.html">rule_recursive()</a></code> <code><a href="rules.html">rule_ewma()</a></code> <code><a href="rules.html">rule_mixture()</a></code> <code><a href="rules.html">rule_none()</a></code> <code><a href="rules.html">rule_oracle()</a></code> <code><a href="rules.html">print(<i>&lt;rtprep_rule&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Screening rules</dd>
+      </dl></div><div class="section level2">
+      <h2 id="extending-rtprep">Extending rtprep<a class="anchor" aria-label="anchor" href="#extending-rtprep"></a></h2>
+
+      <div class="section-desc"><p>Adding a screening rule from your own package.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="extending.html">new_rule()</a></code> <code><a href="extending.html">apply_rule()</a></code> <code><a href="extending.html">apply_rule_grouped()</a></code>
+
+        </dt>
+        <dd>Add a screening rule</dd>
       </dl></div><div class="section level2">
       <h2 id="data">Data<a class="anchor" aria-label="anchor" href="#data"></a></h2>
 

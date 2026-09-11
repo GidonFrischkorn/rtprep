@@ -5,39 +5,45 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Screening rules — rules"><meta name="description" content='Rule constructors are parameter objects: they validate their arguments and
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Screening rules — rules"><meta name="description" content="Rule constructors are parameter objects: they validate their arguments and
 describe themselves, but perform no computation on data. Pass one to
 rt_screen(), which applies it and returns the same four per-trial columns
 whichever rule was used.
 Rules from incompatible families therefore become directly comparable:
-rule_cutoff() — fixed absolute bounds.
-rule_sd() — a location/spread criterion, covering both the SD criterion
-and the median absolute deviation criterion.
-rule_mad() — a thin alias of rule_sd(center = "median", scale = "mad").
-rule_recursive() — the sample-size-dependent criteria of van Selst and
-Jolicoeur (1994).
-rule_ewma() — the accuracy control chart of Vandekerckhove and
+rule_cutoff() applies fixed absolute bounds.
+rule_sd() applies a location/spread criterion, covering both the SD
+criterion and the median absolute deviation criterion.
+rule_mad() is a thin alias of
+rule_sd(center = &quot;median&quot;, scale = &quot;mad&quot;).
+rule_iqr() applies Tukey's quartile fences, asymmetric by construction.
+rule_recursive() applies the sample-size-dependent criteria of van Selst
+and Jolicoeur (1994).
+rule_ewma() applies the accuracy control chart of Vandekerckhove and
 Tuerlinckx (2007).
-rule_mixture() — a uniform-contaminant mixture fitted by EM.
-rule_none() — a pass-through baseline.
+rule_mixture() fits a uniform-contaminant mixture by EM.
+rule_none() is a pass-through baseline.
+rule_oracle() is perfect exclusion, for generated data with known truth.
 
-'><meta property="og:description" content='Rule constructors are parameter objects: they validate their arguments and
+"><meta property="og:description" content="Rule constructors are parameter objects: they validate their arguments and
 describe themselves, but perform no computation on data. Pass one to
 rt_screen(), which applies it and returns the same four per-trial columns
 whichever rule was used.
 Rules from incompatible families therefore become directly comparable:
-rule_cutoff() — fixed absolute bounds.
-rule_sd() — a location/spread criterion, covering both the SD criterion
-and the median absolute deviation criterion.
-rule_mad() — a thin alias of rule_sd(center = "median", scale = "mad").
-rule_recursive() — the sample-size-dependent criteria of van Selst and
-Jolicoeur (1994).
-rule_ewma() — the accuracy control chart of Vandekerckhove and
+rule_cutoff() applies fixed absolute bounds.
+rule_sd() applies a location/spread criterion, covering both the SD
+criterion and the median absolute deviation criterion.
+rule_mad() is a thin alias of
+rule_sd(center = &quot;median&quot;, scale = &quot;mad&quot;).
+rule_iqr() applies Tukey's quartile fences, asymmetric by construction.
+rule_recursive() applies the sample-size-dependent criteria of van Selst
+and Jolicoeur (1994).
+rule_ewma() applies the accuracy control chart of Vandekerckhove and
 Tuerlinckx (2007).
-rule_mixture() — a uniform-contaminant mixture fitted by EM.
-rule_none() — a pass-through baseline.
+rule_mixture() fits a uniform-contaminant mixture by EM.
+rule_none() is a pass-through baseline.
+rule_oracle() is perfect exclusion, for generated data with known truth.
 
-'><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
+"><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -91,16 +97,19 @@ rule_none() — a pass-through baseline.
 describe themselves, but perform no computation on data. Pass one to
 <code><a href="rt_screen.html">rt_screen()</a></code>, which applies it and returns the same four per-trial columns
 whichever rule was used.</p>
-<p>Rules from incompatible families therefore become directly comparable:</p><ul><li><p><code>rule_cutoff()</code> — fixed absolute bounds.</p></li>
-<li><p><code>rule_sd()</code> — a location/spread criterion, covering both the SD criterion
-and the median absolute deviation criterion.</p></li>
-<li><p><code>rule_mad()</code> — a thin alias of <code>rule_sd(center = "median", scale = "mad")</code>.</p></li>
-<li><p><code>rule_recursive()</code> — the sample-size-dependent criteria of van Selst and
-Jolicoeur (1994).</p></li>
-<li><p><code>rule_ewma()</code> — the accuracy control chart of Vandekerckhove and
+<p>Rules from incompatible families therefore become directly comparable:</p><ul><li><p><code>rule_cutoff()</code> applies fixed absolute bounds.</p></li>
+<li><p><code>rule_sd()</code> applies a location/spread criterion, covering both the SD
+criterion and the median absolute deviation criterion.</p></li>
+<li><p><code>rule_mad()</code> is a thin alias of
+<code>rule_sd(center = "median", scale = "mad")</code>.</p></li>
+<li><p><code>rule_iqr()</code> applies Tukey's quartile fences, asymmetric by construction.</p></li>
+<li><p><code>rule_recursive()</code> applies the sample-size-dependent criteria of van Selst
+and Jolicoeur (1994).</p></li>
+<li><p><code>rule_ewma()</code> applies the accuracy control chart of Vandekerckhove and
 Tuerlinckx (2007).</p></li>
-<li><p><code>rule_mixture()</code> — a uniform-contaminant mixture fitted by EM.</p></li>
-<li><p><code>rule_none()</code> — a pass-through baseline.</p></li>
+<li><p><code>rule_mixture()</code> fits a uniform-contaminant mixture by EM.</p></li>
+<li><p><code>rule_none()</code> is a pass-through baseline.</p></li>
+<li><p><code>rule_oracle()</code> is perfect exclusion, for generated data with known truth.</p></li>
 </ul></div>
 
     <div class="section level2">
@@ -110,6 +119,8 @@ Tuerlinckx (2007).</p></li>
 <span><span class="fu">rule_sd</span><span class="op">(</span>n_sd <span class="op">=</span> <span class="fl">2.5</span>, center <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mean"</span>, <span class="st">"median"</span><span class="op">)</span>, scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sd"</span>, <span class="st">"mad"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">rule_mad</span><span class="op">(</span>n_mad <span class="op">=</span> <span class="fl">2.5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">rule_iqr</span><span class="op">(</span>k <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">rule_recursive</span><span class="op">(</span>type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"moving"</span>, <span class="st">"modified"</span>, <span class="st">"hybrid"</span><span class="op">)</span>, include_max <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -127,6 +138,8 @@ Tuerlinckx (2007).</p></li>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">rule_none</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">rule_oracle</span><span class="op">(</span><span class="va">contaminant</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'rtprep_rule'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
@@ -153,6 +166,11 @@ upper tail untouched.</p></dd>
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
 <dd><p>Spread statistic, <code>"sd"</code> or <code>"mad"</code>. <code>"mad"</code> uses <code><a href="https://rdrr.io/r/stats/mad.html" class="external-link">stats::mad()</a></code>
 and so carries the usual consistency constant of 1.4826.</p></dd>
+
+
+<dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
+<dd><p>Multiplier applied to the interquartile range when placing Tukey's
+fences. 1.5 marks an outlier, 3 a far-out point.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
@@ -214,6 +232,11 @@ comparing the two packages.</p></dd>
 <dd><p>Convergence tolerance on the log-likelihood.</p></dd>
 
 
+<dt id="arg-contaminant">contaminant<a class="anchor" aria-label="anchor" href="#arg-contaminant"></a></dt>
+<dd><p>Logical vector, one value per trial, marking which trials
+are contaminants. <code>NA</code> means unknown, and an unknown trial is kept.</p></dd>
+
+
 <dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A rule object.</p></dd>
 
@@ -236,9 +259,9 @@ standard treatment; Ulrich and Miller (1994) is the counterweight, showing
 that truncation biases the surviving distribution even when it removes real
 contaminants.</p>
 <p>Bounds are inclusive, so <code>rule_cutoff(min = 0.18)</code> keeps a response time of
-exactly 180 ms — 180 ms is not <em>below</em> 180 ms. Note that <code>trimr</code> uses strict
-comparisons, so the two implementations can disagree on a trial sitting
-exactly on a bound.</p>
+exactly 180 ms, since 180 ms is not <em>below</em> 180 ms. Note that <code>trimr</code> uses
+strict comparisons, so the two implementations can disagree on a trial
+sitting exactly on a bound.</p>
     </div>
     <div class="section level2">
     <h2 id="location-and-spread-criteria">Location and spread criteria<a class="anchor" aria-label="anchor" href="#location-and-spread-criteria"></a></h2>
@@ -247,15 +270,37 @@ recomputed within each group of <code><a href="rt_screen.html">rt_screen()</a></
 <code>center = "median", scale = "mad"</code> is the median absolute deviation
 criterion recommended by Leys et al. (2013), also available as
 <code>rule_mad()</code>.</p>
-<p>One constructor covers both because they are one family — the same algorithm
+<p>One constructor covers both because they are one family: the same algorithm
 with a different location/spread pair. Miller (1991) is the standard warning
 about the standard deviation criterion: the proportion of a skewed
 distribution that survives a fixed multiplier depends on sample size, so the
 criterion silently changes what it removes as trial counts vary. That
 dependence is what <code>rule_recursive()</code> was designed to remove.</p>
-<p>When the spread statistic cannot be used — fewer than two observed trials in
-a group, or zero spread — nothing is flagged. A rule that cannot be evaluated
-must not remove data.</p>
+<p>When the spread statistic cannot be used, because a group holds fewer than
+two observed trials or because the spread is zero, nothing is flagged; see
+<a href="extending.html">extending</a> for the contract this follows from.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="quartile-fences">Quartile fences<a class="anchor" aria-label="anchor" href="#quartile-fences"></a></h2>
+    <p><code>rule_iqr()</code> flags trials outside Tukey's fences, <code>Q1 - k * IQR</code> and
+<code>Q3 + k * IQR</code>, with quartiles at R's default type 7. <code>k = 1.5</code> is Tukey's
+(1977) value and <code>k = 3</code> his marker for a far-out point. It is the criterion
+a boxplot draws, and so the one behind "I removed the points outside the
+whiskers".</p>
+<p>Not quite, though: <code><a href="https://rdrr.io/r/grDevices/boxplot.stats.html" class="external-link">grDevices::boxplot.stats()</a></code> places the fences at
+<code><a href="https://rdrr.io/r/stats/fivenum.html" class="external-link">fivenum()</a></code> hinges rather than at type-7 quartiles, and the two differ at
+some sample sizes – for <code>n = 10</code> and <code>n = 50</code> in a quick check, not for
+<code>n = 9</code>, <code>11</code> or <code>51</code>. <code>rule_iqr()</code> uses the quartiles, which is what
+<code><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">stats::quantile()</a></code> and <code><a href="https://ggplot2.tidyverse.org/reference/geom_boxplot.html" class="external-link">ggplot2::geom_boxplot()</a></code> use.</p>
+<p>It belongs to neither family above. <code>rule_cutoff()</code> fixes its bounds in
+advance; <code>rule_sd()</code> places them symmetrically around a centre. Tukey's
+fences are estimated from the data like the second and asymmetric like
+neither, so on a right-skewed response time distribution the upper fence sits
+further from the median than the lower one. That asymmetry is the reason to
+have it: a symmetric criterion on skewed data spends its budget in the tail
+the distribution is thin in.</p>
+<p>Fewer than four observed trials in a group, or an interquartile range of
+zero, flags nothing.</p>
     </div>
     <div class="section level2">
     <h2 id="recursive-and-moving-criteria">Recursive and moving criteria<a class="anchor" aria-label="anchor" href="#recursive-and-moving-criteria"></a></h2>
@@ -273,7 +318,7 @@ standard deviation are computed, the most extreme trial at each end is
 removed if it falls outside the resulting bounds, and the procedure repeats
 until nothing is removed or fewer than five trials remain. The temporary
 exclusion is what makes the rule bite, so it applies whatever <code>include_max</code>
-says — <code>include_max</code> governs <code>type = "moving"</code> only.</p></li>
+says; <code>include_max</code> governs <code>type = "moving"</code> only.</p></li>
 <li><p><code>type = "hybrid"</code> averages the two. Per trial, <code>.prob</code> is the mean of the
 two rules' decisions and so takes the value 0, 0.5, or 1; under the default
 keep policy a trial survives only if both rules keep it.</p></li>
@@ -317,9 +362,9 @@ upper/lower boundary.</p>
 contaminant distribution over <code>bound</code> and a parametric response time
 distribution, by expectation maximisation (Ratcliff &amp; Tuerlinckx, 2002).
 <code>.prob</code> is then the posterior probability that a trial came from the response
-time component — the one rule in the package that returns something other
-than 0 and 1, and the reason <code><a href="rt_screen.html">rt_screen()</a></code> separates the probability from the
-keep decision at all.</p>
+time component. This is the one rule in the package that returns something
+other than 0 and 1, and the reason <code><a href="rt_screen.html">rt_screen()</a></code> separates the probability
+from the keep decision at all.</p>
 <p>The bounds of the uniform component are buffered outward from the observed
 range by half its width. Without that buffer the uniform's edges sit exactly
 on data points and the mixture is barely identifiable.</p>
@@ -328,7 +373,7 @@ block of fast guesses the ex-Gaussian can absorb the block by widening its
 Gaussian part and driving <code>tau</code> to zero, reporting no contamination at all,
 where the lognormal and inverse Gaussian cores find it. The same thing
 happens in <code>bmm</code>'s implementation, so it is a property of the model rather
-than of either package — but it is a reason to check
+than of either package. It is still a reason to check
 <code>attr(x, "fits")$contaminant_prop</code> against what you expected rather than
 trusting the default.</p>
 <p>When the EM does not converge, or a group has fewer than five trials inside
@@ -343,7 +388,7 @@ would propagate into <code>.keep</code>.</p>
     <p><code>use_accuracy = TRUE</code> is <strong>experimental</strong>. It puts accuracy inside the
 mixture likelihood rather than using it only afterwards, on the reasoning
 that a fast trial that is <em>correct</em> is less likely to be a guess than a fast
-trial that is an error — something an RT-only mixture cannot see. With <code>y</code>
+trial that is an error, which an RT-only mixture cannot see. With <code>y</code>
 the accuracy indicator, \(\gamma\) the chance rate known from the design,
 and \(p_c\) the estimated accuracy of the decision process:</p>
 <p>$$f(rt, y) = (1 - \pi) f_{RT}(rt \mid \theta)\, p_c^{y}(1-p_c)^{1-y}
@@ -356,8 +401,8 @@ nothing; the fitted value comes back as <code>p_correct</code> in <code>attr(x, 
 
 <p>The staging is deliberate, and the reasons are concrete. Three things the
 package's own tests establish:</p><ul><li><p><strong>It can order overlapping guesses better than response time alone.</strong> Where
-contaminants fall inside the valid distribution's range — the case RT-only
-detection fails at — the joint posterior ranks them more accurately.</p></li>
+contaminants fall inside the valid distribution's range, which is the case
+RT-only detection fails at, the joint posterior ranks them more accurately.</p></li>
 <li><p><strong>But the fit tends to collapse.</strong> A contaminant proportion of zero is a
 fixed point of this EM, and the accuracy factor widens its basin because it
 favours the valid component on every correct trial. On exactly the
@@ -375,8 +420,8 @@ model had.</p></li>
 which in most response time paradigms is always. Treat a contaminant
 proportion below the RT-only estimate as expected rather than as evidence of
 a cleaner data set.</p>
-<p>Two things the method cannot enforce for you:</p><ul><li><p>It assumes contaminants respond at <code>chance</code>. Get <code>chance</code> wrong — screening
-a four-alternative task at 0.5 — and detection degrades sharply.</p></li>
+<p>Two things the method cannot enforce for you:</p><ul><li><p>It assumes contaminants respond at <code>chance</code>. Get <code>chance</code> wrong, by
+screening a four-alternative task at 0.5, and detection degrades sharply.</p></li>
 <li><p><code>response</code> must be coded <strong>correct/error</strong>, not upper/lower boundary. Both
 are 0/1, so <code>rtprep</code> cannot tell them apart.</p></li>
 </ul><p>Nothing forces the valid component to be the accurate one either. When a fit
@@ -394,6 +439,20 @@ entry in the roster rather than a missing row, and so that pipelines can be
 compared against it without a special case.</p>
     </div>
     <div class="section level2">
+    <h2 id="perfect-exclusion">Perfect exclusion<a class="anchor" aria-label="anchor" href="#perfect-exclusion"></a></h2>
+    <p><code>rule_oracle()</code> removes exactly the trials you tell it are contaminants and
+nothing else. It is not a method: on real data nobody has the vector it
+needs. It is the ceiling the others are read against.</p>
+<p>The reason to have it is that a drop rate and a hit rate do not say what a
+pipeline costs. Running the oracle through the same aggregation and the same
+estimation as a real rule gives the error that remains when screening is
+perfect, and the difference between the two is what the screening decision
+actually bought. <code><a href="r_contaminated.html">r_contaminated()</a></code> returns the <code>contaminant</code> column this
+takes, so the comparison is two calls.</p>
+<p><code>contaminant</code> holds one value per trial and is subset alongside <code>rt</code>, so the
+rule works under <code>.by</code> grouping like any other.</p>
+    </div>
+    <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Ratcliff, R. (1993). Methods for dealing with reaction time outliers.
 <em>Psychological Bulletin</em>, <em>114</em>(3), 510–532.
@@ -408,6 +467,7 @@ deviation around the median. <em>Journal of Experimental Social Psychology</em>,
 <p>Miller, J. (1991). Reaction time analysis with outlier exclusion: Bias varies
 with sample size. <em>The Quarterly Journal of Experimental Psychology Section
 A</em>, <em>43</em>(4), 907–912. <a href="https://doi.org/10.1080/14640749108400962" class="external-link">doi:10.1080/14640749108400962</a></p>
+<p>Tukey, J. W. (1977). <em>Exploratory data analysis</em>. Addison-Wesley.</p>
 <p>Van Selst, M., &amp; Jolicoeur, P. (1994). A solution to the effect of sample
 size on outlier elimination. <em>The Quarterly Journal of Experimental
 Psychology Section A</em>, <em>47</em>(3), 631–650. <a href="https://doi.org/10.1080/14640749408401131" class="external-link">doi:10.1080/14640749408401131</a></p>
@@ -431,9 +491,10 @@ variability. <em>Psychonomic Bulletin &amp; Review</em>, <em>9</em>(3), 438–48
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="rt_screen.html">rt_screen()</a></code> to apply a rule; <code><a href="screen_compare.html">screen_compare()</a></code> to apply several.
-Two further, experimental rules are unexported and documented in
-<code><a href="rules_experimental.html">?rules_experimental</a></code>.</p></div>
+    <div class="dont-index"><p><code><a href="rt_screen.html">rt_screen()</a></code> to apply a rule; <code><a href="screen_compare.html">screen_compare()</a></code> to apply several;
+<code><a href="rules_compose.html">rule_all()</a></code> to combine them; <code><a href="rule_hierarchical.html">rule_hierarchical()</a></code> for a criterion pooled
+across groups. Two further, experimental rules are unexported and
+documented in <code><a href="rules_experimental.html">?rules_experimental</a></code>.</p></div>
     </div>
 
     <div class="section level2">
@@ -448,6 +509,13 @@ Two further, experimental rules are unexported and documented in
 <span class="r-in"><span><span class="fu">rule_mad</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; sd(3, median, mad) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Exclude trials more than 3 x mad from the median, computed per group.</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu">rule_iqr</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; iqr(1.5) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Exclude trials outside Tukey's fences, Q1 - 1.5 x IQR and Q3 + 1.5 x IQR, computed per group.</span>
+<span class="r-in"><span><span class="fu">rule_iqr</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; iqr(3) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Exclude trials outside Tukey's fences, Q1 - 3 x IQR and Q3 + 3 x IQR, computed per group.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">rule_recursive</span><span class="op">(</span><span class="st">"modified"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; recursive(modified) </span>
@@ -464,6 +532,25 @@ Two further, experimental rules are unexported and documented in
 <span class="r-in"><span><span class="fu">rule_none</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; none </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Keep every trial.</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="va">rt_example</span><span class="op">$</span><span class="va">contaminant</span></span></span>
+<span class="r-in"><span><span class="va">oracle</span> <span class="op">&lt;-</span> <span class="fu">rule_oracle</span><span class="op">(</span><span class="va">truth</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">oracle</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; oracle </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Exclude exactly the 60 trials marked as contaminants. Requires ground truth, so simulated data only.</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># what a real rule leaves behind, against what perfect exclusion leaves</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="screen_compare.html">screen_compare</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">rt_example</span><span class="op">$</span><span class="va">rt</span>,</span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mad <span class="op">=</span> <span class="fu">rule_mad</span><span class="op">(</span><span class="fl">2.5</span><span class="op">)</span>, oracle <span class="op">=</span> <span class="va">oracle</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  .by <span class="op">=</span> <span class="va">rt_example</span><span class="op">$</span><span class="va">id</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep comparison&gt; 800 trials, 2 rules</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   mad                          dropped  11.0%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   oracle                       dropped   7.5%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   least agreement: mad vs oracle, 86.5% of decisions (Jaccard 0.16)</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

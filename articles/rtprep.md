@@ -369,15 +369,103 @@ removes fast trials, and enough of them, before it can say anything.
 Where `n_tested` is zero the test is silent, which is itself informative
 about the rule.
 
+## Reporting what you did
+
+A preprocessing step is part of the analysis, and a reader cannot repeat
+it from “outliers were removed”. Four things pin it down: which rule and
+at which setting, the grouping the criterion was computed within, how
+much it removed, and whether error trials went through the screen with
+the correct ones. All four are in the objects the code already produced,
+so none of them has to be typed from memory.
+
+The rule and its setting print themselves, and the per-cell counts come
+from
+[`screen_fits()`](https://www.gfrischkorn.org/rtprep/reference/screen_fits.md):
+
+``` r
+
+rule <- rule_sd(2.5)
+rule
+#> <rtprep rule> sd(2.5, mean, sd) 
+#>  Exclude trials more than 2.5 x sd from the mean, computed per group.
+
+fits <- rt_example |>
+  reframe(screen_fits(rt, rule), .by = c(id, condition))
+
+fits |>
+  summarise(
+    cells = n(),
+    trials = sum(n_trials),
+    dropped = sum(n_dropped),
+    prop = sum(n_dropped) / sum(n_trials),
+    lowest_cell = min(prop_dropped),
+    highest_cell = max(prop_dropped)
+  )
+#>   cells trials dropped   prop lowest_cell highest_cell
+#> 1     8    800      26 0.0325        0.02         0.05
+```
+
+Report the range across cells as well as the total. A criterion that
+removes 3.2% overall can be removing much more from one participant than
+another, and that spread is the thing this package exists to make
+visible.
+
+The reasons say what the rule actually caught, which is worth checking
+before describing it:
+
+``` r
+
+rt_example |>
+  mutate(rt_screen(rt, rule), .by = c(id, condition)) |>
+  count(.rule, .reason)
+#>               .rule  .reason   n
+#> 1 sd(2.5, mean, sd) too_slow  26
+#> 2 sd(2.5, mean, sd)     <NA> 774
+```
+
+Which gives a Methods sentence that can be written from the output
+rather than around it:
+
+> Response times were screened with a ±2.5 SD criterion around the mean,
+> computed separately within each participant and condition (8 cells).
+> This removed 26 of 800 trials (3.2%), between 2% and 5% per cell; all
+> exclusions were slow trials. Error trials were screened alongside
+> correct ones, and accuracy was computed after screening.
+
+That last clause is the one most often left out and the one that most
+often changes the answer. The criterion here never looked at `response`,
+so error trials passed through it on their response times alone; a rule
+that does read accuracy, such as
+[`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+or `rule_mixture(use_accuracy = TRUE)`, needs saying explicitly, because
+it makes the screen and the dependent variable share information.
+
 ## Where to go next
 
 [`?rules`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
 documents every rule with the reference it implements and the columns it
-adds to the fits table.
+adds to the fits table, and
+[`?rules_compose`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+covers
+[`rule_all()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md),
+[`rule_any()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+and
+[`rule_then()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md),
+which combine them. No single conventional rule reaches both ends of the
+distribution, so combining a spread criterion with an accuracy control
+chart is often better than tuning either.
 [`?rt_summary`](https://www.gfrischkorn.org/rtprep/reference/rt_summary.md)
-covers the robust and mixture aggregation routes,
+covers the robust, trimmed and mixture aggregation routes,
 [`?adjust_accuracy`](https://www.gfrischkorn.org/rtprep/reference/adjust_accuracy.md)
 the accuracy correction that goes with the mixture route, and
 [`?r_contaminated`](https://www.gfrischkorn.org/rtprep/reference/r_contaminated.md)
 the three contaminant processes and how to match the generator to a task
 of your own.
+[`?rule_oracle`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+removes exactly the labelled contaminants, which is the ceiling any real
+rule is read against.
+
+`?rtprep-glossary` defines the terms the rest of the documentation
+assumes, and
+[`?extending`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+gives the contract a rule from another package has to meet.

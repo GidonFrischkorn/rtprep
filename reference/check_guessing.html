@@ -91,8 +91,9 @@ rule excluded really were guesses, their accuracy should be at chance.</p>
 
 <dl><dt id="arg-keep">keep<a class="anchor" aria-label="anchor" href="#arg-keep"></a></dt>
 <dd><p>Logical vector of keep decisions, typically the <code>.keep</code> column of
-<code><a href="rt_screen.html">rt_screen()</a></code>. Note this is the <em>keep</em> flag, not a contaminant flag —
-<code>rtprep</code>'s convention throughout — so a screen's output drops straight in.</p></dd>
+<code><a href="rt_screen.html">rt_screen()</a></code>. Note this is the <em>keep</em> flag, not a contaminant flag, which
+is <code>rtprep</code>'s convention throughout, so a screen's output drops straight
+in.</p></dd>
 
 
 <dt id="arg-rt">rt<a class="anchor" aria-label="anchor" href="#arg-rt"></a></dt>
@@ -129,7 +130,7 @@ default <code>1, 1</code> is uniform.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A one-row <code>data.frame</code> — a row rather than <code>bmm</code>'s list, because in
+    <p>A one-row <code>data.frame</code>, rather than <code>bmm</code>'s list, because in
 practice this goes into a results table:</p>
 <dl><dt><code>prop_upper</code></dt>
 <dd><p>observed proportion correct among the tested trials.</p></dd>
@@ -157,13 +158,13 @@ intermediates, so a results table is self-describing.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The test looks only at trials that were <strong>both excluded and fast</strong>. Slow
-exclusions are a different claim — a slow contaminant is an attention lapse,
+exclusions are a different claim: a slow contaminant is an attention lapse,
 not a guess, and there is no reason to expect chance accuracy from one.</p>
 <p>This is the diagnostic counterpart of <code>rule_mixture(use_accuracy = TRUE)</code>:
-one checks accuracy after flagging, the other uses it during. Given what the
-package's own tests found about the latter — that it collapses on overlapping
-contamination and actively hurts when contaminants keep their accuracy — this
-is currently the safer of the two instruments.</p>
+one checks accuracy after flagging, the other uses it during. The package's
+own tests found that the latter collapses on overlapping contamination and
+actively hurts when contaminants keep their accuracy, which makes this
+currently the safer of the two instruments.</p>
 <p>When no trial is both excluded and fast, the row comes back with
 <code>n_tested = 0</code> and <code>NA</code> statistics rather than an error. In a simulation that
 cell is common, and informative: it means the rule removed nothing fast.</p>

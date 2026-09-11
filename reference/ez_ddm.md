@@ -5,8 +5,8 @@ Grasman (2007): mean response time, response time variance, and accuracy
 in; drift rate, boundary separation, and non-decision time out.
 
 Exported so that the whole pipeline-to-parameters check runs with only
-`rtprep` installed — a reader can screen, aggregate, and estimate
-without reaching for a model-fitting package.
+`rtprep` installed: a reader can screen, aggregate, and estimate without
+reaching for a model-fitting package.
 
 ## Usage
 
@@ -37,7 +37,7 @@ ez_ddm(mean_rt, var_rt, accuracy, n_trials, s = 1)
 - s:
 
   Scaling constant. `1` here; Wagenmakers et al. use `0.1`. This is a
-  units convention, not a modelling one — `drift` and `bound` scale
+  units convention, not a modelling one: `drift` and `bound` scale
   linearly with `s` and `ndt` does not, so a drift of 0.1 at `s = 0.1`
   and a drift of 1.0 at `s = 1` describe the same process.
 
@@ -55,9 +55,9 @@ of 0, 0.5, and 1. Wagenmakers et al.'s edge correction moves the
 offending value by `1 / (2 * n_trials)`: 1 becomes `1 - 1/(2n)`, 0
 becomes `1/(2n)`, and 0.5 becomes `0.5 + 1/(2n)`. It is applied
 silently, because it is the published behaviour and a warning per cell
-would bury a simulation run — but which cells were corrected comes back
-in the `edge_corrected` column, so a script can count them. It is a
-column rather than an attribute so that it survives `[`,
+would bury a simulation run. Which cells were corrected comes back in
+the `edge_corrected` column, so a script can count them. It is a column
+rather than an attribute so that it survives `[`,
 [`rbind()`](https://rdrr.io/r/base/cbind.html), and the dplyr verbs.
 
 EZ is fragile under contamination: a handful of fast guesses moves the

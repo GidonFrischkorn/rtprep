@@ -5,6 +5,9 @@
 - [`rtprep`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
   [`rtprep-package`](https://www.gfrischkorn.org/rtprep/reference/rtprep-package.md)
   : rtprep: Screening, Trimming, and Aggregating Response Time Data
+- [`rtprep-glossary`](https://www.gfrischkorn.org/rtprep/reference/rtprep-glossary.md)
+  [`glossary`](https://www.gfrischkorn.org/rtprep/reference/rtprep-glossary.md)
+  : Terms used in rtprep
 
 ## Screening
 
@@ -19,12 +22,31 @@ One engine, one return shape, whichever rule is applied.
 - [`rule_cutoff()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_mad()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_iqr()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_recursive()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_mixture()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`rule_none()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_oracle()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   [`print(`*`<rtprep_rule>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
   : Screening rules
+- [`format(`*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  [`print(`*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  [`as.data.frame(`*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  [`` `[`( ``*`<rtprep_screen>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rtprep_screen.md)
+  : Methods for a screening result
+
+## Combining rules
+
+No single conventional rule reaches both the slow tail and the leading
+edge; these put two together.
+
+- [`rule_all()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+  [`rule_any()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+  [`rule_then()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+  : Combine screening rules
+- [`rule_hierarchical()`](https://www.gfrischkorn.org/rtprep/reference/rule_hierarchical.md)
+  : Hierarchical screening
 
 ## Aggregation and estimation
 
@@ -45,6 +67,7 @@ trials were what you thought.
 - [`screen_compare()`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   [`print(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   [`summary(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+  [`print(`*`<rtprep_comparison_summary>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   [`plot(`*`<rtprep_comparison>`*`)`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
   : Compare what several screening rules would remove
 - [`check_guessing()`](https://www.gfrischkorn.org/rtprep/reference/check_guessing.md)
@@ -52,11 +75,31 @@ trials were what you thought.
 
 ## Ground truth
 
-Generate data with contaminants of known type, so a pipeline can be
-tested instead of trusted.
+Generate data whose contaminants are labelled, and remove exactly those,
+so a screen can be scored and read against perfect exclusion.
 
 - [`r_contaminated()`](https://www.gfrischkorn.org/rtprep/reference/r_contaminated.md)
   : Generate response time data with contaminants of known type
+- [`rule_cutoff()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_mad()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_iqr()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_recursive()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_ewma()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_mixture()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_none()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`rule_oracle()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  [`print(`*`<rtprep_rule>`*`)`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+  : Screening rules
+
+## Extending rtprep
+
+Adding a screening rule from your own package.
+
+- [`new_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+  [`apply_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+  [`apply_rule_grouped()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+  : Add a screening rule
 
 ## Data
 

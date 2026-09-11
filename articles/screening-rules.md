@@ -29,6 +29,12 @@ trial, and a fast one shows all the values the last column can take:
 
 rt <- c(0.31, NA, 0.42, 3.20, 0.09)
 rt_screen(rt, rule_cutoff(0.18, 3))
+#> <rtprep screen> 5 trials, cutoff(0.18, 3), 1 group
+#>   kept 2 (40.0%), dropped 3 (60.0%)
+#>   reasons: missing 1, too_fast 1, too_slow 1
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row
+#> 
 #>   .keep .prob           .rule  .reason
 #> 1  TRUE     1 cutoff(0.18, 3)     <NA>
 #> 2 FALSE    NA cutoff(0.18, 3)  missing
@@ -84,6 +90,12 @@ it, which is the one place the two packages disagree on this rule.
 ``` r
 
 rt_screen(c(0.1799, 0.1800, 0.1801), rule_cutoff(0.18, 3))
+#> <rtprep screen> 3 trials, cutoff(0.18, 3), 1 group
+#>   kept 2 (66.7%), dropped 1 (33.3%)
+#>   reasons: too_fast 1
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row
+#> 
 #>   .keep .prob           .rule  .reason
 #> 1 FALSE     0 cutoff(0.18, 3) too_fast
 #> 2  TRUE     1 cutoff(0.18, 3)     <NA>
@@ -184,6 +196,46 @@ trial can be too fast for it: the mean minus 2.5 standard deviations
 falls below zero on any response time distribution with the usual skew,
 which is why a symmetric criterion around the mean never reaches the
 leading edge where anticipations sit.
+
+### Quartile fences
+
+A centre and a spread are not the only way to build a band.
+[`rule_iqr()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+places Tukey’s fences at `Q1 - k * IQR` and `Q3 + k * IQR`, which is a
+third family rather than a setting of
+[`rule_sd()`](https://www.gfrischkorn.org/rtprep/reference/rules.md):
+the fences are asymmetric by construction, because the quartiles sit
+where the data put them rather than at equal distances from a centre. On
+a right-skewed distribution that means the upper fence reaches further
+than the lower one without being told to.
+
+``` r
+
+med <- median(p3_hard$rt)
+
+bind_rows(
+  screen_fits(p3_hard$rt, rule_mad(2.5)),
+  screen_fits(p3_hard$rt, rule_iqr(1.5))
+) |>
+  transmute(
+    n_dropped, lower, upper,
+    below_median = med - lower,
+    above_median = upper - med
+  )
+#>   n_dropped    lower    upper below_median above_median
+#> 1         8 0.080155 1.043845     0.481845     0.481845
+#> 2         8 0.072500 1.072500     0.489500     0.510500
+```
+
+The MAD criterion’s two distances are equal by construction. The fences’
+are not, and on this cell the upper one reaches further, which is the
+direction the skew asks for. Note that
+[`rule_iqr()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+uses the type-7 quartiles of
+[`quantile()`](https://rdrr.io/r/stats/quantile.html), not the hinges
+[`boxplot.stats()`](https://rdrr.io/r/grDevices/boxplot.stats.html)
+computes, so it will not always agree with the whiskers of a boxplot
+drawn from the same data.
 
 Miller (1991) is the standard warning about the SD criterion. The
 proportion of a skewed distribution that falls outside a fixed
@@ -345,6 +397,155 @@ that the rule has not found much use. It is in the package as the
 published accuracy-based rule, and the cross-table above shows what its
 removals contained.
 
+## Combining rules
+
+The sections above keep arriving at the same wall. A criterion built
+around a centre never reaches the leading edge, and an accuracy chart
+never reaches the slow tail. Neither is a defect to be tuned away; they
+are properties of where each rule looks. The way past it is to use both,
+and
+[`rule_all()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md),
+[`rule_any()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+and
+[`rule_then()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+make that a rule like any other, so it screens, reports and compares
+through the same interface.
+
+[`rule_all()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+keeps a trial only when every component keeps it, so the exclusions are
+the union.
+[`rule_any()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+keeps a trial when any component keeps it, so the exclusions are the
+intersection, and it is the conservative choice. Run across the whole of
+`rt_example`, where the contaminants are labelled:
+
+``` r
+
+by_cell <- list(rt_example$id, rt_example$condition)
+
+score <- function(rule, label) {
+  keep <- rt_screen(
+    rt_example$rt, rule,
+    response = rt_example$response, .by = by_cell
+  )$.keep
+  contaminant <- rt_example$contaminant
+  data.frame(
+    rule = label,
+    dropped = sum(!keep),
+    sensitivity = mean(!keep[contaminant]),
+    specificity = mean(keep[!contaminant]),
+    J = mean(!keep[contaminant]) + mean(keep[!contaminant]) - 1
+  )
+}
+
+combined <- bind_rows(
+  score(rule_mad(2.5), "mad(2.5)"),
+  score(rule_ewma(), "ewma"),
+  score(rule_all(rule_mad(2.5), rule_ewma()), "all(mad, ewma)")
+)
+combined |> mutate(across(where(is.numeric), \(x) round(x, 3)))
+#>             rule dropped sensitivity specificity     J
+#> 1       mad(2.5)      91       0.333       0.904 0.237
+#> 2           ewma      62       0.167       0.930 0.096
+#> 3 all(mad, ewma)     153       0.500       0.834 0.334
+```
+
+Youden’s *J* goes from 0.237 and 0.096 to 0.334, and the reason is
+visible once the removals are split by the process that generated them:
+
+``` r
+
+sapply(
+  list(
+    "mad(2.5)" = rule_mad(2.5),
+    "ewma" = rule_ewma(),
+    "all(mad, ewma)" = rule_all(rule_mad(2.5), rule_ewma())
+  ),
+  function(rule) {
+    keep <- rt_screen(
+      rt_example$rt, rule,
+      response = rt_example$response, .by = by_cell
+    )$.keep
+    tapply(!keep, rt_example$process, sum)
+  }
+)
+#>                 mad(2.5) ewma all(mad, ewma)
+#> clean                 71   52            123
+#> delay                 16    0             16
+#> informationless        4    1              5
+#> leading_edge           0    9              9
+```
+
+The MAD criterion removes delayed start-ups and no anticipation at all;
+the EWMA chart removes anticipations and no delay. Their excluded sets
+do not overlap on a single trial here, which is why the union’s drop
+count is exactly the sum of theirs. Combining them is not a refinement
+of either rule, then, but a way of covering an end that neither reaches.
+The cost is in the specificity column: 153 trials go, and most of them
+are clean. Whether that trade is worth making is a question about a
+particular data set and a particular estimand, and this page does not
+answer it; what composition gives you is the ability to put the
+alternatives through
+[`screen_compare()`](https://www.gfrischkorn.org/rtprep/reference/screen_compare.md)
+and look.
+
+[`rule_then()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+is different in kind. It fits each stage on the survivors of the last,
+which is what `trimr`’s published idiom does when a floor and an SD
+criterion are given in one call, and it is not the same answer as
+applying both to the full vector:
+
+``` r
+
+set.seed(12)
+anticipated <- c(runif(12, 0.05, 0.19), rlnorm(188, log(0.55), 0.3))
+
+floor_then_sd <- rule_then(rule_cutoff(0.2), rule_sd(2.5))
+floor_and_sd <- rule_all(rule_cutoff(0.2), rule_sd(2.5))
+
+c(
+  parallel = sum(rt_keep(anticipated, floor_and_sd)),
+  sequential = sum(rt_keep(anticipated, floor_then_sd))
+)
+#> all(cutoff(0.2, Inf), sd(2.5, mean, sd)): dropped 13 of 200 trials (6.5%)
+#> then(cutoff(0.2, Inf), sd(2.5, mean, sd)): dropped 19 of 200 trials (9.5%)
+#>   parallel sequential 
+#>        187        181
+```
+
+Six trials separate the two. The fits table says why: the second stage
+of the sequential rule never sees the twelve sub-200 ms trials, so it
+computes a standard deviation of 0.162 against the parallel rule’s
+0.194, and its upper bound lands at 0.979 s rather than 1.029 s.
+Removing fast trials tightens the criterion that catches slow ones.
+
+The sequential order is the one `trimr` implements when a floor and an
+SD criterion are passed to `sdTrim()` together, and that is where these
+numbers can be checked against a published implementation rather than
+against the package’s own reasoning:
+
+``` r
+
+trimmed <- trimr::sdTrim(
+  data.frame(
+    participant = "p1", condition = "c",
+    rt = anticipated * 1000, accuracy = 1
+  ),
+  minRT = 200, sd = 2.5,
+  pptVar = "participant", condVar = "condition",
+  rtVar = "rt", accVar = "accuracy",
+  perCondition = FALSE, perParticipant = FALSE, returnType = "raw"
+)
+
+nrow(trimmed)
+#> [1] 181
+```
+
+Which of the two orders a paper meant is rarely stated, and the
+difference is not small.
+[`rule_then()`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+at least makes it possible to say which.
+
 ## The mixture, in one paragraph
 
 [`rule_mixture()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
@@ -427,6 +628,11 @@ the fits table, rather than returning `NA` or flagging by accident:
 ``` r
 
 rt_screen(c(0.40, 0.40, 0.40), rule_sd(2.5))
+#> <rtprep screen> 3 trials, sd(2.5, mean, sd), 1 group
+#>   kept 3 (100.0%), dropped 0 (0.0%)
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: screen_fits(), or attr(x, "fits") -- 1 row
+#> 
 #>   .keep .prob             .rule .reason
 #> 1  TRUE     1 sd(2.5, mean, sd)    <NA>
 #> 2  TRUE     1 sd(2.5, mean, sd)    <NA>
@@ -523,10 +729,16 @@ does so for a task matched to your own.
 
 [`?rules`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
 documents every constructor with the reference it implements and the
-columns it adds to the fits table. Two further, experimental rules are
+columns it adds to the fits table, and
+[`?rules_compose`](https://www.gfrischkorn.org/rtprep/reference/rules_compose.md)
+covers the three combining rules. Two further, experimental rules are
 unexported and described in
 [`?rules_experimental`](https://www.gfrischkorn.org/rtprep/reference/rules_experimental.md).
-The mixture has [its own
+[`?extending`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+gives the contract a rule of your own has to meet, which is one
+constructor and one
+[`apply_rule()`](https://www.gfrischkorn.org/rtprep/reference/extending.md)
+method. The mixture has [its own
 article](https://www.gfrischkorn.org/rtprep/articles/mixture-screening.md),
 [the aggregation
 article](https://www.gfrischkorn.org/rtprep/articles/aggregation.md)

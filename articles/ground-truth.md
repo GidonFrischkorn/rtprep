@@ -360,13 +360,29 @@ mean error but whether each participant’s error tracks their own
 contamination rate. Three pipelines, each ending in
 [`ez_ddm()`](https://www.gfrischkorn.org/rtprep/reference/ez_ddm.md):
 nothing removed, the recursive criterion, and the oracle that removes
-exactly the contaminants:
+exactly the contaminants.
+
+[`rule_oracle()`](https://www.gfrischkorn.org/rtprep/reference/rules.md)
+is that last one. It takes the ground-truth vector and removes exactly
+the trials it marks, which makes it useless on real data and the only
+honest ceiling on generated data. It is a rule like any other, so it
+goes through
+[`rt_screen()`](https://www.gfrischkorn.org/rtprep/reference/rt_screen.md)
+and reports in
+[`screen_fits()`](https://www.gfrischkorn.org/rtprep/reference/screen_fits.md)
+the same way, and swapping it for a real rule changes one argument.
+Every pipeline below is read against it.
 
 ``` r
 
 # Drift per participant under three pipelines, against the drift each
 # participant was generated with: nothing removed, the chosen rule, and the
-# perfect-exclusion oracle that only generated data allows.
+# perfect-exclusion oracle that only generated data allows. rule_oracle()
+# carries the truth vector on the rule object, so the oracle goes through the
+# same engine as every other rule rather than being a hand-built keep vector;
+# it is the ceiling, not a rule anyone can run on real data.
+oracle_keep <- rt_screen(simulated$rt, rule_oracle(simulated$contaminant))$.keep
+
 estimate_drift <- function(keep, label) {
   simulated[keep, ] |>
     reframe(rt_summary(rt, response), .by = id) |>
@@ -379,7 +395,7 @@ estimate_drift <- function(keep, label) {
 estimates <- bind_rows(
   estimate_drift(rep(TRUE, nrow(simulated)), "none"),
   estimate_drift(recursive_keep, "recursive"),
-  estimate_drift(!simulated$contaminant, "oracle")
+  estimate_drift(oracle_keep, "oracle")
 )
 
 estimates |>
@@ -439,7 +455,7 @@ columns the truth provides alongside:
 scored_all <- bind_rows(
   scored,
   score_rule(rep(TRUE, nrow(simulated))) |> mutate(rule = "none"),
-  score_rule(!simulated$contaminant) |> mutate(rule = "oracle")
+  score_rule(oracle_keep) |> mutate(rule = "oracle")
 )
 
 bind_rows(estimates, estimate_drift(comparison$keep[, "mad"], "mad")) |>
