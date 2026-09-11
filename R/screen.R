@@ -103,10 +103,18 @@ rt_screen <- function(rt, rule, response = NULL, .by = NULL,
     "'threshold' must be a single number between 0 and 1."
   )
   # dispatch is checked up front, not left to apply_rule.default(): an
-  # unimplemented rule must fail loudly even when every group is empty
+  # unimplemented rule must fail loudly even when every group is empty. The
+  # whole class vector is searched rather than its head, because a rule built
+  # with new_rule(fun = ) inherits "rtprep_rule_fun" behind its own subclass and
+  # is served by that class's method.
   generic <- if (.is_grouped_rule(rule)) "apply_rule_grouped" else "apply_rule"
+  has_method <- any(vapply(
+    class(rule),
+    function(cl) !is.null(utils::getS3method(generic, cl, optional = TRUE)),
+    logical(1)
+  ))
   .stopif(
-    is.null(utils::getS3method(generic, class(rule)[1], optional = TRUE)),
+    !has_method,
     paste0(
       generic, "() is not yet implemented for rule class '",
       class(rule)[1], "'."

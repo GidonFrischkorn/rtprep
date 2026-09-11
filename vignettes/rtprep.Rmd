@@ -345,5 +345,7 @@ and `?r_contaminated` the three contaminant processes and how to match the
 generator to a task of your own. `?rule_oracle` removes exactly the labelled
 contaminants, which is the ceiling any real rule is read against.
 
-`?rtprep-glossary` defines the terms the rest of the documentation assumes,
-and `?extending` gives the contract a rule from another package has to meet.
+`?rtprep-glossary` defines the terms the rest of the documentation assumes.
+`rule_custom()` turns a function of your own into a rule in one call, and
+`?extending` gives the full contract: what the function receives, and what it
+has to return.

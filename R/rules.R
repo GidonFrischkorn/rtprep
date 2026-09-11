@@ -699,12 +699,25 @@ rule_oracle <- function(contaminant) {
 print.rtprep_rule <- function(x, ...) {
   cat("<rtprep rule>", x$label, "\n")
   cat(" ", .describe_rule(x), "\n", sep = "")
+  # a rule that carries its own function names what that function takes, which
+  # is the one thing about it that is not visible from the outside
+  if (inherits(x, "rtprep_rule_fun")) {
+    cat(
+      "  screened by a function of (",
+      paste(.fun_formals(attr(x, "fun")), collapse = ", "), ")\n",
+      sep = ""
+    )
+  }
   invisible(x)
 }
 
 .describe_rule <- function(x) UseMethod(".describe_rule")
 
-.describe_rule.default <- function(x) "No description available."
+# Read here rather than in a method for the function-carrying class, so that a
+# rule added the method way can describe itself through description = too.
+.describe_rule.default <- function(x) {
+  attr(x, "description") %||% "No description available."
+}
 
 .describe_rule.rtprep_rule_cutoff <- function(x) {
   paste0(

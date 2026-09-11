@@ -583,14 +583,45 @@ scores it against the generator's truth, and
 [the ground-truth article](ground-truth.html) does so for a task matched to
 your own.
 
+## A rule of your own
+
+None of the rules above is privileged. A rule is a function that says which
+trials to keep, and `rule_custom()` turns one into an object the rest of the
+package treats like any other. Suppose the task has a floor below which a
+response cannot be a decision, and you want to see what that assumption costs
+next to a conventional criterion:
+
+```{r custom-rule}
+anticipation <- rule_custom(
+  "floor(0.3)",
+  function(rt, cut) rt >= cut,
+  cut = 0.3,
+  description = "Exclude trials faster than the task's motor floor.",
+  reason = "too_fast"
+)
+
+screen_compare(
+  p3_hard$rt,
+  list(floor = anticipation, mad = rule_mad(2.5)),
+  response = p3_hard$response
+)
+```
+
+The function returns `TRUE` for a trial to keep — the same direction as the
+`.keep` column, and the opposite of how an exclusion criterion is usually
+written down, which is worth checking once on data whose answer you know. A
+rule that needs to report a criterion per participant, or to drop different
+trials for different reasons, returns a list instead; `?extending` gives both.
+
 ## Where next
 
 `?rules` documents every constructor with the reference it implements and
 the columns it adds to the fits table, and `?rules_compose` covers the three
 combining rules. Two further, experimental rules are
 unexported and described in `?rules_experimental`. `?extending` gives the
-contract a rule of your own has to meet, which is one constructor and one
-`apply_rule()` method. The mixture has
+contract a rule of your own has to meet: what the screening function receives,
+what it has to return, and how a package ships a whole family with an
+`apply_rule()` method instead. The mixture has
 [its own article](mixture-screening.html),
 [the aggregation article](aggregation.html) covers what happens to the
 surviving trials, and [the comparison article](comparing-rules.html) applies

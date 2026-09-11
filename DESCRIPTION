@@ -45,7 +45,7 @@ Config/testthat/edition: 3
 URL: https://github.com/GidonFrischkorn/rtprep, https://www.gfrischkorn.org/rtprep/
 BugReports: https://github.com/GidonFrischkorn/rtprep/issues
 Config/Needs/website: rmarkdown, ggplot2, dplyr, tidyr
-Config/roxygen2/version: 8.1.0
 VignetteBuilder: knitr
 LazyData: true
 Language: en-GB
+RoxygenNote: 7.3.3

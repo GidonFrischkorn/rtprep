@@ -62,9 +62,10 @@ reference:
       - r_contaminated
       - rule_oracle
   - title: Extending rtprep
-    desc: Adding a screening rule from your own package.
+    desc: Adding a screening rule of your own, from a function or from a method.
     contents:
       - extending
+      - rule_custom
   - title: Data
     contents:
       - has_keyword("datasets")

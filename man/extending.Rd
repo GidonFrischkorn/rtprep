@@ -11,7 +11,10 @@ new_rule(
   subclass,
   label,
   ...,
-  needs_response = FALSE,
+  fun = NULL,
+  description = NULL,
+  reason = "contaminant",
+  needs_response = NULL,
   per_trial = character(),
   grouped = FALSE
 )
@@ -22,14 +25,25 @@ apply_rule_grouped(rule, rt, response = NULL, idx_by_group)
 }
 \arguments{
 \item{subclass}{A string naming the rule family. The object's class becomes
-\code{c("rtprep_rule_<subclass>", "rtprep_rule")}.}
+\code{c("rtprep_rule_<subclass>", "rtprep_rule")}, with \code{"rtprep_rule_fun"}
+between them when the rule carries its own function.}
 
 \item{label}{A string identifying the rule and its settings, used as the
 \code{.rule} column and by \code{print()}. Conventionally
 \code{"family(setting, setting)"}.}
 
-\item{...}{Named parameters stored on the rule and available to the method as
-\code{rule$name}.}
+\item{...}{Named parameters stored on the rule, passed to \code{fun} by name and
+available to an \code{\link[=apply_rule]{apply_rule()}} method as \code{rule$name}.}
+
+\item{fun}{The screening function, or \code{NULL} to write an \code{\link[=apply_rule]{apply_rule()}}
+method instead. See "What the screening function receives" and "What the
+screening function must return".}
+
+\item{description}{A sentence saying what the rule does, shown by \code{print()}.}
+
+\item{reason}{A string naming what a dropped trial was dropped for, used for
+the \code{.reason} column when \code{fun} returns a bare vector. \code{rtprep}'s own rules
+use \code{"too_fast"}, \code{"too_slow"} and \code{"contaminant"}.}
 
 \item{needs_response, per_trial, grouped}{See "Declaring what a rule needs".}
 
@@ -45,20 +59,106 @@ group's positions in \code{rt}.}
 }
 \value{
 \code{new_rule()} returns an object of class
-\code{c("rtprep_rule_<subclass>", "rtprep_rule")}. \code{apply_rule()} returns the
-three-element list described above.
+\code{c("rtprep_rule_<subclass>", "rtprep_rule")}, with \code{"rtprep_rule_fun"}
+inserted before the last when \code{fun} is given. \code{apply_rule()} returns the
+three-element list described under "If you are writing a package".
 }
 \description{
-A rule is a parameter object; the engine applies it. Adding a family to
-\code{rtprep}, from this package or any other, is one call to \code{new_rule()} in a
-constructor and one \code{\link[=apply_rule]{apply_rule()}} method.
+A rule is a parameter object; the engine applies it. Adding one takes a
+single call to \code{new_rule()} with \verb{fun =}, the function that decides which
+trials to keep. The function travels on the rule object, so there is no S3
+method to write and nothing to register, and \code{\link[=rt_screen]{rt_screen()}}, \code{\link[=rt_keep]{rt_keep()}},
+\code{\link[=screen_fits]{screen_fits()}} and \code{\link[=screen_compare]{screen_compare()}} all pick the rule up unchanged.
 }
 \details{
-\code{new_rule()} builds the object. \code{apply_rule()} is the generic the engine
-dispatches on: write a method for your subclass and \code{\link[=rt_screen]{rt_screen()}},
-\code{\link[=rt_keep]{rt_keep()}}, \code{\link[=screen_fits]{screen_fits()}} and \code{\link[=screen_compare]{screen_compare()}} all pick it up unchanged.
+\code{\link[=rule_custom]{rule_custom()}} does the same thing in one call, without a constructor, for
+a rule used once. A package shipping a family of rules can instead write a
+method for the \code{\link[=apply_rule]{apply_rule()}} generic; see "If you are writing a package".
 }
-\section{The method contract}{
+\section{What the screening function receives}{
+
+The function declares what it needs by name, and the engine passes exactly
+that and nothing else. It can supply:
+
+\describe{
+\item{\code{rt}}{the response times of one group, in seconds, with missing
+values already removed and never empty. The function therefore does no
+validation of its own.}
+\item{\code{response}}{accuracy for the same trials, already coerced to 0/1, or
+\code{NULL}. Declaring it makes it mandatory; see "Declaring what a rule
+needs".}
+\item{\code{rule}}{the rule object itself, for a function that would rather read
+\code{rule$name} than take parameters one by one.}
+\item{\code{idx_by_group}}{for a \code{grouped = TRUE} rule only: a list of integer
+vectors giving each group's positions in \code{rt}.}
+\item{any parameter stored on the rule}{everything passed to \code{new_rule()}
+through \code{...}, by the name it was given there.}
+}
+
+A formal the engine cannot supply is an error when the rule is built, rather
+than in the middle of a screen — unless it has a default, in which case the
+engine leaves it alone and the default applies. Declaring \code{...} means "and
+everything else": the function then receives the whole lot.
+}
+
+\section{What the screening function must return}{
+
+The answer is always in \emph{keep} terms: \code{TRUE}, or a probability near 1, means
+the trial stays. That is the direction of the \code{.keep} and \code{.prob} columns and
+the opposite of how an exclusion criterion is usually phrased, so it is worth
+checking once on data whose answer you know.
+
+There are three ways to say it, and a rule can start with the first and move
+to the third without anything else changing.
+
+\enumerate{
+\item A \strong{logical vector}, one value per trial, \code{TRUE} for a trial to
+keep. The simplest rule, and what most rules are. \code{.prob} becomes 0 or 1,
+and every dropped trial is labelled with the rule's \code{reason}.
+\item A \strong{numeric vector}, one value per trial, in [0, 1]: the
+probability that the trial came from the decision process. Use this when
+the rule is a model rather than a cutoff, as \code{\link[=rule_mixture]{rule_mixture()}} is.
+\code{\link[=rt_screen]{rt_screen()}} turns it into a decision with its own \code{policy} and
+\code{threshold}, so the function does not decide and must not round.
+\item A \strong{list of \code{prob}, \code{reason} and \code{fit}}, the full contract under "If
+you are writing a package". Use it when different trials are dropped for
+different reasons, or when the rule estimates something per group — a
+criterion, a pair of bounds, whether a fit converged — that should become
+a column of \code{\link[=screen_fits]{screen_fits()}}. \code{reason} is then ignored: the function owns
+the reason column.
+}
+
+Whichever shape it returns, it returns one value per trial, in the order \code{rt}
+came in, and no \code{NA}. A rule that cannot evaluate a trial or a whole group,
+because it has too few trials, a spread of zero, or a fit that did not
+converge, returns \code{TRUE}, or 1, and removes nothing. Silence is not evidence
+of contamination.
+}
+
+\section{Declaring what a rule needs}{
+
+Three arguments change how the engine calls the rule.
+
+\code{needs_response = TRUE} makes \code{response} mandatory: \code{\link[=rt_screen]{rt_screen()}} then errors
+when it is not supplied, instead of the function receiving \code{NULL}. Left
+unset, it is \code{TRUE} for a function that declares a \code{response} argument.
+
+\code{per_trial} names the elements of \code{...} that hold one value per trial rather
+than a parameter. The engine checks their length against \code{rt} up front and
+subsets them to the group before dispatch, so the function sees only its own
+group's values. \code{\link[=rule_oracle]{rule_oracle()}} uses this to carry ground truth.
+
+\code{grouped = TRUE} marks a rule that has to see every group at once, one that
+pools information across participants, say. The engine then calls it once,
+with all groups, and hands it \code{idx_by_group}.
+}
+
+\section{If you are writing a package}{
+
+A package shipping a family of rules can write a method for the
+\code{\link[=apply_rule]{apply_rule()}} generic instead of carrying a function on the object. The two
+routes are equivalent; a registered \verb{apply_rule.rtprep_rule_<subclass>()}
+method takes precedence, and a \code{fun} on the same rule is then ignored.
 
 \code{apply_rule()} is called once per group, with \code{rt} already stripped of
 missing values and guaranteed non-empty, and \code{response} already coerced to
@@ -77,36 +177,55 @@ group (bounds, criteria, convergence), or \code{NULL} if it estimated
 nothing. These become the extra columns of \code{\link[=screen_fits]{screen_fits()}}.}
 }
 
-A rule that cannot be evaluated on a group, because it has too few trials, a
-spread of zero, or a fit that did not converge, returns
-\code{prob = rep(1, length(rt))} and removes nothing. Silence is not evidence of
-contamination.
+A rule that cannot be evaluated on a group returns
+\code{prob = rep(1, length(rt))} and removes nothing, for the same reason a
+screening function returns \code{TRUE}.
+
+A \code{grouped = TRUE} rule gets a method for \code{\link[=apply_rule_grouped]{apply_rule_grouped()}} instead,
+called once with every group, and returns \code{fit} as a list of one-row data
+frames, one per group.
 }
 
-\section{Declaring what a rule needs}{
+\section{Saving a rule}{
 
-Three arguments change how the engine calls the method.
-
-\code{needs_response = TRUE} makes \code{response} mandatory: \code{\link[=rt_screen]{rt_screen()}} then errors
-when it is not supplied, instead of the method receiving \code{NULL}.
-
-\code{per_trial} names the elements of \code{...} that hold one value per trial rather
-than a parameter. The engine checks their length against \code{rt} up front and
-subsets them to the group before dispatch, so the method sees only its own
-group's values. \code{\link[=rule_oracle]{rule_oracle()}} uses this to carry ground truth.
-
-\code{grouped = TRUE} marks a rule that has to see every group at once, one that
-pools information across participants, say. The engine then calls
-\code{\link[=apply_rule_grouped]{apply_rule_grouped()}} instead, once, with all groups.
+The function travels with the rule, and a screen carries the rule that made
+it, so saving either saves the function \emph{and the environment it was written
+in}. A function defined at the top level costs nothing. One defined inside
+another function drags whatever that function was holding into the file with
+it, which is how a rule ends up megabytes wide. Define screening functions at
+the top level, and pass what they need through \code{...}.
 }
 
 \examples{
 # a rule that keeps the middle 90\% of each group by quantile
 rule_middle <- function(p = 0.05) {
-  new_rule("middle", label = paste0("middle(", p, ")"), p = p)
+  new_rule(
+    "middle",
+    label = paste0("middle(", p, ")"),
+    p = p,
+    description = "Keep the middle 90\% of each group by quantile.",
+    fun = function(rt, p) {
+      b <- stats::quantile(rt, c(p, 1 - p), names = FALSE)
+      rt >= b[1] & rt <= b[2]
+    }
+  )
 }
+rule_middle()
+screen_fits(rt_example$rt, rule_middle(), .by = rt_example$id)
 
-apply_rule.rtprep_rule_middle <- function(rule, rt, response = NULL) {
+# a graded rule returns a probability and lets rt_screen() decide
+shrinking <- rule_custom(
+  "shrinking",
+  function(rt) pmin(1, 0.2 / rt),
+  description = "The slower the trial, the less likely it is a decision."
+)
+head(rt_screen(rt_example$rt, shrinking, .by = rt_example$id))
+
+# the package way: a method, for a family with diagnostics to report
+rule_bounded <- function(p = 0.05) {
+  new_rule("bounded", label = paste0("bounded(", p, ")"), p = p)
+}
+apply_rule.rtprep_rule_bounded <- function(rule, rt, response = NULL) {
   b <- stats::quantile(rt, c(rule$p, 1 - rule$p), names = FALSE)
   list(
     prob = as.numeric(rt >= b[1] & rt <= b[2]),
@@ -117,13 +236,12 @@ apply_rule.rtprep_rule_middle <- function(rule, rt, response = NULL) {
   )
 }
 registerS3method(
-  "apply_rule", "rtprep_rule_middle", apply_rule.rtprep_rule_middle
+  "apply_rule", "rtprep_rule_bounded", apply_rule.rtprep_rule_bounded
 )
-
-rule_middle()
-screen_fits(rt_example$rt, rule_middle(), .by = rt_example$id)
+screen_fits(rt_example$rt, rule_bounded(), .by = rt_example$id)
 
 }
 \seealso{
-\link{rules} for the families \code{rtprep} ships.
+\code{\link[=rule_custom]{rule_custom()}} for a rule in one call, \link{rules} for the families
+\code{rtprep} ships.
 }
