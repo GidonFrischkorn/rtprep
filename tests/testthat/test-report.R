@@ -310,7 +310,7 @@ test_that("print and as.character report the same paragraph", {
   out <- paste(utils::capture.output(print(rep)), collapse = " ")
   expect_match(out, "median absolute deviations")
   expect_match(out, "words")
-  expect_invisible(print(rep))
+  expect_output(expect_invisible(print(rep)))
 })
 
 test_that("a screen with nothing usable still reports honestly", {

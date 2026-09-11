@@ -214,7 +214,7 @@ test_that("print() names every rule and returns invisibly", {
     expect_true(any(grepl(nm, out, fixed = TRUE)), info = nm)
   }
   expect_true(any(grepl("least agreement", out)))
-  expect_invisible(print(cmp))
+  expect_output(expect_invisible(print(cmp)))
 })
 
 test_that("summary() returns a value rather than printing as a side effect", {
@@ -231,7 +231,7 @@ test_that("summary() returns a value rather than printing as a side effect", {
   out <- capture.output(print(res))
   expect_true(any(grepl("Drop rates", out)))
   expect_true(any(grepl("Pairwise agreement", out)))
-  expect_invisible(print(res))
+  expect_output(expect_invisible(print(res)))
 })
 
 test_that("plot() returns the same class whether or not ggplot2 is installed", {

@@ -138,8 +138,9 @@ test_that("rule_mixture() validates its EM controls", {
 test_that("print() reports the label and returns its input invisibly", {
   r <- rule_sd(2.5)
   expect_output(print(r), "sd\\(2\\.5, mean, sd\\)")
-  expect_invisible(print(r))
-  expect_identical(withVisible(print(r))$value, r)
+  expect_output(expect_invisible(print(r)))
+  capture.output(vis <- withVisible(print(r)))
+  expect_identical(vis$value, r)
 
   expect_output(print(rule_none()), "none")
   expect_output(print(rule_recursive("hybrid")), "recursive\\(hybrid\\)")
