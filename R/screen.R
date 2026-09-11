@@ -1,11 +1,10 @@
 #' Screen response times with any rule
 #'
 #' @description
-#' Applies a screening rule and returns one row per input trial, whichever rule
-#' was used. That uniformity is the package's reason to exist: absolute cutoffs,
-#' standard deviation criteria, recursive criteria, and model-based mixtures all
-#' come back in the same shape, so a preprocessing choice can be compared rather
-#' than assumed.
+#' Applies a screening rule and returns one row per input trial: the keep
+#' decision, the probability behind it, the rule's label, and the reason for a
+#' flag. The four columns are the same whichever rule went in, so changing the
+#' rule changes one word and nothing around it.
 #'
 #' @param rt Numeric vector of response times **in seconds**. `NA` is allowed;
 #'   non-positive values are an error.
@@ -14,7 +13,7 @@
 #'   numeric 0/1, logical, or a character or factor using labels such as
 #'   `"correct"`/`"error"` or `"upper"`/`"lower"`. Required by [rule_ewma()] and
 #'   by [rule_mixture()] with `use_accuracy = TRUE`.
-#' @param .by Optional grouping of the same length as `rt` — a vector, factor,
+#' @param .by Optional grouping of the same length as `rt`: a vector, factor,
 #'   list of vectors, or data frame. Rules are fitted separately within each
 #'   group. `NULL` treats all trials as one group.
 #' @param policy Exclusion policy. `"threshold"` keeps a trial when its
@@ -31,7 +30,7 @@
 #'       decision process, that is **P(valid)**. Deterministic rules return 0 or
 #'       1. Note that `bmm::flag_contaminant_rts()` returns the complement.}
 #'     \item{`.rule`}{character; the rule's label.}
-#'     \item{`.reason`}{character; why the **rule** flagged the trial —
+#'     \item{`.reason`}{character; why the **rule** flagged the trial:
 #'       `"too_fast"`, `"too_slow"`, `"contaminant"`, or `"missing"`. `NA`
 #'       whenever the rule did not flag it, which includes trials the keep
 #'       policy dropped anyway (at `threshold = 1`, or on a probabilistic draw
@@ -105,15 +104,29 @@ rt_screen <- function(rt, rule, response = NULL, .by = NULL,
   )
   # dispatch is checked up front, not left to apply_rule.default(): an
   # unimplemented rule must fail loudly even when every group is empty
+  generic <- if (.is_grouped_rule(rule)) "apply_rule_grouped" else "apply_rule"
   .stopif(
-    is.null(utils::getS3method("apply_rule", class(rule)[1], optional = TRUE)),
+    is.null(utils::getS3method(generic, class(rule)[1], optional = TRUE)),
     paste0(
-      "apply_rule() is not yet implemented for rule class '",
+      generic, "() is not yet implemented for rule class '",
       class(rule)[1], "'."
     )
   )
   unsupported <- .rule_unsupported(rule)
   .stopif(!is.null(unsupported), unsupported)
+
+  # a rule carrying per-trial values must carry exactly as many as there are
+  # trials; recycling one silently is the failure mode this check exists for
+  carried <- .per_trial_lengths(rule)
+  wrong <- carried[carried != length(rt)]
+  .stopif(
+    length(wrong) > 0L,
+    paste0(
+      "Rule '", rule$label, "' carries '", names(wrong)[1], "' with ",
+      wrong[1], " values, but 'rt' has ", length(rt),
+      ". They must be the same length."
+    )
+  )
 
   needs_response <- .needs_response(rule)
   if (!is.null(response)) {
@@ -156,15 +169,34 @@ rt_screen <- function(rt, rule, response = NULL, .by = NULL,
   obs <- which(observed)
   idx_by_group <- split(obs, factor(key$id[obs], levels = seq_along(groups)))
 
-  for (g in seq_along(groups)) {
-    idx <- idx_by_group[[g]]
-    if (length(idx) == 0L) next
-    res <- apply_rule(rule, rt[idx], response[idx])
-    prob[idx] <- res$prob
-    reason[idx] <- res$reason
-    # single-bracket assignment: a rule with no diagnostics returns NULL, and
-    # fits[[g]] <- NULL would delete the slot rather than leave it empty
-    fits[g] <- list(res$fit)
+  if (.is_grouped_rule(rule)) {
+    # A rule that pools across groups sees them all at once. It gets only the
+    # observed trials, renumbered, so it never has to reason about missingness.
+    within <- split(
+      seq_along(obs), factor(key$id[obs], levels = seq_along(groups))
+    )
+    nonempty <- lengths(within) > 0L
+    res <- apply_rule_grouped(
+      .subset_rule(rule, obs), rt[obs], response[obs], within[nonempty]
+    )
+    .check_rule_result(res, length(obs), rule, grouped = TRUE)
+    .check_rule_fit(res$fit, rule, grouped = TRUE, n_groups = sum(nonempty))
+    prob[obs] <- res$prob
+    reason[obs] <- res$reason
+    fits[which(nonempty)] <- if (is.null(res$fit)) list(NULL) else res$fit
+  } else {
+    for (g in seq_along(groups)) {
+      idx <- idx_by_group[[g]]
+      if (length(idx) == 0L) next
+      res <- apply_rule(.subset_rule(rule, idx), rt[idx], response[idx])
+      .check_rule_result(res, length(idx), rule)
+      .check_rule_fit(res$fit, rule)
+      prob[idx] <- res$prob
+      reason[idx] <- res$reason
+      # single-bracket assignment: a rule with no diagnostics returns NULL, and
+      # fits[[g]] <- NULL would delete the slot rather than leave it empty
+      fits[g] <- list(res$fit)
+    }
   }
 
   .keep <- if (policy == "threshold") {
@@ -191,6 +223,11 @@ rt_screen <- function(rt, rule, response = NULL, .by = NULL,
   .warn_inverted(fits_table)
   .warn_unconverged(fits_table)
   attr(out, "fits") <- fits_table
+  attr(out, "policy") <- policy
+  attr(out, "threshold") <- threshold
+  # a subclass of data.frame: every data-frame idiom still works, and the class
+  # buys a print() that reports the screen instead of listing every trial
+  class(out) <- c("rtprep_screen", "data.frame")
   out
 }
 
@@ -290,15 +327,29 @@ screen_fits <- function(rt, rule, response = NULL, .by = NULL,
 # Warning inside the group loop -- which is what bmm does -- would emit one
 # warning per subject, and a SimDesign replication has thousands of them. The
 # per-group detail stays in attr(x, "fits").
+# A composite prefixes each component's diagnostics with its position, so these
+# match by suffix: `converged` and `r1_converged` are the same column reported
+# by a rule that is on its own and by one inside a combination. Matching the
+# bare name only would let a mixture inside a composite fail to converge with
+# nothing said.
+.fit_cols <- function(fits, name) {
+  if (is.null(fits)) {
+    return(list())
+  }
+  hit <- grepl(paste0("(^|_)", name, "$"), names(fits))
+  unname(as.list(fits[hit]))
+}
+
 .warn_unconverged <- function(fits) {
-  if (is.null(fits) || !"converged" %in% names(fits)) {
+  cols <- .fit_cols(fits, "converged")
+  if (length(cols) == 0L) {
     return(invisible(NULL))
   }
   # groups that were never fitted have NA here and belong in neither count
-  fitted <- !is.na(fits$converged)
-  n_failed <- sum(!fits$converged[fitted])
+  fitted <- sum(vapply(cols, function(c) sum(!is.na(c)), integer(1)))
+  n_failed <- sum(vapply(cols, function(c) sum(!c, na.rm = TRUE), integer(1)))
   .warnif(n_failed > 0L, paste0(
-    "The model fit did not converge for ", n_failed, " of ", sum(fitted),
+    "The model fit did not converge for ", n_failed, " of ", fitted,
     " fitted group(s); those trials were all kept. ",
     "See attr(x, \"fits\") for which."
   ))
@@ -310,10 +361,11 @@ screen_fits <- function(rt, rule, response = NULL, .by = NULL,
 # means the two components are not separable at this contamination rate, which
 # is a finding rather than a nuisance.
 .warn_inverted <- function(fits) {
-  if (is.null(fits) || !"accuracy_inverted" %in% names(fits)) {
+  cols <- .fit_cols(fits, "accuracy_inverted")
+  if (length(cols) == 0L) {
     return(invisible(NULL))
   }
-  n_inverted <- sum(fits$accuracy_inverted, na.rm = TRUE)
+  n_inverted <- sum(vapply(cols, sum, numeric(1), na.rm = TRUE))
   .warnif(n_inverted > 0L, paste0(
     "In ", n_inverted, " group(s) the fitted decision process came out less ",
     "accurate than chance, which means the mixture labelled its components ",
@@ -325,18 +377,21 @@ screen_fits <- function(rt, rule, response = NULL, .by = NULL,
 # Bounds are resolved once per group, so a rule that reports them flags the two
 # conditions worth mentioning and lets the engine say them once.
 .warn_bounds <- function(fits) {
-  if (is.null(fits) || !"bound_inverted" %in% names(fits)) {
+  cols <- .fit_cols(fits, "bound_inverted")
+  if (length(cols) == 0L) {
     return(invisible(NULL))
   }
-  n_inverted <- sum(fits$bound_inverted, na.rm = TRUE)
+  n_inverted <- sum(vapply(cols, sum, numeric(1), na.rm = TRUE))
   .warnif(n_inverted > 0L, paste0(
     "Contaminant bounds resolved to lower >= upper for ", n_inverted,
     " group(s); the buffered data range was used instead."
   ))
 
-  n_narrow <- sum(fits$bound_excludes_fast | fits$bound_excludes_slow,
-    na.rm = TRUE
-  )
+  fast <- .fit_cols(fits, "bound_excludes_fast")
+  slow <- .fit_cols(fits, "bound_excludes_slow")
+  n_narrow <- sum(vapply(seq_along(fast), function(i) {
+    sum(fast[[i]] | slow[[i]], na.rm = TRUE)
+  }, numeric(1)))
   .warnif(n_narrow > 0L, paste0(
     "Contaminant bounds exclude observed trials in ", n_narrow,
     " group(s); those trials cannot be classified as contaminants."
@@ -423,28 +478,11 @@ screen_fits <- function(rt, rule, response = NULL, .by = NULL,
   out
 }
 
-# --- the internal rule engine ----------------------------------------------
-
-# Apply one rule to one group.
+# --- the rule engine --------------------------------------------------------
 #
-# Called with `rt` already stripped of missing values and guaranteed non-empty,
-# so methods do no validation. Each method returns a list of
-#   prob   numeric, length(rt), in [0, 1] -- P(valid)
-#   reason character, length(rt), NA where the trial is valid
-#   fit    one-row data.frame of diagnostics, or NULL
-#
-# Adding a rule means one constructor plus one method here; the engine, the
-# comparison layer, and the simulation code pick it up unchanged.
-apply_rule <- function(rule, rt, response = NULL) UseMethod("apply_rule")
-
-#' @exportS3Method
-apply_rule.default <- function(rule, rt, response = NULL) {
-  stop(
-    "apply_rule() is not yet implemented for rule class '",
-    class(rule)[1], "'.",
-    call. = FALSE
-  )
-}
+# The apply_rule() generic and its contract live in R/extend.R, because both are
+# public: an outside package adds a family with one new_rule() call and one
+# method.
 
 # A rule whose constructor is valid but whose configuration is not yet
 # implemented. Returns NULL when the rule can run, otherwise the message.
@@ -453,10 +491,49 @@ apply_rule.default <- function(rule, rt, response = NULL) {
 
 .rule_unsupported.default <- function(rule) NULL
 
-# Which rules cannot run on response times alone.
+# Which rules cannot run on response times alone. The default reads the flag
+# new_rule() records, so an outside rule declares this without a method.
 .needs_response <- function(rule) UseMethod(".needs_response")
 
-.needs_response.default <- function(rule) FALSE
+.needs_response.default <- function(rule) {
+  isTRUE(attr(rule, "needs_response"))
+}
+
+# Which rules have to see every group at once rather than one at a time.
+.is_grouped_rule <- function(rule) UseMethod(".is_grouped_rule")
+
+.is_grouped_rule.default <- function(rule) isTRUE(attr(rule, "grouped"))
+
+# Parameters that hold one value per trial and must be cut down to the group
+# before dispatch. Recycling them instead is a wrong answer under a warning.
+.per_trial_fields <- function(rule) {
+  fields <- attr(rule, "per_trial")
+  if (is.null(fields)) character() else fields
+}
+
+.subset_rule <- function(rule, idx) {
+  for (nm in .per_trial_fields(rule)) rule[[nm]] <- rule[[nm]][idx]
+  # a composite holds its components in `rules`, and one of them may carry
+  # per-trial values of its own
+  if (!is.null(rule$rules)) {
+    rule$rules <- lapply(rule$rules, .subset_rule, idx)
+  }
+  rule
+}
+
+# Every per-trial field the rule carries, its components included, so the
+# length check at the public boundary reaches inside a composite.
+.per_trial_lengths <- function(rule) {
+  own <- lapply(.per_trial_fields(rule), function(nm) {
+    stats::setNames(length(rule[[nm]]), nm)
+  })
+  nested <- if (is.null(rule$rules)) {
+    list()
+  } else {
+    unlist(lapply(rule$rules, .per_trial_lengths))
+  }
+  c(unlist(own), nested)
+}
 
 .needs_response.rtprep_rule_ewma <- function(rule) TRUE
 

@@ -3,7 +3,7 @@
 #' @description
 #' Applies every rule once and reports where they disagree. This is the question
 #' the package exists to make askable: *what would a different preprocessing
-#' choice have removed?* — which is normally unanswerable because each rule's
+#' choice have removed?* That is normally unanswerable, because each rule's
 #' implementation returns a different shape.
 #'
 #' @param rt,response,.by,policy,threshold As in [rt_screen()], and forwarded
@@ -24,10 +24,17 @@
 #'       column.}
 #'   }
 #'
+#'   `summary()` returns an `rtprep_comparison_summary`: the `drops` and
+#'   `agreement` tables, printed by their own method. It is a value, not a side
+#'   effect, so `s <- summary(cmp)` is quiet and `s$drops` is the table.
+#'   `print()` and `plot()` return their input invisibly. `plot()` draws with
+#'   ggplot2 when it is installed and with [graphics::barplot()] when it is not;
+#'   the return value is the same either way.
+#'
 #' @details
 #' `agree` and `jaccard` answer different questions and diverge exactly where it
 #' matters. Two rules that each drop 2% of trials and never the same one agree
-#' on 96% of decisions — and have a Jaccard index of zero. Agreement alone would
+#' on 96% of decisions, and have a Jaccard index of zero. Agreement alone would
 #' call them interchangeable. Jaccard is `NA`, not 1, when neither rule dropped
 #' anything: no overlap can be computed from two empty sets.
 #'
@@ -210,7 +217,8 @@ screen_compare <- function(rt, rules, response = NULL, .by = NULL,
   .rbind_fill(rows)
 }
 
-#' @param x An `rtprep_comparison`.
+#' @param x An `rtprep_comparison`, or for
+#'   `print.rtprep_comparison_summary()` an `rtprep_comparison_summary`.
 #' @param object An `rtprep_comparison`.
 #' @param ... Ignored.
 #' @rdname screen_compare
@@ -247,13 +255,22 @@ print.rtprep_comparison <- function(x, ...) {
 #' @rdname screen_compare
 #' @export
 summary.rtprep_comparison <- function(object, ...) {
+  structure(
+    list(drops = object$drops, agreement = object$agreement),
+    class = "rtprep_comparison_summary"
+  )
+}
+
+#' @rdname screen_compare
+#' @export
+print.rtprep_comparison_summary <- function(x, ...) {
   cat("Drop rates\n\n")
-  print(object$drops, row.names = FALSE)
-  if (nrow(object$agreement) > 0L) {
+  print(x$drops, row.names = FALSE)
+  if (nrow(x$agreement) > 0L) {
     cat("\nPairwise agreement\n\n")
-    print(object$agreement, row.names = FALSE)
+    print(x$agreement, row.names = FALSE)
   }
-  invisible(list(drops = object$drops, agreement = object$agreement))
+  invisible(x)
 }
 
 #' @rdname screen_compare
@@ -265,10 +282,12 @@ plot.rtprep_comparison <- function(x, ...) {
   rule <- colnames(x$keep)
 
   # ggplot2 is a Suggests, so this has to work without it rather than error:
-  # a plot method that stops on a missing optional package is a trap
+  # a plot method that stops on a missing optional package is a trap. The
+  # ggplot is drawn here rather than returned, so that the return value does
+  # not change class with the set of installed packages.
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     dat <- data.frame(rule = rule, drop_rate = drop_rate)
-    return(
+    print(
       ggplot2::ggplot(
         dat,
         ggplot2::aes(
@@ -280,6 +299,7 @@ plot.rtprep_comparison <- function(x, ...) {
         ggplot2::coord_flip() +
         ggplot2::labs(x = NULL, y = "proportion of trials dropped")
     )
+    return(invisible(x))
   }
 
   old <- graphics::par(mar = c(4, 12, 2, 2))

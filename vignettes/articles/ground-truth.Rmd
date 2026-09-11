@@ -258,7 +258,14 @@ The question that matters to an individual-differences study is not the
 mean error but whether each participant's error tracks their own
 contamination rate. Three pipelines, each ending in `ez_ddm()`: nothing
 removed, the recursive criterion, and the oracle that removes exactly the
-contaminants:
+contaminants.
+
+`rule_oracle()` is that last one. It takes the ground-truth vector and
+removes exactly the trials it marks, which makes it useless on real data and
+the only honest ceiling on generated data. It is a rule like any other, so it
+goes through `rt_screen()` and reports in `screen_fits()` the same way, and
+swapping it for a real rule changes one argument. Every pipeline below is
+read against it.
 
 ```{r gt-estimate}
 ```
@@ -307,7 +314,7 @@ alongside:
 scored_all <- bind_rows(
   scored,
   score_rule(rep(TRUE, nrow(simulated))) |> mutate(rule = "none"),
-  score_rule(!simulated$contaminant) |> mutate(rule = "oracle")
+  score_rule(oracle_keep) |> mutate(rule = "oracle")
 )
 
 bind_rows(estimates, estimate_drift(comparison$keep[, "mad"], "mad")) |>

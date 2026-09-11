@@ -42,6 +42,8 @@
     cutoff = spec(rule_cutoff(0.2, 2.0)),
     cutoff_open = spec(rule_cutoff(0.15)),
     sd = spec(rule_sd(2.5)),
+    iqr = spec(rule_iqr(1.5)),
+    iqr_k3 = spec(rule_iqr(3)),
     sd_median = spec(rule_sd(2.5, center = "median")),
     mad = spec(rule_mad(2.5)),
     recursive_moving = spec(rule_recursive("moving")),
@@ -57,6 +59,16 @@
     mix_accuracy = spec(
       rule_mixture("lognormal", use_accuracy = TRUE),
       needs_response = TRUE
+    ),
+    hierarchical = spec(rule_hierarchical(2.5, n0 = 20)),
+    hierarchical_mad = spec(
+      rule_hierarchical(2.5, n0 = 20, center = "median", scale = "mad")
+    ),
+    compose_all = spec(rule_all(rule_cutoff(0.2, 2), rule_sd(2.5))),
+    compose_any = spec(rule_any(rule_mad(2.5), rule_iqr(1.5))),
+    compose_then = spec(rule_then(rule_cutoff(0.2), rule_sd(2.5))),
+    compose_mixed = spec(
+      rule_all(rule_mixture("lognormal"), rule_sd(3))
     ),
     # the ungrouped path: one group, built by .group_key() rather than from .by
     sd_ungrouped = spec(rule_sd(2.5), grouped = FALSE),

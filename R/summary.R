@@ -11,18 +11,24 @@
 #' @param response Optional response coding of the same length as `rt`, in any
 #'   form [rt_screen()] accepts. Required for `version = "4par"`; without it
 #'   `n_upper` is `NA`. A trial whose response is missing belongs to neither
-#'   boundary and is left out of both, but still counts towards `n_trials` — as
-#'   in `bmm` — so `n_upper / n_trials` understates accuracy when responses are
+#'   boundary and is left out of both, but still counts towards `n_trials`, as
+#'   in `bmm`, so `n_upper / n_trials` understates accuracy when responses are
 #'   missing. Drop those trials first if that matters.
 #' @param method How the moments are computed.
 #'
-#'   * `"simple"` — the sample mean and variance. The baseline, and what almost
-#'     everyone does.
-#'   * `"robust"` — the median, with the variance from the interquartile range
-#'     (divided by 1.349) or the median absolute deviation. Statistic-level
-#'     robustness, after Chávez De la Peña et al. (2026).
-#'   * `"mixture"` — the analytic moments of the response time component of a
-#'     fitted contaminant mixture, and its estimated contaminant proportion.
+#'   * `"simple"` gives the sample mean and variance. The baseline, and what
+#'     almost everyone does.
+#'   * `"robust"` gives the median, with the variance from the interquartile
+#'     range (divided by 1.349) or the median absolute deviation.
+#'     Statistic-level robustness, after Chávez De la Peña et al. (2026).
+#'   * `"trimmed"` gives the mean of the middle `1 - 2 * trim` of the trials,
+#'     with the variance from the Winsorized sample. The robust-statistics
+#'     answer.
+#'   * `"winsorized"` gives the same variance, with the mean of the Winsorized
+#'     sample rather than the trimmed one.
+#'   * `"mixture"` gives the analytic moments of the response time component
+#'     of a fitted contaminant mixture, and its estimated contaminant
+#'     proportion.
 #' @param version `"3par"` pools the two response boundaries; `"4par"`
 #'   summarises each separately.
 #' @param distribution Core distribution for `method = "mixture"`; see
@@ -30,6 +36,9 @@
 #' @param robust_scale Spread statistic for `method = "robust"`.
 #' @param weights Optional per-trial weights, typically the `.prob` column of
 #'   [rt_screen()]. Defined for `method = "simple"` only.
+#' @param trim Proportion of trials cut from *each* tail by
+#'   `method = "trimmed"` and `method = "winsorized"`, as in
+#'   [base::mean()]. `floor(n * trim)` trials go from each end.
 #' @param min_trials Below this many trials the moments are `NA` rather than
 #'   noise; `n_trials` is still reported. With `weights`, the comparison uses
 #'   Kish's effective sample size `sum(w)^2 / sum(w^2)`, so two unit weights
@@ -38,7 +47,7 @@
 #'   `tol`, as documented in [rule_mixture()] and with the same defaults,
 #'   including `maxit = 500` where `bmm::ezdm_summary_stats()` uses 100.
 #'
-#' @return A one-row `data.frame` — the inputs [ez_ddm()] needs.
+#' @return A one-row `data.frame` holding the inputs [ez_ddm()] needs.
 #'
 #'   `version = "3par"`: `mean_rt`, `var_rt`, `n_upper`, `n_trials`,
 #'   `contaminant_prop`.
@@ -64,6 +73,30 @@
 #' equal. Frequency weights would use `sum(w) - 1` and are the wrong model:
 #' `.prob` is a probability, not a count.
 #'
+#' # Trimming and Winsorizing
+#'
+#' Both cut the same `floor(n * trim)` trials from each tail. Trimming drops
+#' them; Winsorizing replaces each with the nearest surviving value, so the
+#' count stays the same and the extremes stop pulling. The variance comes from
+#' the Winsorized sample either way, rescaled so that it estimates the variance
+#' of the response time distribution rather than the variance of the trimmed
+#' mean. It is the same kind of correction as the 1.349 that
+#' `robust_scale = "iqr"` applies, and it is necessary because [ez_ddm()] reads
+#' `var_rt` as a moment of the distribution.
+#'
+#' The divisor is not the familiar `(1 - 2 * trim)^2` of Tukey and McLaughlin
+#' (1963). That one estimates `n` times the variance of the trimmed *mean*, and
+#' using it here would report a variance 6% high at `trim = 0.1` and 14% high at
+#' `trim = 0.2`, which [ez_ddm()] would read as a slower drift.
+#'
+#' `contaminant_prop` stays `NA`. `trim` is the proportion removed, not an
+#' estimate of the proportion contaminated, and [adjust_accuracy()] would apply
+#' a second correction to counts that have already been trimmed.
+#'
+#' Under `version = "4par"` the trim applies within each boundary, so the
+#' surviving count per boundary is about `(1 - 2 * trim)` of what arrived; set
+#' `min_trials` with that in mind.
+#'
 #' # Differences from `bmm`
 #'
 #' `bmm::ezdm_summary_stats()` defaults to `method = "mixture"`; this function
@@ -77,10 +110,9 @@
 #' different models.
 #'
 #' When the mixture fit fails the moments fall back to `"robust"` with a
-#' warning, as in `bmm` — and unlike [rt_screen()], where the analogous failure
-#' keeps every trial. The two differ because they answer different questions: a
-#' screen that cannot be evaluated should not remove trials, but a summary still
-#' has to return a number.
+#' warning, as in `bmm`. [rt_screen()] resolves the analogous failure the other
+#' way and keeps every trial (see [extending]). The two layers differ because a
+#' screen can decline to act, and a summary still has to return a number.
 #'
 #' @references
 #' Wagenmakers, E.-J., van der Maas, H. L. J., Dolan, C. V., & Grasman, R. P. P.
@@ -108,13 +140,15 @@
 #'
 #' @export
 rt_summary <- function(rt, response = NULL,
-                       method = c("simple", "robust", "mixture"),
+                       method = c(
+                         "simple", "robust", "trimmed", "winsorized", "mixture"
+                       ),
                        version = c("3par", "4par"),
                        distribution = c(
                          "exgaussian", "lognormal", "invgaussian"
                        ),
                        robust_scale = c("iqr", "mad"),
-                       weights = NULL, min_trials = 10, ...) {
+                       trim = 0.1, weights = NULL, min_trials = 10, ...) {
   method <- match.arg(method)
   version <- match.arg(version)
   distribution <- match.arg(distribution)
@@ -122,6 +156,7 @@ rt_summary <- function(rt, response = NULL,
 
   .check_rt(rt)
   .check_scalar(min_trials, "min_trials", lower = 1)
+  .check_scalar(trim, "trim", lower = 0, upper = 0.5, incl_upper = FALSE)
   if (!is.null(response)) {
     .stopif(
       length(response) != length(rt),
@@ -136,8 +171,9 @@ rt_summary <- function(rt, response = NULL,
     .stopif(
       method != "simple",
       paste0(
-        "'weights' is defined for method = \"simple\" only. Both \"robust\" ",
-        "and \"mixture\" already have their own answer to contamination."
+        "'weights' is defined for method = \"simple\" only. Every other ",
+        "method already carries its own answer to contamination, and ",
+        "combining two of them is an error rather than a convenience."
       )
     )
     .stopif(
@@ -186,7 +222,8 @@ rt_summary <- function(rt, response = NULL,
 
   moments <- function(x, w) {
     .rt_moments(
-      x, w, method, distribution, robust_scale, min_trials, bound, mixture_args
+      x, w, method, distribution, robust_scale, trim, min_trials, bound,
+      mixture_args
     )
   }
 
@@ -217,8 +254,8 @@ rt_summary <- function(rt, response = NULL,
 # Mean, variance, and (mixture only) contaminant proportion for one set of
 # trials. Below min_trials everything is NA: a summary computed from three
 # trials is noise wearing a number's clothes.
-.rt_moments <- function(x, w, method, distribution, robust_scale, min_trials,
-                        bound, mixture_args) {
+.rt_moments <- function(x, w, method, distribution, robust_scale, trim,
+                        min_trials, bound, mixture_args) {
   empty <- list(mean = NA_real_, var = NA_real_, contaminant_prop = NA_real_)
   # Weights are counted by Kish's effective sample size, sum(w)^2 / sum(w^2),
   # not by how many rows arrived. Two trials at weight 1 among 98 at weight 0
@@ -244,9 +281,20 @@ rt_summary <- function(rt, response = NULL,
     list(mean = stats::median(x), var = scale, contaminant_prop = NA_real_)
   }
 
+  trimmed <- function() {
+    w <- .winsorized_moments(x, trim)
+    list(mean = w$mean_trimmed, var = w$var, contaminant_prop = NA_real_)
+  }
+  winsorized <- function() {
+    w <- .winsorized_moments(x, trim)
+    list(mean = w$mean_winsorized, var = w$var, contaminant_prop = NA_real_)
+  }
+
   switch(method,
     simple = simple(),
     robust = robust(),
+    trimmed = trimmed(),
+    winsorized = winsorized(),
     mixture = {
       fit <- .mixture_moments(x, distribution, bound, mixture_args)
       if (is.null(fit)) {
@@ -259,6 +307,54 @@ rt_summary <- function(rt, response = NULL,
         fit
       }
     }
+  )
+}
+
+# Trimmed and Winsorized location, and a variance on the scale the EZ equations
+# want.
+#
+# Both means cut the same `k = floor(n * trim)` order statistics from each end,
+# because that is what base::mean(trim = ) does; taking the location from order
+# statistics and the spread from quantiles would describe two different
+# operations and the difference is invisible at most sample sizes.
+#
+# The variance needs care. `var_rt` enters ez_ddm() as a moment of the response
+# time distribution, which is why the robust route corrects IQR by 1.349 and
+# uses mad()'s 1.4826 rather than reporting the raw statistics. The Winsorized
+# variance is the same kind of quantity and needs the same kind of constant.
+# Under normality, Winsorizing at `trim` from each tail leaves a variance of
+#
+#   c(trim) = (1 - 2 * trim) - 2 z phi(z) + 2 trim z^2,   z = qnorm(1 - trim)
+#
+# times sigma^2, so dividing by c(trim) recovers sigma^2. The familiar Tukey and
+# McLaughlin (1963) divisor (1 - 2 * trim)^2 estimates a different thing -- the
+# variance of the trimmed *mean*, scaled by n -- and using it here would report
+# a variance 6% high at trim = 0.1 and 14% high at trim = 0.2, which ez_ddm()
+# would read as a slower drift.
+.winsorized_scale <- function(trim) {
+  if (trim <= 0) {
+    return(1)
+  }
+  z <- stats::qnorm(1 - trim)
+  (1 - 2 * trim) - 2 * z * stats::dnorm(z) + 2 * trim * z^2
+}
+
+.winsorized_moments <- function(x, trim) {
+  n <- length(x)
+  k <- floor(n * trim)
+  if (k == 0L) {
+    return(list(
+      mean_trimmed = mean(x), mean_winsorized = mean(x), var = stats::var(x)
+    ))
+  }
+  sorted <- sort(x)
+  pulled <- sorted
+  pulled[seq_len(k)] <- sorted[k + 1L]
+  pulled[seq.int(n - k + 1L, n)] <- sorted[n - k]
+  list(
+    mean_trimmed = mean(sorted[seq.int(k + 1L, n - k)]),
+    mean_winsorized = mean(pulled),
+    var = stats::var(pulled) / .winsorized_scale(trim)
   )
 }
 
@@ -359,9 +455,9 @@ rt_summary <- function(rt, response = NULL,
 #' @details
 #' **Stochastic by design.** How many trials were contaminants, and how many of
 #' those happened to be correct, are both binomial draws, so repeated calls
-#' differ. That is faithful to the uncertainty in a mixture estimate — a point
-#' estimate would understate it — and it matches `bmm`. There is no `set.seed()`
-#' anywhere in `rtprep`; reproducibility is the caller's.
+#' differ. That is faithful to the uncertainty in a mixture estimate, which a
+#' point estimate would understate, and it matches `bmm`. There is no
+#' `set.seed()` anywhere in `rtprep`; reproducibility is the caller's.
 #'
 #' Each row draws independently. For a single row the two draws are made in
 #' the same order as `bmm::adjust_ezdm_accuracy()`, so the two functions give
@@ -450,7 +546,7 @@ adjust_accuracy <- function(n_upper, n_trials, contaminant_prop,
 #' drift rate, boundary separation, and non-decision time out.
 #'
 #' Exported so that the whole pipeline-to-parameters check runs with only
-#' `rtprep` installed — a reader can screen, aggregate, and estimate without
+#' `rtprep` installed: a reader can screen, aggregate, and estimate without
 #' reaching for a model-fitting package.
 #'
 #' @param mean_rt,var_rt Mean and variance of the response times, in seconds.
@@ -463,7 +559,7 @@ adjust_accuracy <- function(n_upper, n_trials, contaminant_prop,
 #' @param n_trials Number of trials the statistics came from. Required: it sets
 #'   the size of the edge correction.
 #' @param s Scaling constant. `1` here; Wagenmakers et al. use `0.1`. This is a
-#'   units convention, not a modelling one — `drift` and `bound` scale linearly
+#'   units convention, not a modelling one: `drift` and `bound` scale linearly
 #'   with `s` and `ndt` does not, so a drift of 0.1 at `s = 0.1` and a drift of
 #'   1.0 at `s = 1` describe the same process.
 #'
@@ -476,8 +572,8 @@ adjust_accuracy <- function(n_upper, n_trials, contaminant_prop,
 #' 0.5, and 1. Wagenmakers et al.'s edge correction moves the offending value by
 #' `1 / (2 * n_trials)`: 1 becomes `1 - 1/(2n)`, 0 becomes `1/(2n)`, and 0.5
 #' becomes `0.5 + 1/(2n)`. It is applied silently, because it is the published
-#' behaviour and a warning per cell would bury a simulation run — but which
-#' cells were corrected comes back in the `edge_corrected` column, so a script
+#' behaviour and a warning per cell would bury a simulation run. Which cells
+#' were corrected comes back in the `edge_corrected` column, so a script
 #' can count them. It is a column rather than an attribute so that it survives
 #' `[`, `rbind()`, and the dplyr verbs.
 #'

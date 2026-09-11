@@ -413,3 +413,63 @@ test_that("fits is an empty data frame when every group key is missing", {
   ))
   expect_false(any(out$.keep))
 })
+
+# --- the returned object ----------------------------------------------------
+
+test_that("the return is a data.frame that dplyr verbs still handle", {
+  scr <- rt_screen(rt_example$rt, rule_mad(2.5), .by = rt_example$id)
+  expect_s3_class(scr, "rtprep_screen")
+  expect_s3_class(scr, "data.frame")
+  expect_true(is.data.frame(scr))
+  expect_equal(nrow(scr), nrow(rt_example))
+  expect_identical(class(as.data.frame(scr)), "data.frame")
+  expect_null(attr(as.data.frame(scr), "fits"))
+})
+
+test_that("the fits attribute survives column subsetting and not row subsetting", {
+  scr <- rt_screen(rt_example$rt, rule_mad(2.5), .by = rt_example$id)
+  cols <- scr[, c(".keep", ".prob", ".rule", ".reason")]
+  expect_false(is.null(attr(cols, "fits")))
+  expect_s3_class(cols, "rtprep_screen")
+
+  rows <- scr[1:10, ]
+  expect_null(attr(rows, "fits"))
+  expect_s3_class(rows, "rtprep_screen")
+  expect_s3_class(utils::head(scr), "rtprep_screen")
+})
+
+test_that("losing one of the four columns drops the class", {
+  scr <- rt_screen(rt_example$rt, rule_mad(2.5), .by = rt_example$id)
+  part <- scr[, c(".keep", ".prob")]
+  expect_false(inherits(part, "rtprep_screen"))
+  expect_identical(class(part), "data.frame")
+  expect_true(is.logical(scr[, ".keep"]))
+  expect_true(is.logical(scr$.keep))
+})
+
+test_that("print() reports the screen rather than every trial", {
+  scr <- rt_screen(rt_example$rt, rule_mad(2.5), .by = rt_example$id)
+  out <- utils::capture.output(print(scr))
+  expect_lt(length(out), 20)
+  expect_match(out[1], "<rtprep screen> 800 trials")
+  expect_match(paste(out, collapse = " "), "kept 712")
+  expect_match(paste(out, collapse = " "), "too_slow 88")
+  expect_match(paste(out, collapse = " "), "794 more trials")
+  expect_match(paste(out, collapse = " "), "screen_fits")
+})
+
+test_that("print() says so when the diagnostics were subset away", {
+  scr <- rt_screen(rt_example$rt, rule_mad(2.5), .by = rt_example$id)
+  out <- utils::capture.output(print(scr[1:5, ]))
+  expect_match(paste(out, collapse = " "), "dropped by subsetting")
+})
+
+test_that("the probabilistic policy is named in the summary", {
+  withr::with_seed(9, {
+    scr <- rt_screen(
+      rt_example$rt, rule_mixture("lognormal"),
+      .by = rt_example$id, policy = "probabilistic"
+    )
+  })
+  expect_match(paste(format(scr), collapse = " "), "probabilistic")
+})

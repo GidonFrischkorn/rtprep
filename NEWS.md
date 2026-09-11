@@ -17,11 +17,26 @@ truth.
 * `screen_fits()` returns the per-group fit diagnostics of a rule as a data
   frame.
 
-* `rule_cutoff()`, `rule_sd()`, `rule_mad()`, `rule_recursive()`,
-  `rule_ewma()`, and `rule_none()` implement absolute cutoffs, the SD and MAD
-  criteria, the recursive criteria of van Selst and Jolicoeur (1994), the EWMA
-  control chart of Vandekerckhove and Tuerlinckx (2007), and a pass-through
-  baseline.
+* `rule_cutoff()`, `rule_sd()`, `rule_mad()`, `rule_iqr()`,
+  `rule_recursive()`, `rule_ewma()`, and `rule_none()` implement absolute
+  cutoffs, the SD and MAD criteria, Tukey's quartile fences, the recursive
+  criteria of van Selst and Jolicoeur (1994), the EWMA control chart of
+  Vandekerckhove and Tuerlinckx (2007), and a pass-through baseline.
+
+* `rule_all()`, `rule_any()` and `rule_then()` combine rules. `rule_all()`
+  removes the union of what its components remove, which is how a slow-tail
+  criterion and a leading-edge detector cover between them what neither covers
+  alone. `rule_then()` stages them, each fitted on the trials the last one
+  left, which is what `trimr::sdTrim(minRT = , sd = )` does and what a
+  two-stage description in a Methods section usually means.
+
+* `rule_hierarchical()` shrinks each group's centre and spread towards the
+  values pooled over all groups, so a participant's criterion is not estimated
+  entirely from the data it is meant to clean. Experimental.
+
+* `rule_oracle()` removes exactly the trials named as contaminants. Only
+  meaningful on generated data, where it is the ceiling the other rules are
+  read against.
 
 * `rule_mixture()` fits a uniform-contaminant mixture with an ex-Gaussian,
   lognormal, or inverse Gaussian core by expectation maximisation and returns
@@ -36,8 +51,8 @@ truth.
   decision.
 
 * `rt_summary()` aggregates surviving trials into EZ-diffusion summary
-  statistics by sample moments, robust moments, or the analytic moments of a
-  fitted mixture, and accepts `.prob` as weights.
+  statistics by sample moments, robust moments, trimmed or Winsorized moments,
+  or the analytic moments of a fitted mixture, and accepts `.prob` as weights.
 
 * `ez_ddm()` inverts those statistics into drift, bound, and non-decision time
   (Wagenmakers et al., 2007), with the published edge correction and `s = 1`
@@ -50,13 +65,26 @@ truth.
   by a Bayes factor against the chance rate.
 
 * `screen_compare()` applies several rules at once and reports drop rates,
-  pairwise agreement, and the Jaccard overlap of the excluded sets, with
-  `print()`, `summary()`, and `plot()` methods.
+  pairwise agreement, and the Jaccard overlap of the excluded sets.
+  `summary()` returns those tables as an object with its own `print()` method,
+  so assigning it is quiet; `print()` and `plot()` return their input
+  invisibly, and `plot()` draws with ggplot2 when it is installed and base
+  graphics when it is not.
 
 * `r_contaminated()` generates response times from a diffusion or racing
   diffusion core with leading-edge anticipations, delayed start-ups, or
   informationless responses added at a known rate, and returns the ground
   truth with the data.
+
+* `rt_screen()`'s result prints as a summary of the screen, reporting what was
+  removed and why, rather than as one row per trial.
+
+* `new_rule()` and the `apply_rule()` generic are exported, so another package
+  can add a screening rule with one constructor and one method. `?extending`
+  documents the contract, which the engine now checks on every return.
+
+* `?rtprep` describes the package and `?rtprep-glossary` defines the terms the
+  rest of the documentation uses.
 
 * `rt_example` is a small simulated data set with ground truth, used by the
   examples and the get-started vignette (`vignette("rtprep")`).

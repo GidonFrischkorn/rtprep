@@ -34,6 +34,15 @@ below.
 
 ## Test environments
 
+> **Not current — re-run before submitting.** Every remote result below was
+> obtained on the tree of 2026-09-08. The API revision of 2026-09-11 postdates
+> them: it adds exported rules (`rule_iqr()`, `rule_all()`, `rule_any()`,
+> `rule_then()`, `rule_hierarchical()`, `rule_oracle()`, `new_rule()`,
+> `apply_rule()`), two `rt_summary()` methods, a classed `rt_screen()` return,
+> `graphics` to `Imports`, and a new vignette section. Only the local check has
+> been re-run since. Delete this block once win-builder, macOS builder and
+> R-hub have been re-run on the revised tree.
+
 * local macOS (Darwin 25.6.0), R 4.6.1, aarch64-apple-darwin23, 2026-09-05 and
   re-run on the submitted tree 2026-09-08: `devtools::check(cran = TRUE)` 0
   errors, 0 warnings, 0 notes (36.5 s, tests 26 s, vignettes re-built OK);
@@ -85,8 +94,11 @@ below.
 
 ## Notes for the reviewers
 
-* The package has no runtime dependency beyond `stats` and `utils`. The
-  `Suggests` packages support the equivalence tests and the plot method only.
+* The package has no runtime dependency beyond `graphics`, `stats` and
+  `utils`, all base. `graphics` is used only by the base-graphics fallback in
+  `plot.rtprep_comparison()`, which runs when the suggested `ggplot2` is not
+  installed. The `Suggests` packages support the equivalence tests, the
+  vignette and the ggplot2 plot path only.
 * Tests that compare live against `bmm`, `trimr`, and `rtdists`, and the
   tolerance-based parameter-recovery tests, are skipped on CRAN
   (`skip_on_cran()`); they run in the package's continuous integration. The

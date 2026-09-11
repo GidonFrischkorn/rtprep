@@ -1,4 +1,3 @@
-ADEMP
 Behavior
 CMD
 Chartier
@@ -11,6 +10,7 @@ EWMA
 EZ
 Gidon
 Grasman
+Informationless
 Jaccard
 Jolicoeur
 Jolicoeur's
@@ -21,15 +21,17 @@ Maruyama
 ORCID
 Peña
 Psychonomic
+R's
 Ratcliff
-Secondaries
 Selst
-SimDesign's
 Tuerlinckx
 Vandekerckhove
 Wagenmakers
+Winsorized
+Winsorizing
 askable
 bmm
+composite's
 cutoff
 cutoff's
 cutoffs
@@ -37,12 +39,11 @@ discretised
 doi
 dplyr
 ed
-estimand
-estimands
 ggplot
 informationless
-inspectable
 modeling
+ndt
+offs
 rd
 th
 unconverged

@@ -161,6 +161,35 @@ the SD criterion is negative. No trial can be too fast for it: the mean minus
 with the usual skew, which is why a symmetric criterion around the mean never
 reaches the leading edge where anticipations sit.
 
+### Quartile fences
+
+A centre and a spread are not the only way to build a band. `rule_iqr()`
+places Tukey's fences at `Q1 - k * IQR` and `Q3 + k * IQR`, which is a third
+family rather than a setting of `rule_sd()`: the fences are asymmetric by
+construction, because the quartiles sit where the data put them rather than
+at equal distances from a centre. On a right-skewed distribution that means
+the upper fence reaches further than the lower one without being told to.
+
+```{r fences}
+med <- median(p3_hard$rt)
+
+bind_rows(
+  screen_fits(p3_hard$rt, rule_mad(2.5)),
+  screen_fits(p3_hard$rt, rule_iqr(1.5))
+) |>
+  transmute(
+    n_dropped, lower, upper,
+    below_median = med - lower,
+    above_median = upper - med
+  )
+```
+
+The MAD criterion's two distances are equal by construction. The fences' are
+not, and on this cell the upper one reaches further, which is the direction
+the skew asks for. Note that `rule_iqr()` uses the type-7 quartiles of
+`quantile()`, not the hinges `boxplot.stats()` computes, so it will not always
+agree with the whiskers of a boxplot drawn from the same data.
+
 Miller (1991) is the standard warning about the SD criterion. The proportion
 of a skewed distribution that falls outside a fixed multiplier depends on the
 sample size, so the criterion changes what it removes as trial counts vary.
@@ -301,6 +330,129 @@ removes `r round(drop_at("ewma(0.01, 1.5)", 200), 1)`%. Ratcliff and Kang
 the published accuracy-based rule, and the cross-table above shows what its
 removals contained.
 
+## Combining rules
+
+The sections above keep arriving at the same wall. A criterion built around
+a centre never reaches the leading edge, and an accuracy chart never reaches
+the slow tail. Neither is a defect to be tuned away; they are properties of
+where each rule looks. The way past it is to use both, and `rule_all()`,
+`rule_any()` and `rule_then()` make that a rule like any other, so it screens,
+reports and compares through the same interface.
+
+`rule_all()` keeps a trial only when every component keeps it, so the
+exclusions are the union. `rule_any()` keeps a trial when any component keeps
+it, so the exclusions are the intersection, and it is the conservative choice.
+Run across the whole of `rt_example`, where the contaminants are labelled:
+
+```{r combine}
+by_cell <- list(rt_example$id, rt_example$condition)
+
+score <- function(rule, label) {
+  keep <- rt_screen(
+    rt_example$rt, rule,
+    response = rt_example$response, .by = by_cell
+  )$.keep
+  contaminant <- rt_example$contaminant
+  data.frame(
+    rule = label,
+    dropped = sum(!keep),
+    sensitivity = mean(!keep[contaminant]),
+    specificity = mean(keep[!contaminant]),
+    J = mean(!keep[contaminant]) + mean(keep[!contaminant]) - 1
+  )
+}
+
+combined <- bind_rows(
+  score(rule_mad(2.5), "mad(2.5)"),
+  score(rule_ewma(), "ewma"),
+  score(rule_all(rule_mad(2.5), rule_ewma()), "all(mad, ewma)")
+)
+combined |> mutate(across(where(is.numeric), \(x) round(x, 3)))
+```
+
+Youden's *J* goes from `r round(combined$J[1], 3)` and
+`r round(combined$J[2], 3)` to `r round(combined$J[3], 3)`, and the reason is
+visible once the removals are split by the process that generated them:
+
+```{r combine-process}
+sapply(
+  list(
+    "mad(2.5)" = rule_mad(2.5),
+    "ewma" = rule_ewma(),
+    "all(mad, ewma)" = rule_all(rule_mad(2.5), rule_ewma())
+  ),
+  function(rule) {
+    keep <- rt_screen(
+      rt_example$rt, rule,
+      response = rt_example$response, .by = by_cell
+    )$.keep
+    tapply(!keep, rt_example$process, sum)
+  }
+)
+```
+
+The MAD criterion removes delayed start-ups and no anticipation at all; the
+EWMA chart removes anticipations and no delay. Their excluded sets do not
+overlap on a single trial here, which is why the union's drop count is exactly
+the sum of theirs. Combining them is not a refinement of either rule, then, but
+a way of covering an end that neither reaches. The cost is in the specificity
+column: `r combined$dropped[3]` trials go, and most of them are clean. Whether
+that trade is worth making is a question about a particular data set and a
+particular estimand, and this page does not answer it; what composition gives
+you is the ability to put the alternatives through `screen_compare()` and look.
+
+`rule_then()` is different in kind. It fits each stage on the survivors of the
+last, which is what `trimr`'s published idiom does when a floor and an SD
+criterion are given in one call, and it is not the same answer as applying
+both to the full vector:
+
+```{r sequential}
+set.seed(12)
+anticipated <- c(runif(12, 0.05, 0.19), rlnorm(188, log(0.55), 0.3))
+
+floor_then_sd <- rule_then(rule_cutoff(0.2), rule_sd(2.5))
+floor_and_sd <- rule_all(rule_cutoff(0.2), rule_sd(2.5))
+
+c(
+  parallel = sum(rt_keep(anticipated, floor_and_sd)),
+  sequential = sum(rt_keep(anticipated, floor_then_sd))
+)
+```
+
+Six trials separate the two. The fits table says why: the second stage of the
+sequential rule never sees the twelve sub-200 ms trials, so it computes a
+standard deviation of
+`r round(screen_fits(anticipated, floor_then_sd)$r2_scale, 3)` against the
+parallel rule's
+`r round(screen_fits(anticipated, floor_and_sd)$r2_scale, 3)`, and its upper
+bound lands at
+`r round(screen_fits(anticipated, floor_then_sd)$r2_upper, 3)` s rather than
+`r round(screen_fits(anticipated, floor_and_sd)$r2_upper, 3)` s. Removing fast
+trials tightens the criterion that catches slow ones.
+
+The sequential order is the one `trimr` implements when a floor and an SD
+criterion are passed to `sdTrim()` together, and that is where these numbers
+can be checked against a published implementation rather than against the
+package's own reasoning:
+
+```{r sequential-trimr, eval = requireNamespace("trimr", quietly = TRUE)}
+trimmed <- trimr::sdTrim(
+  data.frame(
+    participant = "p1", condition = "c",
+    rt = anticipated * 1000, accuracy = 1
+  ),
+  minRT = 200, sd = 2.5,
+  pptVar = "participant", condVar = "condition",
+  rtVar = "rt", accVar = "accuracy",
+  perCondition = FALSE, perParticipant = FALSE, returnType = "raw"
+)
+
+nrow(trimmed)
+```
+
+Which of the two orders a paper meant is rarely stated, and the difference is
+not small. `rule_then()` at least makes it possible to say which.
+
 ## The mixture, in one paragraph
 
 `rule_mixture()` fits a two-component mixture by expectation maximisation: a
@@ -434,8 +586,11 @@ your own.
 ## Where next
 
 `?rules` documents every constructor with the reference it implements and
-the columns it adds to the fits table. Two further, experimental rules are
-unexported and described in `?rules_experimental`. The mixture has
+the columns it adds to the fits table, and `?rules_compose` covers the three
+combining rules. Two further, experimental rules are
+unexported and described in `?rules_experimental`. `?extending` gives the
+contract a rule of your own has to meet, which is one constructor and one
+`apply_rule()` method. The mixture has
 [its own article](mixture-screening.html),
 [the aggregation article](aggregation.html) covers what happens to the
 surviving trials, and [the comparison article](comparing-rules.html) applies

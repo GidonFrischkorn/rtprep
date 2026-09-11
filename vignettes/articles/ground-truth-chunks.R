@@ -150,7 +150,12 @@ mean(shift_by_participant)
 ## ---- gt-estimate ----
 # Drift per participant under three pipelines, against the drift each
 # participant was generated with: nothing removed, the chosen rule, and the
-# perfect-exclusion oracle that only generated data allows.
+# perfect-exclusion oracle that only generated data allows. rule_oracle()
+# carries the truth vector on the rule object, so the oracle goes through the
+# same engine as every other rule rather than being a hand-built keep vector;
+# it is the ceiling, not a rule anyone can run on real data.
+oracle_keep <- rt_screen(simulated$rt, rule_oracle(simulated$contaminant))$.keep
+
 estimate_drift <- function(keep, label) {
   simulated[keep, ] |>
     reframe(rt_summary(rt, response), .by = id) |>
@@ -163,7 +168,7 @@ estimate_drift <- function(keep, label) {
 estimates <- bind_rows(
   estimate_drift(rep(TRUE, nrow(simulated)), "none"),
   estimate_drift(recursive_keep, "recursive"),
-  estimate_drift(!simulated$contaminant, "oracle")
+  estimate_drift(oracle_keep, "oracle")
 )
 
 estimates |>

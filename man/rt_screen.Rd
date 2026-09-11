@@ -24,7 +24,7 @@ numeric 0/1, logical, or a character or factor using labels such as
 \code{"correct"}/\code{"error"} or \code{"upper"}/\code{"lower"}. Required by \code{\link[=rule_ewma]{rule_ewma()}} and
 by \code{\link[=rule_mixture]{rule_mixture()}} with \code{use_accuracy = TRUE}.}
 
-\item{.by}{Optional grouping of the same length as \code{rt} — a vector, factor,
+\item{.by}{Optional grouping of the same length as \code{rt}: a vector, factor,
 list of vectors, or data frame. Rules are fitted separately within each
 group. \code{NULL} treats all trials as one group.}
 
@@ -44,7 +44,7 @@ A \code{data.frame} with one row per element of \code{rt}, in input order:
 decision process, that is \strong{P(valid)}. Deterministic rules return 0 or
 1. Note that \code{bmm::flag_contaminant_rts()} returns the complement.}
 \item{\code{.rule}}{character; the rule's label.}
-\item{\code{.reason}}{character; why the \strong{rule} flagged the trial —
+\item{\code{.reason}}{character; why the \strong{rule} flagged the trial:
 \code{"too_fast"}, \code{"too_slow"}, \code{"contaminant"}, or \code{"missing"}. \code{NA}
 whenever the rule did not flag it, which includes trials the keep
 policy dropped anyway (at \code{threshold = 1}, or on a probabilistic draw
@@ -57,11 +57,10 @@ whatever the rule reports (bounds, iterations, EM convergence).
 \code{\link[=screen_fits]{screen_fits()}} returns that table on its own.
 }
 \description{
-Applies a screening rule and returns one row per input trial, whichever rule
-was used. That uniformity is the package's reason to exist: absolute cutoffs,
-standard deviation criteria, recursive criteria, and model-based mixtures all
-come back in the same shape, so a preprocessing choice can be compared rather
-than assumed.
+Applies a screening rule and returns one row per input trial: the keep
+decision, the probability behind it, the rule's label, and the reason for a
+flag. The four columns are the same whichever rule went in, so changing the
+rule changes one word and nothing around it.
 }
 \details{
 Separating the probability from the decision is deliberate. A mixture rule

@@ -584,3 +584,88 @@ test_that("rt_summary() output feeds ez_ddm() directly", {
   expect_equal(nrow(out), 1L)
   expect_true(all(is.finite(unlist(out))))
 })
+
+# --- trimmed and Winsorized aggregation -------------------------------------
+
+test_that("the trimmed mean is base R's, to the order statistic", {
+  set.seed(401)
+  x <- stats::rlnorm(300, log(0.5), 0.4)
+  for (trim in c(0, 0.05, 0.1, 0.2)) {
+    expect_equal(
+      rt_summary(x, method = "trimmed", trim = trim)$mean_rt,
+      mean(x, trim = trim)
+    )
+  }
+})
+
+test_that("the Winsorized mean pulls the extremes in rather than dropping them", {
+  x <- c(0.1, rep(0.5, 8), 5)
+  w <- rt_summary(x, method = "winsorized", trim = 0.1, min_trials = 5)
+  # floor(10 * 0.1) = 1 from each end, replaced by the nearest survivor
+  expect_equal(w$mean_rt, mean(c(0.5, rep(0.5, 8), 0.5)))
+  expect_equal(w$var_rt, 0)
+})
+
+test_that("the trimmed variance estimates the distribution's, not the mean's", {
+  # the divisor is the thing being tested: (1 - 2 * trim)^2 would come back
+  # about 6% high at trim = 0.1 and 14% high at trim = 0.2
+  skip_on_cran()
+  set.seed(402)
+  sigma <- 0.15
+  # centred well away from zero: .check_rt() rejects a non-positive draw, and
+  # truncating the sample would bias the very quantity under test
+  for (trim in c(0.1, 0.2)) {
+    v <- vapply(1:400, function(i) {
+      rt_summary(
+        stats::rnorm(300, 1.5, sigma),
+        method = "trimmed", trim = trim
+      )$var_rt
+    }, numeric(1))
+    expect_equal(mean(v), sigma^2, tolerance = 0.03)
+  }
+})
+
+test_that("trimming and Winsorizing share a variance and differ in location", {
+  set.seed(403)
+  x <- stats::rlnorm(200, log(0.5), 0.5)
+  tr <- rt_summary(x, method = "trimmed", trim = 0.1)
+  wi <- rt_summary(x, method = "winsorized", trim = 0.1)
+  expect_equal(tr$var_rt, wi$var_rt)
+  expect_false(isTRUE(all.equal(tr$mean_rt, wi$mean_rt)))
+})
+
+test_that("trim = 0 is the untrimmed answer", {
+  set.seed(404)
+  x <- stats::rlnorm(200, log(0.5), 0.4)
+  expect_equal(
+    rt_summary(x, method = "trimmed", trim = 0)[c("mean_rt", "var_rt")],
+    rt_summary(x, method = "simple")[c("mean_rt", "var_rt")]
+  )
+})
+
+test_that("the trimmed methods report no contaminant proportion", {
+  set.seed(405)
+  x <- stats::rlnorm(200, log(0.5), 0.4)
+  expect_true(is.na(rt_summary(x, method = "trimmed")$contaminant_prop))
+  expect_true(is.na(rt_summary(x, method = "winsorized")$contaminant_prop))
+})
+
+test_that("weights are refused for the trimmed methods too", {
+  set.seed(406)
+  x <- stats::rlnorm(50, log(0.5), 0.4)
+  expect_error(
+    rt_summary(x, method = "trimmed", weights = rep(1, 50)),
+    "simple"
+  )
+  expect_error(rt_summary(x, method = "winsorized", weights = rep(1, 50)), "simple")
+  expect_error(rt_summary(x, method = "trimmed", trim = 0.5), "must be a single number")
+})
+
+test_that("4par trims within each response boundary", {
+  set.seed(407)
+  x <- stats::rlnorm(300, log(0.5), 0.4)
+  resp <- stats::rbinom(300, 1, 0.8)
+  out <- rt_summary(x, resp, method = "trimmed", version = "4par")
+  expect_equal(out$mean_rt_upper, mean(x[resp == 1], trim = 0.1))
+  expect_equal(out$mean_rt_lower, mean(x[resp == 0], trim = 0.1))
+})

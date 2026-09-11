@@ -121,6 +121,65 @@ test_that("the frozen reference still matches the installed trimr", {
   )
 })
 
+# trimr's own signature is sdTrim(minRT, sd): the floor is applied first and the
+# standard deviation is estimated on what survives it. Every comparison above
+# passes minRT = 0 to sidestep that, because until rule_then() there was no way
+# to express the two stages as one rule. This is the test that closes the gap,
+# and it is the reason the staged composite exists.
+test_that("rule_then() reproduces trimr's two-stage sdTrim()", {
+  skip_on_cran()
+  skip_if_not_installed("trimr")
+  d <- reference$data
+
+  for (min_rt in c(150, 200, 250)) {
+    for (n_sd in c(2, 2.5, 3)) {
+      kept <- trimr::sdTrim(
+        d,
+        minRT = min_rt, sd = n_sd, perCondition = FALSE,
+        perParticipant = TRUE, omitErrors = FALSE, returnType = "raw"
+      )
+      staged <- rule_then(rule_cutoff(min_rt / 1000), rule_sd(n_sd))
+      ours <- d$rt[rt_screen(
+        d$rt / 1000, staged,
+        .by = d$participant
+      )$.keep]
+      expect_equal(
+        sort(ours), sort(kept$rt),
+        info = paste0("minRT = ", min_rt, ", sd = ", n_sd)
+      )
+    }
+  }
+})
+
+test_that("staging is not the same as applying both rules to the raw data", {
+  skip_on_cran()
+  skip_if_not_installed("trimr")
+  # The two agree whenever the floor removes nothing, which is the case on the
+  # reference fixture. They can only differ where the trials the floor removes
+  # were also inflating the standard deviation, so the data has to have some.
+  set.seed(11)
+  rt <- c(
+    stats::runif(15, 0.05, 0.19),
+    stats::rnorm(150, 0.55, 0.1),
+    stats::runif(35, 2.5, 5)
+  )
+  d <- data.frame(
+    participant = "p1", condition = "c1", rt = rt * 1000, accuracy = 1
+  )
+  kept <- trimr::sdTrim(
+    d,
+    minRT = 200, sd = 2.5, perCondition = FALSE, perParticipant = TRUE,
+    omitErrors = FALSE, returnType = "raw"
+  )
+  staged <- rt[rt_screen(rt, rule_then(rule_cutoff(0.2), rule_sd(2.5)))$.keep]
+  parallel <- rt[rt_screen(rt, rule_all(rule_cutoff(0.2), rule_sd(2.5)))$.keep]
+
+  expect_equal(sort(staged * 1000), sort(kept$rt))
+  # if these ever agree, the test above has stopped discriminating
+  expect_false(isTRUE(all.equal(sort(parallel), sort(staged))))
+  expect_lt(length(parallel), length(staged))
+})
+
 # --- against bmm ------------------------------------------------------------
 
 # The claim these carry: the companion DDM tutorial recommends bmm's defaults on

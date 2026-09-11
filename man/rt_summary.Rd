@@ -7,10 +7,11 @@
 rt_summary(
   rt,
   response = NULL,
-  method = c("simple", "robust", "mixture"),
+  method = c("simple", "robust", "trimmed", "winsorized", "mixture"),
   version = c("3par", "4par"),
   distribution = c("exgaussian", "lognormal", "invgaussian"),
   robust_scale = c("iqr", "mad"),
+  trim = 0.1,
   weights = NULL,
   min_trials = 10,
   ...
@@ -22,19 +23,25 @@ rt_summary(
 \item{response}{Optional response coding of the same length as \code{rt}, in any
 form \code{\link[=rt_screen]{rt_screen()}} accepts. Required for \code{version = "4par"}; without it
 \code{n_upper} is \code{NA}. A trial whose response is missing belongs to neither
-boundary and is left out of both, but still counts towards \code{n_trials} — as
-in \code{bmm} — so \code{n_upper / n_trials} understates accuracy when responses are
+boundary and is left out of both, but still counts towards \code{n_trials}, as
+in \code{bmm}, so \code{n_upper / n_trials} understates accuracy when responses are
 missing. Drop those trials first if that matters.}
 
 \item{method}{How the moments are computed.
 \itemize{
-\item \code{"simple"} — the sample mean and variance. The baseline, and what almost
-everyone does.
-\item \code{"robust"} — the median, with the variance from the interquartile range
-(divided by 1.349) or the median absolute deviation. Statistic-level
-robustness, after Chávez De la Peña et al. (2026).
-\item \code{"mixture"} — the analytic moments of the response time component of a
-fitted contaminant mixture, and its estimated contaminant proportion.
+\item \code{"simple"} gives the sample mean and variance. The baseline, and what
+almost everyone does.
+\item \code{"robust"} gives the median, with the variance from the interquartile
+range (divided by 1.349) or the median absolute deviation.
+Statistic-level robustness, after Chávez De la Peña et al. (2026).
+\item \code{"trimmed"} gives the mean of the middle \code{1 - 2 * trim} of the trials,
+with the variance from the Winsorized sample. The robust-statistics
+answer.
+\item \code{"winsorized"} gives the same variance, with the mean of the Winsorized
+sample rather than the trimmed one.
+\item \code{"mixture"} gives the analytic moments of the response time component
+of a fitted contaminant mixture, and its estimated contaminant
+proportion.
 }}
 
 \item{version}{\code{"3par"} pools the two response boundaries; \code{"4par"}
@@ -44,6 +51,10 @@ summarises each separately.}
 \code{\link[=rule_mixture]{rule_mixture()}}.}
 
 \item{robust_scale}{Spread statistic for \code{method = "robust"}.}
+
+\item{trim}{Proportion of trials cut from \emph{each} tail by
+\code{method = "trimmed"} and \code{method = "winsorized"}, as in
+\code{\link[base:mean]{base::mean()}}. \code{floor(n * trim)} trials go from each end.}
 
 \item{weights}{Optional per-trial weights, typically the \code{.prob} column of
 \code{\link[=rt_screen]{rt_screen()}}. Defined for \code{method = "simple"} only.}
@@ -58,7 +69,7 @@ among ninety-eight zeros count as two trials rather than a hundred.}
 including \code{maxit = 500} where \code{bmm::ezdm_summary_stats()} uses 100.}
 }
 \value{
-A one-row \code{data.frame} — the inputs \code{\link[=ez_ddm]{ez_ddm()}} needs.
+A one-row \code{data.frame} holding the inputs \code{\link[=ez_ddm]{ez_ddm()}} needs.
 
 \code{version = "3par"}: \code{mean_rt}, \code{var_rt}, \code{n_upper}, \code{n_trials},
 \code{contaminant_prop}.
@@ -90,6 +101,30 @@ equal. Frequency weights would use \code{sum(w) - 1} and are the wrong model:
 \code{.prob} is a probability, not a count.
 }
 
+\section{Trimming and Winsorizing}{
+Both cut the same \code{floor(n * trim)} trials from each tail. Trimming drops
+them; Winsorizing replaces each with the nearest surviving value, so the
+count stays the same and the extremes stop pulling. The variance comes from
+the Winsorized sample either way, rescaled so that it estimates the variance
+of the response time distribution rather than the variance of the trimmed
+mean. It is the same kind of correction as the 1.349 that
+\code{robust_scale = "iqr"} applies, and it is necessary because \code{\link[=ez_ddm]{ez_ddm()}} reads
+\code{var_rt} as a moment of the distribution.
+
+The divisor is not the familiar \code{(1 - 2 * trim)^2} of Tukey and McLaughlin
+(1963). That one estimates \code{n} times the variance of the trimmed \emph{mean}, and
+using it here would report a variance 6\% high at \code{trim = 0.1} and 14\% high at
+\code{trim = 0.2}, which \code{\link[=ez_ddm]{ez_ddm()}} would read as a slower drift.
+
+\code{contaminant_prop} stays \code{NA}. \code{trim} is the proportion removed, not an
+estimate of the proportion contaminated, and \code{\link[=adjust_accuracy]{adjust_accuracy()}} would apply
+a second correction to counts that have already been trimmed.
+
+Under \code{version = "4par"} the trim applies within each boundary, so the
+surviving count per boundary is about \code{(1 - 2 * trim)} of what arrived; set
+\code{min_trials} with that in mind.
+}
+
 \section{Differences from \code{bmm}}{
 \code{bmm::ezdm_summary_stats()} defaults to \code{method = "mixture"}; this function
 defaults to \code{"simple"}. A package about preprocessing choices should not
@@ -102,10 +137,9 @@ happened to have the wider range, so the two halves would be fitted against
 different models.
 
 When the mixture fit fails the moments fall back to \code{"robust"} with a
-warning, as in \code{bmm} — and unlike \code{\link[=rt_screen]{rt_screen()}}, where the analogous failure
-keeps every trial. The two differ because they answer different questions: a
-screen that cannot be evaluated should not remove trials, but a summary still
-has to return a number.
+warning, as in \code{bmm}. \code{\link[=rt_screen]{rt_screen()}} resolves the analogous failure the other
+way and keeps every trial (see \link{extending}). The two layers differ because a
+screen can decline to act, and a summary still has to return a number.
 }
 
 \examples{

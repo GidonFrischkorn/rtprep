@@ -20,7 +20,7 @@ starting point may be off centre.}
 the size of the edge correction.}
 
 \item{s}{Scaling constant. \code{1} here; Wagenmakers et al. use \code{0.1}. This is a
-units convention, not a modelling one — \code{drift} and \code{bound} scale linearly
+units convention, not a modelling one: \code{drift} and \code{bound} scale linearly
 with \code{s} and \code{ndt} does not, so a drift of 0.1 at \code{s = 0.1} and a drift of
 1.0 at \code{s = 1} describe the same process.}
 }
@@ -35,7 +35,7 @@ Grasman (2007): mean response time, response time variance, and accuracy in;
 drift rate, boundary separation, and non-decision time out.
 
 Exported so that the whole pipeline-to-parameters check runs with only
-\code{rtprep} installed — a reader can screen, aggregate, and estimate without
+\code{rtprep} installed: a reader can screen, aggregate, and estimate without
 reaching for a model-fitting package.
 }
 \details{
@@ -43,8 +43,8 @@ The equations divide by \code{logit(accuracy)} and break down at accuracies of 0
 0.5, and 1. Wagenmakers et al.'s edge correction moves the offending value by
 \code{1 / (2 * n_trials)}: 1 becomes \verb{1 - 1/(2n)}, 0 becomes \verb{1/(2n)}, and 0.5
 becomes \verb{0.5 + 1/(2n)}. It is applied silently, because it is the published
-behaviour and a warning per cell would bury a simulation run — but which
-cells were corrected comes back in the \code{edge_corrected} column, so a script
+behaviour and a warning per cell would bury a simulation run. Which cells
+were corrected comes back in the \code{edge_corrected} column, so a script
 can count them. It is a column rather than an attribute so that it survives
 \code{[}, \code{rbind()}, and the dplyr verbs.
 

@@ -9,8 +9,9 @@
 #' `bmm::validate_fast_guesses()`.
 #'
 #' @param keep Logical vector of keep decisions, typically the `.keep` column of
-#'   [rt_screen()]. Note this is the *keep* flag, not a contaminant flag —
-#'   `rtprep`'s convention throughout — so a screen's output drops straight in.
+#'   [rt_screen()]. Note this is the *keep* flag, not a contaminant flag, which
+#'   is `rtprep`'s convention throughout, so a screen's output drops straight
+#'   in.
 #' @param rt Numeric vector of response times, in seconds.
 #' @param response Response coding of the same length, in any form
 #'   [rt_screen()] accepts.
@@ -23,7 +24,7 @@
 #'   default `1, 1` is uniform.
 #' @param credible_mass Mass of the highest-density interval.
 #'
-#' @return A one-row `data.frame` — a row rather than `bmm`'s list, because in
+#' @return A one-row `data.frame`, rather than `bmm`'s list, because in
 #'   practice this goes into a results table:
 #'
 #'   \describe{
@@ -40,14 +41,14 @@
 #'
 #' @details
 #' The test looks only at trials that were **both excluded and fast**. Slow
-#' exclusions are a different claim — a slow contaminant is an attention lapse,
+#' exclusions are a different claim: a slow contaminant is an attention lapse,
 #' not a guess, and there is no reason to expect chance accuracy from one.
 #'
 #' This is the diagnostic counterpart of `rule_mixture(use_accuracy = TRUE)`:
-#' one checks accuracy after flagging, the other uses it during. Given what the
-#' package's own tests found about the latter — that it collapses on overlapping
-#' contamination and actively hurts when contaminants keep their accuracy — this
-#' is currently the safer of the two instruments.
+#' one checks accuracy after flagging, the other uses it during. The package's
+#' own tests found that the latter collapses on overlapping contamination and
+#' actively hurts when contaminants keep their accuracy, which makes this
+#' currently the safer of the two instruments.
 #'
 #' When no trial is both excluded and fast, the row comes back with
 #' `n_tested = 0` and `NA` statistics rather than an error. In a simulation that

@@ -18,8 +18,9 @@ check_guessing(
 }
 \arguments{
 \item{keep}{Logical vector of keep decisions, typically the \code{.keep} column of
-\code{\link[=rt_screen]{rt_screen()}}. Note this is the \emph{keep} flag, not a contaminant flag —
-\code{rtprep}'s convention throughout — so a screen's output drops straight in.}
+\code{\link[=rt_screen]{rt_screen()}}. Note this is the \emph{keep} flag, not a contaminant flag, which
+is \code{rtprep}'s convention throughout, so a screen's output drops straight
+in.}
 
 \item{rt}{Numeric vector of response times, in seconds.}
 
@@ -40,7 +41,7 @@ default \verb{1, 1} is uniform.}
 \item{credible_mass}{Mass of the highest-density interval.}
 }
 \value{
-A one-row \code{data.frame} — a row rather than \code{bmm}'s list, because in
+A one-row \code{data.frame}, rather than \code{bmm}'s list, because in
 practice this goes into a results table:
 
 \describe{
@@ -65,14 +66,14 @@ A Beta-Binomial test with a Savage–Dickey Bayes factor, ported from
 }
 \details{
 The test looks only at trials that were \strong{both excluded and fast}. Slow
-exclusions are a different claim — a slow contaminant is an attention lapse,
+exclusions are a different claim: a slow contaminant is an attention lapse,
 not a guess, and there is no reason to expect chance accuracy from one.
 
 This is the diagnostic counterpart of \code{rule_mixture(use_accuracy = TRUE)}:
-one checks accuracy after flagging, the other uses it during. Given what the
-package's own tests found about the latter — that it collapses on overlapping
-contamination and actively hurts when contaminants keep their accuracy — this
-is currently the safer of the two instruments.
+one checks accuracy after flagging, the other uses it during. The package's
+own tests found that the latter collapses on overlapping contamination and
+actively hurts when contaminants keep their accuracy, which makes this
+currently the safer of the two instruments.
 
 When no trial is both excluded and fast, the row comes back with
 \code{n_tested = 0} and \code{NA} statistics rather than an error. In a simulation that

@@ -217,34 +217,42 @@ test_that("print() names every rule and returns invisibly", {
   expect_invisible(print(cmp))
 })
 
-test_that("summary() prints both tables and returns them invisibly", {
+test_that("summary() returns a value rather than printing as a side effect", {
   rt <- compare_fixture()
   cmp <- screen_compare(rt, rules = standard_rules())
 
-  out <- capture.output(res <- summary(cmp))
-  expect_true(any(grepl("Drop rates", out)))
-  expect_true(any(grepl("Pairwise agreement", out)))
+  # assigning the summary must be quiet: the whole point of the class
+  expect_silent(res <- summary(cmp))
+  expect_s3_class(res, "rtprep_comparison_summary")
   expect_equal(res$drops, cmp$drops)
   expect_equal(res$agreement, cmp$agreement)
+
+  # and printing it is what shows the tables
+  out <- capture.output(print(res))
+  expect_true(any(grepl("Drop rates", out)))
+  expect_true(any(grepl("Pairwise agreement", out)))
+  expect_invisible(print(res))
 })
 
-test_that("plot() works whether or not ggplot2 is installed", {
+test_that("plot() returns the same class whether or not ggplot2 is installed", {
   rt <- compare_fixture()
   cmp <- screen_compare(rt, rules = standard_rules())
 
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+
   if (requireNamespace("ggplot2", quietly = TRUE)) {
-    p <- plot(cmp)
-    expect_s3_class(p, "ggplot")
+    expect_invisible(plot(cmp))
+    expect_s3_class(plot(cmp), "rtprep_comparison")
   }
 
-  # and the base-graphics fallback must not error either: a plot method that
-  # stops on a missing Suggests is a trap
+  # the base-graphics fallback must not error either -- a plot method that
+  # stops on a missing Suggests is a trap -- and must return the same thing
   local_mocked_bindings(
     requireNamespace = function(...) FALSE, .package = "base"
   )
-  pdf(NULL)
-  on.exit(dev.off(), add = TRUE)
   expect_invisible(plot(cmp))
+  expect_s3_class(plot(cmp), "rtprep_comparison")
 })
 
 test_that("the roster is the second positional argument", {

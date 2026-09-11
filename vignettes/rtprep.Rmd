@@ -248,10 +248,88 @@ and that is the honest reading: the check needs a rule that removes fast
 trials, and enough of them, before it can say anything. Where `n_tested` is
 zero the test is silent, which is itself informative about the rule.
 
+## Reporting what you did
+
+A preprocessing step is part of the analysis, and a reader cannot repeat it
+from "outliers were removed". Four things pin it down: which rule and at
+which setting, the grouping the criterion was computed within, how much it
+removed, and whether error trials went through the screen with the correct
+ones. All four are in the objects the code already produced, so none of them
+has to be typed from memory.
+
+The rule and its setting print themselves, and the per-cell counts come from
+`screen_fits()`:
+
+```{r reporting-fits}
+rule <- rule_sd(2.5)
+rule
+
+fits <- rt_example |>
+  reframe(screen_fits(rt, rule), .by = c(id, condition))
+
+fits |>
+  summarise(
+    cells = n(),
+    trials = sum(n_trials),
+    dropped = sum(n_dropped),
+    prop = sum(n_dropped) / sum(n_trials),
+    lowest_cell = min(prop_dropped),
+    highest_cell = max(prop_dropped)
+  )
+```
+
+Report the range across cells as well as the total. A criterion that removes
+`r sprintf("%.1f%%", 100 * sum(fits$n_dropped) / sum(fits$n_trials))` overall
+can be removing much more from one participant than another, and that spread
+is the thing this package exists to make visible.
+
+The reasons say what the rule actually caught, which is worth checking before
+describing it:
+
+```{r reporting-reasons}
+rt_example |>
+  mutate(rt_screen(rt, rule), .by = c(id, condition)) |>
+  count(.rule, .reason)
+```
+
+```{r reporting-values, include = FALSE}
+n_cells <- nrow(fits)
+n_trials <- sum(fits$n_trials)
+n_dropped <- sum(fits$n_dropped)
+pct <- sprintf("%.1f", 100 * n_dropped / n_trials)
+lo <- sprintf("%.0f", 100 * min(fits$prop_dropped))
+hi <- sprintf("%.0f", 100 * max(fits$prop_dropped))
+```
+
+Which gives a Methods sentence that can be written from the output rather
+than around it:
+
+> Response times were screened with a ±2.5 SD criterion around the mean,
+> computed separately within each participant and condition
+> (`r n_cells` cells). This removed `r n_dropped` of `r n_trials` trials
+> (`r pct`%), between `r lo`% and `r hi`% per cell; all exclusions were slow
+> trials. Error trials were screened alongside correct ones, and accuracy was
+> computed after screening.
+
+That last clause is the one most often left out and the one that most often
+changes the answer. The criterion here never looked at `response`, so error
+trials passed through it on their response times alone; a rule that does read
+accuracy, such as `rule_ewma()` or `rule_mixture(use_accuracy = TRUE)`, needs
+saying explicitly, because it makes the screen and the dependent variable
+share information.
+
 ## Where to go next
 
 `?rules` documents every rule with the reference it implements and the
-columns it adds to the fits table. `?rt_summary` covers the robust and
-mixture aggregation routes, `?adjust_accuracy` the accuracy correction that
-goes with the mixture route, and `?r_contaminated` the three contaminant
-processes and how to match the generator to a task of your own.
+columns it adds to the fits table, and `?rules_compose` covers `rule_all()`,
+`rule_any()` and `rule_then()`, which combine them. No single conventional
+rule reaches both ends of the distribution, so combining a spread criterion
+with an accuracy control chart is often better than tuning either.
+`?rt_summary` covers the robust, trimmed and mixture aggregation routes,
+`?adjust_accuracy` the accuracy correction that goes with the mixture route,
+and `?r_contaminated` the three contaminant processes and how to match the
+generator to a task of your own. `?rule_oracle` removes exactly the labelled
+contaminants, which is the ceiling any real rule is read against.
+
+`?rtprep-glossary` defines the terms the rest of the documentation assumes,
+and `?extending` gives the contract a rule from another package has to meet.

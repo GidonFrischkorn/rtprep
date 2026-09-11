@@ -23,7 +23,7 @@ package itself.
 ## The problem
 
 Every response time analysis makes an exclusion decision, and most
-inherit it by convention — 200 ms and 3 s because that is what the last
+inherit it by convention: 200 ms and 3 s because that is what the last
 paper did, or ±2.5 SD because that is what the field does. The
 consequences are invisible in the data the researcher can see, and they
 are not small: contaminant trials bias evidence accumulation model
@@ -34,8 +34,8 @@ The methods to deal with this exist and are scattered. What does not
 exist is a way to compare them, because every implementation returns a
 different kind of object: a trimmed data frame, a vector of per-trial
 probabilities, a set of summary statistics. `rtprep` gives them one
-interface, so a preprocessing choice can be evaluated rather than
-assumed.
+interface, so you can ask what a different cutoff would have removed,
+and how far two defensible choices disagree on your own data.
 
 ## What it provides
 
@@ -78,6 +78,11 @@ dat <- r_contaminated(400, process = "mixed", rate = 0.1)
 
 scr <- rt_screen(dat$rt, rule_sd(2.5))
 head(scr)
+#> <rtprep screen> 6 trials, sd(2.5, mean, sd)
+#>   kept 6 (100.0%), dropped 0 (0.0%)
+#>   policy: keep where .prob > 0.5
+#>   per-group diagnostics: dropped by subsetting; screen_fits() to refit
+#> 
 #>   .keep .prob             .rule .reason
 #> 1  TRUE     1 sd(2.5, mean, sd)    <NA>
 #> 2  TRUE     1 sd(2.5, mean, sd)    <NA>
@@ -116,10 +121,10 @@ table(flagged = !scr$.keep, contaminant = dat$contaminant)
 
 `rtprep` implements its screening rules itself and carries no runtime
 dependency on other preprocessing packages. Where reference
-implementations exist — [`trimr`](https://github.com/JimGrange/trimr)
-for the trimming families, [`bmm`](https://github.com/popov-lab/bmm) for
-the mixture EM and EZ aggregation — the test suite checks equivalence
-against them.
+implementations exist, namely
+[`trimr`](https://github.com/JimGrange/trimr) for the trimming families
+and [`bmm`](https://github.com/popov-lab/bmm) for the mixture EM and EZ
+aggregation, the test suite checks equivalence against them.
 
 ## Citation
 

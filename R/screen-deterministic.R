@@ -46,6 +46,56 @@ apply_rule.rtprep_rule_sd <- function(rule, rt, response = NULL) {
   )
 }
 
+# --- perfect exclusion ------------------------------------------------------
+
+# rule$contaminant has already been cut down to this group by the engine, which
+# is what per_trial = "contaminant" on the rule object buys.
+#' @exportS3Method
+apply_rule.rtprep_rule_oracle <- function(rule, rt, response = NULL) {
+  is_contaminant <- rule$contaminant
+  # an unlabelled trial is not evidence of contamination
+  is_contaminant[is.na(is_contaminant)] <- FALSE
+  list(
+    prob = as.numeric(!is_contaminant),
+    reason = ifelse(is_contaminant, "contaminant", NA_character_),
+    fit = data.frame(n_contaminant = sum(is_contaminant))
+  )
+}
+
+# --- Tukey's quartile fences ------------------------------------------------
+
+#' @exportS3Method
+apply_rule.rtprep_rule_iqr <- function(rule, rt, response = NULL) {
+  n <- length(rt)
+  quartiles <- stats::quantile(rt, c(0.25, 0.75), names = FALSE, type = 7)
+  spread <- quartiles[2] - quartiles[1]
+
+  # Below four trials the quartiles are interpolations between two order
+  # statistics and the fences say nothing; a zero range would flag every trial
+  # off the median. Neither is grounds to remove data.
+  if (n < 4L || !is.finite(spread) || spread == 0) {
+    return(list(
+      prob = rep(1, n),
+      reason = rep(NA_character_, n),
+      fit = data.frame(
+        q1 = quartiles[1], q3 = quartiles[2], iqr = spread,
+        lower = NA_real_, upper = NA_real_
+      )
+    ))
+  }
+
+  lower <- quartiles[1] - rule$k * spread
+  upper <- quartiles[2] + rule$k * spread
+  list(
+    prob = .prob_from_bounds(rt, lower, upper),
+    reason = .reason_from_bounds(rt, lower, upper),
+    fit = data.frame(
+      q1 = quartiles[1], q3 = quartiles[2], iqr = spread,
+      lower = lower, upper = upper
+    )
+  )
+}
+
 # --- van Selst & Jolicoeur (1994) recursive criteria ------------------------
 
 # The criterion multipliers for sample sizes 4 to 100, one column per

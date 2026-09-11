@@ -5,10 +5,12 @@
 \alias{rule_cutoff}
 \alias{rule_sd}
 \alias{rule_mad}
+\alias{rule_iqr}
 \alias{rule_recursive}
 \alias{rule_ewma}
 \alias{rule_mixture}
 \alias{rule_none}
+\alias{rule_oracle}
 \alias{print.rtprep_rule}
 \title{Screening rules}
 \usage{
@@ -17,6 +19,8 @@ rule_cutoff(min = 0, max = Inf)
 rule_sd(n_sd = 2.5, center = c("mean", "median"), scale = c("sd", "mad"))
 
 rule_mad(n_mad = 2.5)
+
+rule_iqr(k = 1.5)
 
 rule_recursive(type = c("moving", "modified", "hybrid"), include_max = TRUE)
 
@@ -35,6 +39,8 @@ rule_mixture(
 
 rule_none()
 
+rule_oracle(contaminant)
+
 \method{print}{rtprep_rule}(x, ...)
 }
 \arguments{
@@ -48,6 +54,9 @@ upper tail untouched.}
 
 \item{scale}{Spread statistic, \code{"sd"} or \code{"mad"}. \code{"mad"} uses \code{\link[stats:mad]{stats::mad()}}
 and so carries the usual consistency constant of 1.4826.}
+
+\item{k}{Multiplier applied to the interquartile range when placing Tukey's
+fences. 1.5 marks an outlier, 3 a far-out point.}
 
 \item{type}{Which recursive criterion to use; see Details.}
 
@@ -84,6 +93,9 @@ comparing the two packages.}
 
 \item{tol}{Convergence tolerance on the log-likelihood.}
 
+\item{contaminant}{Logical vector, one value per trial, marking which trials
+are contaminants. \code{NA} means unknown, and an unknown trial is kept.}
+
 \item{x}{A rule object.}
 
 \item{...}{Ignored.}
@@ -101,16 +113,19 @@ whichever rule was used.
 
 Rules from incompatible families therefore become directly comparable:
 \itemize{
-\item \code{rule_cutoff()} — fixed absolute bounds.
-\item \code{rule_sd()} — a location/spread criterion, covering both the SD criterion
-and the median absolute deviation criterion.
-\item \code{rule_mad()} — a thin alias of \code{rule_sd(center = "median", scale = "mad")}.
-\item \code{rule_recursive()} — the sample-size-dependent criteria of van Selst and
-Jolicoeur (1994).
-\item \code{rule_ewma()} — the accuracy control chart of Vandekerckhove and
+\item \code{rule_cutoff()} applies fixed absolute bounds.
+\item \code{rule_sd()} applies a location/spread criterion, covering both the SD
+criterion and the median absolute deviation criterion.
+\item \code{rule_mad()} is a thin alias of
+\code{rule_sd(center = "median", scale = "mad")}.
+\item \code{rule_iqr()} applies Tukey's quartile fences, asymmetric by construction.
+\item \code{rule_recursive()} applies the sample-size-dependent criteria of van Selst
+and Jolicoeur (1994).
+\item \code{rule_ewma()} applies the accuracy control chart of Vandekerckhove and
 Tuerlinckx (2007).
-\item \code{rule_mixture()} — a uniform-contaminant mixture fitted by EM.
-\item \code{rule_none()} — a pass-through baseline.
+\item \code{rule_mixture()} fits a uniform-contaminant mixture by EM.
+\item \code{rule_none()} is a pass-through baseline.
+\item \code{rule_oracle()} is perfect exclusion, for generated data with known truth.
 }
 }
 \section{Absolute cutoffs}{
@@ -121,9 +136,9 @@ that truncation biases the surviving distribution even when it removes real
 contaminants.
 
 Bounds are inclusive, so \code{rule_cutoff(min = 0.18)} keeps a response time of
-exactly 180 ms — 180 ms is not \emph{below} 180 ms. Note that \code{trimr} uses strict
-comparisons, so the two implementations can disagree on a trial sitting
-exactly on a bound.
+exactly 180 ms, since 180 ms is not \emph{below} 180 ms. Note that \code{trimr} uses
+strict comparisons, so the two implementations can disagree on a trial
+sitting exactly on a bound.
 }
 
 \section{Location and spread criteria}{
@@ -133,16 +148,41 @@ recomputed within each group of \code{\link[=rt_screen]{rt_screen()}}. \verb{cen
 criterion recommended by Leys et al. (2013), also available as
 \code{rule_mad()}.
 
-One constructor covers both because they are one family — the same algorithm
+One constructor covers both because they are one family: the same algorithm
 with a different location/spread pair. Miller (1991) is the standard warning
 about the standard deviation criterion: the proportion of a skewed
 distribution that survives a fixed multiplier depends on sample size, so the
 criterion silently changes what it removes as trial counts vary. That
 dependence is what \code{rule_recursive()} was designed to remove.
 
-When the spread statistic cannot be used — fewer than two observed trials in
-a group, or zero spread — nothing is flagged. A rule that cannot be evaluated
-must not remove data.
+When the spread statistic cannot be used, because a group holds fewer than
+two observed trials or because the spread is zero, nothing is flagged; see
+\link{extending} for the contract this follows from.
+}
+
+\section{Quartile fences}{
+\code{rule_iqr()} flags trials outside Tukey's fences, \code{Q1 - k * IQR} and
+\code{Q3 + k * IQR}, with quartiles at R's default type 7. \code{k = 1.5} is Tukey's
+(1977) value and \code{k = 3} his marker for a far-out point. It is the criterion
+a boxplot draws, and so the one behind "I removed the points outside the
+whiskers".
+
+Not quite, though: \code{\link[grDevices:boxplot.stats]{grDevices::boxplot.stats()}} places the fences at
+\code{fivenum()} hinges rather than at type-7 quartiles, and the two differ at
+some sample sizes -- for \code{n = 10} and \code{n = 50} in a quick check, not for
+\code{n = 9}, \code{11} or \code{51}. \code{rule_iqr()} uses the quartiles, which is what
+\code{\link[stats:quantile]{stats::quantile()}} and \code{ggplot2::geom_boxplot()} use.
+
+It belongs to neither family above. \code{rule_cutoff()} fixes its bounds in
+advance; \code{rule_sd()} places them symmetrically around a centre. Tukey's
+fences are estimated from the data like the second and asymmetric like
+neither, so on a right-skewed response time distribution the upper fence sits
+further from the median than the lower one. That asymmetry is the reason to
+have it: a symmetric criterion on skewed data spends its budget in the tail
+the distribution is thin in.
+
+Fewer than four observed trials in a group, or an interquartile range of
+zero, flags nothing.
 }
 
 \section{Recursive and moving criteria}{
@@ -162,7 +202,7 @@ standard deviation are computed, the most extreme trial at each end is
 removed if it falls outside the resulting bounds, and the procedure repeats
 until nothing is removed or fewer than five trials remain. The temporary
 exclusion is what makes the rule bite, so it applies whatever \code{include_max}
-says — \code{include_max} governs \code{type = "moving"} only.
+says; \code{include_max} governs \code{type = "moving"} only.
 \item \code{type = "hybrid"} averages the two. Per trial, \code{.prob} is the mean of the
 two rules' decisions and so takes the value 0, 0.5, or 1; under the default
 keep policy a trial survives only if both rules keep it.
@@ -214,9 +254,9 @@ upper/lower boundary.
 contaminant distribution over \code{bound} and a parametric response time
 distribution, by expectation maximisation (Ratcliff & Tuerlinckx, 2002).
 \code{.prob} is then the posterior probability that a trial came from the response
-time component — the one rule in the package that returns something other
-than 0 and 1, and the reason \code{\link[=rt_screen]{rt_screen()}} separates the probability from the
-keep decision at all.
+time component. This is the one rule in the package that returns something
+other than 0 and 1, and the reason \code{\link[=rt_screen]{rt_screen()}} separates the probability
+from the keep decision at all.
 
 The bounds of the uniform component are buffered outward from the observed
 range by half its width. Without that buffer the uniform's edges sit exactly
@@ -227,7 +267,7 @@ block of fast guesses the ex-Gaussian can absorb the block by widening its
 Gaussian part and driving \code{tau} to zero, reporting no contamination at all,
 where the lognormal and inverse Gaussian cores find it. The same thing
 happens in \code{bmm}'s implementation, so it is a property of the model rather
-than of either package — but it is a reason to check
+than of either package. It is still a reason to check
 \code{attr(x, "fits")$contaminant_prop} against what you expected rather than
 trusting the default.
 
@@ -243,7 +283,7 @@ would propagate into \code{.keep}.
 \code{use_accuracy = TRUE} is \strong{experimental}. It puts accuracy inside the
 mixture likelihood rather than using it only afterwards, on the reasoning
 that a fast trial that is \emph{correct} is less likely to be a guess than a fast
-trial that is an error — something an RT-only mixture cannot see. With \code{y}
+trial that is an error, which an RT-only mixture cannot see. With \code{y}
 the accuracy indicator, \eqn{\gamma} the chance rate known from the design,
 and \eqn{p_c} the estimated accuracy of the decision process:
 
@@ -259,8 +299,8 @@ The staging is deliberate, and the reasons are concrete. Three things the
 package's own tests establish:
 \itemize{
 \item \strong{It can order overlapping guesses better than response time alone.} Where
-contaminants fall inside the valid distribution's range — the case RT-only
-detection fails at — the joint posterior ranks them more accurately.
+contaminants fall inside the valid distribution's range, which is the case
+RT-only detection fails at, the joint posterior ranks them more accurately.
 \item \strong{But the fit tends to collapse.} A contaminant proportion of zero is a
 fixed point of this EM, and the accuracy factor widens its basin because it
 favours the valid component on every correct trial. On exactly the
@@ -283,8 +323,8 @@ a cleaner data set.
 
 Two things the method cannot enforce for you:
 \itemize{
-\item It assumes contaminants respond at \code{chance}. Get \code{chance} wrong — screening
-a four-alternative task at 0.5 — and detection degrades sharply.
+\item It assumes contaminants respond at \code{chance}. Get \code{chance} wrong, by
+screening a four-alternative task at 0.5, and detection degrades sharply.
 \item \code{response} must be coded \strong{correct/error}, not upper/lower boundary. Both
 are 0/1, so \code{rtprep} cannot tell them apart.
 }
@@ -303,11 +343,30 @@ entry in the roster rather than a missing row, and so that pipelines can be
 compared against it without a special case.
 }
 
+\section{Perfect exclusion}{
+\code{rule_oracle()} removes exactly the trials you tell it are contaminants and
+nothing else. It is not a method: on real data nobody has the vector it
+needs. It is the ceiling the others are read against.
+
+The reason to have it is that a drop rate and a hit rate do not say what a
+pipeline costs. Running the oracle through the same aggregation and the same
+estimation as a real rule gives the error that remains when screening is
+perfect, and the difference between the two is what the screening decision
+actually bought. \code{\link[=r_contaminated]{r_contaminated()}} returns the \code{contaminant} column this
+takes, so the comparison is two calls.
+
+\code{contaminant} holds one value per trial and is subset alongside \code{rt}, so the
+rule works under \code{.by} grouping like any other.
+}
+
 \examples{
 rule_cutoff(0.18, 3)
 
 rule_sd(2.5)
 rule_mad(3)
+
+rule_iqr()
+rule_iqr(3)
 
 rule_recursive("modified")
 
@@ -316,6 +375,17 @@ rule_ewma(lambda = 0.05)
 rule_mixture("lognormal")
 
 rule_none()
+
+truth <- rt_example$contaminant
+oracle <- rule_oracle(truth)
+oracle
+
+# what a real rule leaves behind, against what perfect exclusion leaves
+screen_compare(
+  rt_example$rt,
+  list(mad = rule_mad(2.5), oracle = oracle),
+  .by = rt_example$id
+)
 
 }
 \references{
@@ -335,6 +405,8 @@ deviation around the median. \emph{Journal of Experimental Social Psychology},
 Miller, J. (1991). Reaction time analysis with outlier exclusion: Bias varies
 with sample size. \emph{The Quarterly Journal of Experimental Psychology Section
 A}, \emph{43}(4), 907–912. \doi{10.1080/14640749108400962}
+
+Tukey, J. W. (1977). \emph{Exploratory data analysis}. Addison-Wesley.
 
 Van Selst, M., & Jolicoeur, P. (1994). A solution to the effect of sample
 size on outlier elimination. \emph{The Quarterly Journal of Experimental
@@ -363,7 +435,8 @@ variability. \emph{Psychonomic Bulletin & Review}, \emph{9}(3), 438–481.
 \doi{10.3758/bf03196302}
 }
 \seealso{
-\code{\link[=rt_screen]{rt_screen()}} to apply a rule; \code{screen_compare()} to apply several.
-Two further, experimental rules are unexported and documented in
-\code{?rules_experimental}.
+\code{\link[=rt_screen]{rt_screen()}} to apply a rule; \code{\link[=screen_compare]{screen_compare()}} to apply several;
+\code{\link[=rule_all]{rule_all()}} to combine them; \code{\link[=rule_hierarchical]{rule_hierarchical()}} for a criterion pooled
+across groups. Two further, experimental rules are unexported and
+documented in \code{?rules_experimental}.
 }

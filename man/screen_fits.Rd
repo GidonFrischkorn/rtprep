@@ -24,7 +24,7 @@ numeric 0/1, logical, or a character or factor using labels such as
 \code{"correct"}/\code{"error"} or \code{"upper"}/\code{"lower"}. Required by \code{\link[=rule_ewma]{rule_ewma()}} and
 by \code{\link[=rule_mixture]{rule_mixture()}} with \code{use_accuracy = TRUE}.}
 
-\item{.by}{Optional grouping of the same length as \code{rt} — a vector, factor,
+\item{.by}{Optional grouping of the same length as \code{rt}: a vector, factor,
 list of vectors, or data frame. Rules are fitted separately within each
 group. \code{NULL} treats all trials as one group.}
 

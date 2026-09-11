@@ -31,8 +31,8 @@ this repository carries the package itself.
 
 ## The problem
 
-Every response time analysis makes an exclusion decision, and most inherit it by convention
-— 200 ms and 3 s because that is what the last paper did, or ±2.5 SD because that is what
+Every response time analysis makes an exclusion decision, and most inherit it by convention:
+200 ms and 3 s because that is what the last paper did, or ±2.5 SD because that is what
 the field does. The consequences are invisible in the data the researcher can see, and they
 are not small: contaminant trials bias evidence accumulation model parameters, and which
 contaminants a method can reach depends on how far they sit from the RT distribution the
@@ -41,7 +41,8 @@ decision process itself produces.
 The methods to deal with this exist and are scattered. What does not exist is a way to
 compare them, because every implementation returns a different kind of object: a trimmed
 data frame, a vector of per-trial probabilities, a set of summary statistics. `rtprep` gives
-them one interface, so a preprocessing choice can be evaluated rather than assumed.
+them one interface, so you can ask what a different cutoff would have removed, and how
+far two defensible choices disagree on your own data.
 
 ## What it provides
 
@@ -99,9 +100,9 @@ table(flagged = !scr$.keep, contaminant = dat$contaminant)
 ## Relationship to other packages
 
 `rtprep` implements its screening rules itself and carries no runtime dependency on other
-preprocessing packages. Where reference implementations exist —
-[`trimr`](https://github.com/JimGrange/trimr) for the trimming families,
-[`bmm`](https://github.com/popov-lab/bmm) for the mixture EM and EZ aggregation — the test
+preprocessing packages. Where reference implementations exist, namely
+[`trimr`](https://github.com/JimGrange/trimr) for the trimming families and
+[`bmm`](https://github.com/popov-lab/bmm) for the mixture EM and EZ aggregation, the test
 suite checks equivalence against them.
 
 ## Citation

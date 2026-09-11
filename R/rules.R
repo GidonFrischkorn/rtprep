@@ -8,16 +8,19 @@
 #'
 #' Rules from incompatible families therefore become directly comparable:
 #'
-#' * `rule_cutoff()` — fixed absolute bounds.
-#' * `rule_sd()` — a location/spread criterion, covering both the SD criterion
-#'   and the median absolute deviation criterion.
-#' * `rule_mad()` — a thin alias of `rule_sd(center = "median", scale = "mad")`.
-#' * `rule_recursive()` — the sample-size-dependent criteria of van Selst and
-#'   Jolicoeur (1994).
-#' * `rule_ewma()` — the accuracy control chart of Vandekerckhove and
+#' * `rule_cutoff()` applies fixed absolute bounds.
+#' * `rule_sd()` applies a location/spread criterion, covering both the SD
+#'   criterion and the median absolute deviation criterion.
+#' * `rule_mad()` is a thin alias of
+#'   `rule_sd(center = "median", scale = "mad")`.
+#' * `rule_iqr()` applies Tukey's quartile fences, asymmetric by construction.
+#' * `rule_recursive()` applies the sample-size-dependent criteria of van Selst
+#'   and Jolicoeur (1994).
+#' * `rule_ewma()` applies the accuracy control chart of Vandekerckhove and
 #'   Tuerlinckx (2007).
-#' * `rule_mixture()` — a uniform-contaminant mixture fitted by EM.
-#' * `rule_none()` — a pass-through baseline.
+#' * `rule_mixture()` fits a uniform-contaminant mixture by EM.
+#' * `rule_none()` is a pass-through baseline.
+#' * `rule_oracle()` is perfect exclusion, for generated data with known truth.
 #'
 #' @param min,max Absolute bounds in seconds. Bounds are **inclusive**: a trial
 #'   is flagged only when it falls strictly outside. `max = Inf` leaves the
@@ -26,6 +29,10 @@
 #' @param center Location statistic, `"mean"` or `"median"`.
 #' @param scale Spread statistic, `"sd"` or `"mad"`. `"mad"` uses [stats::mad()]
 #'   and so carries the usual consistency constant of 1.4826.
+#' @param k Multiplier applied to the interquartile range when placing Tukey's
+#'   fences. 1.5 marks an outlier, 3 a far-out point.
+#' @param contaminant Logical vector, one value per trial, marking which trials
+#'   are contaminants. `NA` means unknown, and an unknown trial is kept.
 #' @param type Which recursive criterion to use; see Details.
 #' @param include_max Whether the largest response time enters the mean and
 #'   standard deviation from which the criterion is built. Applies to
@@ -54,19 +61,13 @@
 #'   of validated parameters plus a `label` element used for the `.rule` column
 #'   of [rt_screen()].
 #'
-#' @seealso [rt_screen()] to apply a rule; `screen_compare()` to apply several.
-#'   Two further, experimental rules are unexported and documented in
-#'   `?rules_experimental`.
+#' @seealso [rt_screen()] to apply a rule; [screen_compare()] to apply several;
+#'   [rule_all()] to combine them; [rule_hierarchical()] for a criterion pooled
+#'   across groups. Two further, experimental rules are unexported and
+#'   documented in `?rules_experimental`.
 #'
 #' @name rules
 NULL
-
-.new_rule <- function(subclass, label, ...) {
-  structure(
-    c(list(...), list(label = label)),
-    class = c(paste0("rtprep_rule_", subclass), "rtprep_rule")
-  )
-}
 
 #' @rdname rules
 #'
@@ -80,9 +81,9 @@ NULL
 #' contaminants.
 #'
 #' Bounds are inclusive, so `rule_cutoff(min = 0.18)` keeps a response time of
-#' exactly 180 ms — 180 ms is not *below* 180 ms. Note that `trimr` uses strict
-#' comparisons, so the two implementations can disagree on a trial sitting
-#' exactly on a bound.
+#' exactly 180 ms, since 180 ms is not *below* 180 ms. Note that `trimr` uses
+#' strict comparisons, so the two implementations can disagree on a trial
+#' sitting exactly on a bound.
 #'
 #' @references
 #' Ratcliff, R. (1993). Methods for dealing with reaction time outliers.
@@ -121,16 +122,16 @@ rule_cutoff <- function(min = 0, max = Inf) {
 #' criterion recommended by Leys et al. (2013), also available as
 #' `rule_mad()`.
 #'
-#' One constructor covers both because they are one family — the same algorithm
+#' One constructor covers both because they are one family: the same algorithm
 #' with a different location/spread pair. Miller (1991) is the standard warning
 #' about the standard deviation criterion: the proportion of a skewed
 #' distribution that survives a fixed multiplier depends on sample size, so the
 #' criterion silently changes what it removes as trial counts vary. That
 #' dependence is what `rule_recursive()` was designed to remove.
 #'
-#' When the spread statistic cannot be used — fewer than two observed trials in
-#' a group, or zero spread — nothing is flagged. A rule that cannot be evaluated
-#' must not remove data.
+#' When the spread statistic cannot be used, because a group holds fewer than
+#' two observed trials or because the spread is zero, nothing is flagged; see
+#' [extending] for the contract this follows from.
 #'
 #' @references
 #' Leys, C., Ley, C., Klein, O., Bernard, P., & Licata, L. (2013). Detecting
@@ -169,6 +170,52 @@ rule_mad <- function(n_mad = 2.5) {
 #' @rdname rules
 #'
 #' @details
+#' # Quartile fences
+#'
+#' `rule_iqr()` flags trials outside Tukey's fences, `Q1 - k * IQR` and
+#' `Q3 + k * IQR`, with quartiles at R's default type 7. `k = 1.5` is Tukey's
+#' (1977) value and `k = 3` his marker for a far-out point. It is the criterion
+#' a boxplot draws, and so the one behind "I removed the points outside the
+#' whiskers".
+#'
+#' Not quite, though: [grDevices::boxplot.stats()] places the fences at
+#' `fivenum()` hinges rather than at type-7 quartiles, and the two differ at
+#' some sample sizes -- for `n = 10` and `n = 50` in a quick check, not for
+#' `n = 9`, `11` or `51`. `rule_iqr()` uses the quartiles, which is what
+#' [stats::quantile()] and `ggplot2::geom_boxplot()` use.
+#'
+#' It belongs to neither family above. `rule_cutoff()` fixes its bounds in
+#' advance; `rule_sd()` places them symmetrically around a centre. Tukey's
+#' fences are estimated from the data like the second and asymmetric like
+#' neither, so on a right-skewed response time distribution the upper fence sits
+#' further from the median than the lower one. That asymmetry is the reason to
+#' have it: a symmetric criterion on skewed data spends its budget in the tail
+#' the distribution is thin in.
+#'
+#' Fewer than four observed trials in a group, or an interquartile range of
+#' zero, flags nothing.
+#'
+#' @references
+#' Tukey, J. W. (1977). *Exploratory data analysis*. Addison-Wesley.
+#'
+#' @examples
+#' rule_iqr()
+#' rule_iqr(3)
+#'
+#' @export
+rule_iqr <- function(k = 1.5) {
+  .check_scalar(k, "k", lower = 0, incl_lower = FALSE)
+
+  new_rule(
+    "iqr",
+    label = paste0("iqr(", .fmt(k), ")"),
+    k = k
+  )
+}
+
+#' @rdname rules
+#'
+#' @details
 #' # Recursive and moving criteria
 #'
 #' Van Selst and Jolicoeur (1994) answered Miller's (1991) sample-size problem
@@ -187,7 +234,7 @@ rule_mad <- function(n_mad = 2.5) {
 #'   removed if it falls outside the resulting bounds, and the procedure repeats
 #'   until nothing is removed or fewer than five trials remain. The temporary
 #'   exclusion is what makes the rule bite, so it applies whatever `include_max`
-#'   says — `include_max` governs `type = "moving"` only.
+#'   says; `include_max` governs `type = "moving"` only.
 #' * `type = "hybrid"` averages the two. Per trial, `.prob` is the mean of the
 #'   two rules' decisions and so takes the value 0, 0.5, or 1; under the default
 #'   keep policy a trial survives only if both rules keep it.
@@ -377,9 +424,9 @@ rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
 #' can undercut non-decision time. The rule fits the closed-form EZ model to a
 #' group's trials, flags everything below `c_ndt` times the fitted
 #' non-decision time, refits once on the survivors (`refit = TRUE`), re-flags
-#' against the updated estimate, and stops — never iterating further, because
-#' lower-tail removal shrinks the variance and pushes the estimate upward, a
-#' one-way ratchet that unlimited iteration would run away with.
+#' against the updated estimate, and stops there. It never iterates further,
+#' because lower-tail removal shrinks the variance and pushes the estimate
+#' upward, a one-way ratchet that unlimited iteration would run away with.
 #'
 #' The catch is the point: fast contaminants drag the fitted non-decision time
 #' down, so the rule's premise is poisoned by exactly the trials it hunts.
@@ -420,9 +467,9 @@ rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
 #' contaminant distribution over `bound` and a parametric response time
 #' distribution, by expectation maximisation (Ratcliff & Tuerlinckx, 2002).
 #' `.prob` is then the posterior probability that a trial came from the response
-#' time component — the one rule in the package that returns something other
-#' than 0 and 1, and the reason [rt_screen()] separates the probability from the
-#' keep decision at all.
+#' time component. This is the one rule in the package that returns something
+#' other than 0 and 1, and the reason [rt_screen()] separates the probability
+#' from the keep decision at all.
 #'
 #' The bounds of the uniform component are buffered outward from the observed
 #' range by half its width. Without that buffer the uniform's edges sit exactly
@@ -433,7 +480,7 @@ rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
 #' Gaussian part and driving `tau` to zero, reporting no contamination at all,
 #' where the lognormal and inverse Gaussian cores find it. The same thing
 #' happens in `bmm`'s implementation, so it is a property of the model rather
-#' than of either package — but it is a reason to check
+#' than of either package. It is still a reason to check
 #' `attr(x, "fits")$contaminant_prop` against what you expected rather than
 #' trusting the default.
 #'
@@ -449,7 +496,7 @@ rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
 #' `use_accuracy = TRUE` is **experimental**. It puts accuracy inside the
 #' mixture likelihood rather than using it only afterwards, on the reasoning
 #' that a fast trial that is *correct* is less likely to be a guess than a fast
-#' trial that is an error — something an RT-only mixture cannot see. With `y`
+#' trial that is an error, which an RT-only mixture cannot see. With `y`
 #' the accuracy indicator, \eqn{\gamma} the chance rate known from the design,
 #' and \eqn{p_c} the estimated accuracy of the decision process:
 #'
@@ -466,8 +513,8 @@ rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
 #' package's own tests establish:
 #'
 #' * **It can order overlapping guesses better than response time alone.** Where
-#'   contaminants fall inside the valid distribution's range — the case RT-only
-#'   detection fails at — the joint posterior ranks them more accurately.
+#'   contaminants fall inside the valid distribution's range, which is the case
+#'   RT-only detection fails at, the joint posterior ranks them more accurately.
 #' * **But the fit tends to collapse.** A contaminant proportion of zero is a
 #'   fixed point of this EM, and the accuracy factor widens its basin because it
 #'   favours the valid component on every correct trial. On exactly the
@@ -489,8 +536,8 @@ rule_ez_support <- function(c_ndt = 1, refit = TRUE) {
 #'
 #' Two things the method cannot enforce for you:
 #'
-#' * It assumes contaminants respond at `chance`. Get `chance` wrong — screening
-#'   a four-alternative task at 0.5 — and detection degrades sharply.
+#' * It assumes contaminants respond at `chance`. Get `chance` wrong, by
+#'   screening a four-alternative task at 0.5, and detection degrades sharply.
 #' * `response` must be coded **correct/error**, not upper/lower boundary. Both
 #'   are 0/1, so `rtprep` cannot tell them apart.
 #'
@@ -600,6 +647,52 @@ rule_none <- function() {
 }
 
 #' @rdname rules
+#'
+#' @details
+#' # Perfect exclusion
+#'
+#' `rule_oracle()` removes exactly the trials you tell it are contaminants and
+#' nothing else. It is not a method: on real data nobody has the vector it
+#' needs. It is the ceiling the others are read against.
+#'
+#' The reason to have it is that a drop rate and a hit rate do not say what a
+#' pipeline costs. Running the oracle through the same aggregation and the same
+#' estimation as a real rule gives the error that remains when screening is
+#' perfect, and the difference between the two is what the screening decision
+#' actually bought. [r_contaminated()] returns the `contaminant` column this
+#' takes, so the comparison is two calls.
+#'
+#' `contaminant` holds one value per trial and is subset alongside `rt`, so the
+#' rule works under `.by` grouping like any other.
+#'
+#' @examples
+#' truth <- rt_example$contaminant
+#' oracle <- rule_oracle(truth)
+#' oracle
+#'
+#' # what a real rule leaves behind, against what perfect exclusion leaves
+#' screen_compare(
+#'   rt_example$rt,
+#'   list(mad = rule_mad(2.5), oracle = oracle),
+#'   .by = rt_example$id
+#' )
+#'
+#' @export
+rule_oracle <- function(contaminant) {
+  binary <- is.numeric(contaminant) && all(contaminant %in% c(0, 1, NA))
+  .stopif(
+    !is.logical(contaminant) && !binary,
+    "'contaminant' must be a logical vector, one value per trial."
+  )
+  new_rule(
+    "oracle",
+    label = "oracle",
+    contaminant = as.logical(contaminant),
+    per_trial = "contaminant"
+  )
+}
+
+#' @rdname rules
 #' @param x A rule object.
 #' @param ... Ignored.
 #' @export
@@ -624,6 +717,20 @@ print.rtprep_rule <- function(x, ...) {
   paste0(
     "Exclude trials more than ", .fmt(x$n_sd), " x ", x$scale,
     " from the ", x$center, ", computed per group."
+  )
+}
+
+.describe_rule.rtprep_rule_oracle <- function(x) {
+  paste0(
+    "Exclude exactly the ", sum(x$contaminant, na.rm = TRUE), " trials marked ",
+    "as contaminants. Requires ground truth, so simulated data only."
+  )
+}
+
+.describe_rule.rtprep_rule_iqr <- function(x) {
+  paste0(
+    "Exclude trials outside Tukey's fences, Q1 - ", .fmt(x$k),
+    " x IQR and Q3 + ", .fmt(x$k), " x IQR, computed per group."
   )
 }
 

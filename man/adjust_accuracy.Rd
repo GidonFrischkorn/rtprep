@@ -34,9 +34,9 @@ assumption that contaminants respond correctly at \code{guess_rate}. A port of
 \details{
 \strong{Stochastic by design.} How many trials were contaminants, and how many of
 those happened to be correct, are both binomial draws, so repeated calls
-differ. That is faithful to the uncertainty in a mixture estimate — a point
-estimate would understate it — and it matches \code{bmm}. There is no \code{set.seed()}
-anywhere in \code{rtprep}; reproducibility is the caller's.
+differ. That is faithful to the uncertainty in a mixture estimate, which a
+point estimate would understate, and it matches \code{bmm}. There is no
+\code{set.seed()} anywhere in \code{rtprep}; reproducibility is the caller's.
 
 Each row draws independently. For a single row the two draws are made in
 the same order as \code{bmm::adjust_ezdm_accuracy()}, so the two functions give

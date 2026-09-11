@@ -4,6 +4,7 @@
 \alias{screen_compare}
 \alias{print.rtprep_comparison}
 \alias{summary.rtprep_comparison}
+\alias{print.rtprep_comparison_summary}
 \alias{plot.rtprep_comparison}
 \title{Compare what several screening rules would remove}
 \usage{
@@ -20,6 +21,8 @@ screen_compare(
 
 \method{summary}{rtprep_comparison}(object, ...)
 
+\method{print}{rtprep_comparison_summary}(x, ...)
+
 \method{plot}{rtprep_comparison}(x, ...)
 }
 \arguments{
@@ -29,7 +32,8 @@ unchanged.}
 \item{rules}{A \code{list()} of rule objects; see \link{rules}. Names become the labels
 in the output; unnamed entries take the rule's own label.}
 
-\item{x}{An \code{rtprep_comparison}.}
+\item{x}{An \code{rtprep_comparison}, or for
+\code{print.rtprep_comparison_summary()} an \code{rtprep_comparison_summary}.}
 
 \item{...}{Ignored.}
 
@@ -48,17 +52,24 @@ counts behind them.}
 \item{\code{fits}}{the per-group fit diagnostics, stacked, with a \code{.rule}
 column.}
 }
+
+\code{summary()} returns an \code{rtprep_comparison_summary}: the \code{drops} and
+\code{agreement} tables, printed by their own method. It is a value, not a side
+effect, so \code{s <- summary(cmp)} is quiet and \code{s$drops} is the table.
+\code{print()} and \code{plot()} return their input invisibly. \code{plot()} draws with
+ggplot2 when it is installed and with \code{\link[graphics:barplot]{graphics::barplot()}} when it is not;
+the return value is the same either way.
 }
 \description{
 Applies every rule once and reports where they disagree. This is the question
 the package exists to make askable: \emph{what would a different preprocessing
-choice have removed?} — which is normally unanswerable because each rule's
+choice have removed?} That is normally unanswerable, because each rule's
 implementation returns a different shape.
 }
 \details{
 \code{agree} and \code{jaccard} answer different questions and diverge exactly where it
 matters. Two rules that each drop 2\% of trials and never the same one agree
-on 96\% of decisions — and have a Jaccard index of zero. Agreement alone would
+on 96\% of decisions, and have a Jaccard index of zero. Agreement alone would
 call them interchangeable. Jaccard is \code{NA}, not 1, when neither rule dropped
 anything: no overlap can be computed from two empty sets.
 }

@@ -34,6 +34,14 @@
   invisible(NULL)
 }
 
+.check_string <- function(x, name) {
+  .stopif(
+    !is.character(x) || length(x) != 1L || is.na(x) || !nzchar(x),
+    paste0("'", name, "' must be a single non-empty string.")
+  )
+  invisible(NULL)
+}
+
 .check_flag <- function(x, name) {
   .stopif(
     !is.logical(x) || length(x) != 1L || is.na(x),

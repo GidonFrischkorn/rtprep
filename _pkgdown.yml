@@ -18,6 +18,7 @@ reference:
   - title: About rtprep
     contents:
       - rtprep-package
+      - rtprep-glossary
   - title: Screening
     desc: One engine, one return shape, whichever rule is applied.
     contents:
@@ -25,6 +26,14 @@ reference:
       - rt_keep
       - screen_fits
       - rules
+      - rtprep_screen
+  - title: Combining rules
+    desc: >
+      No single conventional rule reaches both the slow tail and the leading
+      edge; these put two together.
+    contents:
+      - rules_compose
+      - rule_hierarchical
   - title: Aggregation and estimation
     desc: From surviving trials to EZ-diffusion inputs and parameters.
     contents:
@@ -40,10 +49,15 @@ reference:
       - check_guessing
   - title: Ground truth
     desc: >
-      Generate data with contaminants of known type, so a pipeline can be
-      tested instead of trusted.
+      Generate data whose contaminants are labelled, and remove exactly those,
+      so a screen can be scored and read against perfect exclusion.
     contents:
       - r_contaminated
+      - rule_oracle
+  - title: Extending rtprep
+    desc: Adding a screening rule from your own package.
+    contents:
+      - extending
   - title: Data
     contents:
       - has_keyword("datasets")
