@@ -18,6 +18,9 @@
 #' would attach a table that quietly disagrees with the object. The class
 #' survives for as long as the four columns do.
 #'
+#' The `rule` and `group_names` attributes, which [report_screening()] reads,
+#' name the screen rather than count it, so they survive row subsetting too.
+#'
 #' `as.data.frame()` strips the class and the attributes, for when a plain frame
 #' is wanted.
 #'
@@ -120,6 +123,8 @@ as.data.frame.rtprep_screen <- function(x, row.names = NULL, optional = FALSE,
   attr(x, "fits") <- NULL
   attr(x, "policy") <- NULL
   attr(x, "threshold") <- NULL
+  attr(x, "rule") <- NULL
+  attr(x, "group_names") <- NULL
   class(x) <- "data.frame"
   x
 }
@@ -129,7 +134,9 @@ as.data.frame.rtprep_screen <- function(x, row.names = NULL, optional = FALSE,
 #' @param drop Whether to drop to a vector when one column is selected.
 #' @export
 `[.rtprep_screen` <- function(x, i, j, drop = TRUE) {
-  kept <- attributes(x)[c("fits", "policy", "threshold")]
+  kept <- attributes(x)[c(
+    "fits", "policy", "threshold", "rule", "group_names"
+  )]
   out <- NextMethod()
   if (!is.data.frame(out)) {
     return(out)
@@ -138,10 +145,16 @@ as.data.frame.rtprep_screen <- function(x, row.names = NULL, optional = FALSE,
   attr(out, "fits") <- NULL
   attr(out, "policy") <- NULL
   attr(out, "threshold") <- NULL
+  attr(out, "rule") <- NULL
+  attr(out, "group_names") <- NULL
 
   if (all(c(".keep", ".prob", ".rule", ".reason") %in% names(out))) {
     attr(out, "policy") <- kept$policy
     attr(out, "threshold") <- kept$threshold
+    # the rule and the grouping name the screen rather than count it, so unlike
+    # the fits table they stay true of any subset of the rows
+    attr(out, "rule") <- kept$rule
+    attr(out, "group_names") <- kept$group_names
     # the fits table describes the screen, and a row subset is no longer the
     # screen it was computed for
     if (missing(i)) {

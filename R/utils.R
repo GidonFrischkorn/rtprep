@@ -157,9 +157,14 @@
 # existing factor keeps its levels. The composite key is built with a separator
 # that cannot occur in a label, so that .by = list(c("a.b", "a"), c("c", "b.c"))
 # stays two groups instead of silently collapsing into one.
+#
+# `names` carries the grouping variable names where there are any, because the
+# labels paste the values together and a report has to say which variables the
+# criterion was computed within. A data frame or a named list supplies them; a
+# bare vector does not, and gets NA.
 .group_key <- function(.by, n) {
   if (is.null(.by)) {
-    return(list(id = rep(1L, n), labels = "all"))
+    return(list(id = rep(1L, n), labels = "all", names = NULL))
   }
 
   components <- if (is.data.frame(.by)) {
@@ -181,9 +186,15 @@
 
   sep <- "\r"
   f <- interaction(components, drop = TRUE, sep = sep, lex.order = TRUE)
+  nm <- names(components)
+  if (is.null(nm)) {
+    nm <- rep(NA_character_, length(components))
+  }
+  nm[!nzchar(nm)] <- NA_character_
   list(
     id = as.integer(f),
-    labels = gsub(sep, ".", levels(f), fixed = TRUE)
+    labels = gsub(sep, ".", levels(f), fixed = TRUE),
+    names = nm
   )
 }
 

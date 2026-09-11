@@ -292,31 +292,45 @@ rt_example |>
   count(.rule, .reason)
 ```
 
-```{r reporting-values, include = FALSE}
-n_cells <- nrow(fits)
-n_trials <- sum(fits$n_trials)
-n_dropped <- sum(fits$n_dropped)
-pct <- sprintf("%.1f", 100 * n_dropped / n_trials)
-lo <- sprintf("%.0f", 100 * min(fits$prop_dropped))
-hi <- sprintf("%.0f", 100 * max(fits$prop_dropped))
+Which gives a Methods sentence that can be written from the output rather
+than around it. `report_screening()` writes it:
+
+```{r reporting-paragraph}
+scr <- rt_screen(
+  rt_example$rt, rule,
+  .by = list(participant = rt_example$id, condition = rt_example$condition)
+)
+
+report_screening(scr)
 ```
 
-Which gives a Methods sentence that can be written from the output rather
-than around it:
+Nothing in that paragraph was typed from memory, which is the point of
+generating it. Edit the rule above and the sentence follows; write the
+sentence by hand and it goes stale the first time the rule changes, with no
+warning and nothing to catch it.
 
-> Response times were screened with a ±2.5 SD criterion around the mean,
-> computed separately within each participant and condition
-> (`r n_cells` cells). This removed `r n_dropped` of `r n_trials` trials
-> (`r pct`%), between `r lo`% and `r hi`% per cell; all exclusions were slow
-> trials. Error trials were screened alongside correct ones, and accuracy was
-> computed after screening.
+The numbers it quotes stay reachable, for a sentence that has to be written
+differently:
 
-That last clause is the one most often left out and the one that most often
-changes the answer. The criterion here never looked at `response`, so error
-trials passed through it on their response times alone; a rule that does read
-accuracy, such as `rule_ewma()` or `rule_mixture(use_accuracy = TRUE)`, needs
-saying explicitly, because it makes the screen and the dependent variable
-share information.
+```{r reporting-numbers}
+rep <- report_screening(scr)
+c(excluded = rep$n_excluded, screened = rep$n_screened, missing = rep$n_missing)
+rep$cells
+```
+
+Note which denominator the percentage uses: the trials the criterion actually
+saw. `rt_example` has no missing response times, so here it is every trial.
+Where there are some, they never reached the criterion, and counting them
+among its exclusions would overstate what the rule did, so they get a
+sentence of their own instead.
+
+The clause about accuracy is the one most often left out and the one that
+most often changes the answer. The criterion here never looked at `response`,
+so error trials passed through it on their response times alone; a rule that
+does read accuracy, such as `rule_ewma()` or
+`rule_mixture(use_accuracy = TRUE)`, makes the screen and the dependent
+variable share information, and `report_screening()` says so without being
+asked.
 
 ## Where to go next
 

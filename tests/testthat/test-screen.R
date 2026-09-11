@@ -438,6 +438,26 @@ test_that("the fits attribute survives column subsetting and not row subsetting"
   expect_s3_class(utils::head(scr), "rtprep_screen")
 })
 
+test_that("the screen carries the rule and the grouping it was run with", {
+  rule <- rule_mad(2.5)
+  scr <- rt_screen(rt_example$rt, rule, .by = list(id = rt_example$id))
+
+  expect_identical(attr(scr, "rule"), rule)
+  expect_identical(attr(scr, "group_names"), "id")
+
+  # a bare vector carries no name to record
+  bare <- rt_screen(rt_example$rt, rule, .by = rt_example$id)
+  expect_identical(attr(bare, "group_names"), NA_character_)
+  expect_null(attr(rt_screen(rt_example$rt, rule), "group_names"))
+
+  # unlike the fits table, these name the screen rather than counting it, so
+  # they stay true of any subset of the rows
+  expect_identical(attr(scr[1:10, ], "rule"), rule)
+  expect_identical(attr(scr[1:10, ], "group_names"), "id")
+  expect_null(attr(as.data.frame(scr), "rule"))
+  expect_null(attr(as.data.frame(scr), "group_names"))
+})
+
 test_that("losing one of the four columns drops the class", {
   scr <- rt_screen(rt_example$rt, rule_mad(2.5), .by = rt_example$id)
   part <- scr[, c(".keep", ".prob")]

@@ -17,6 +17,14 @@ truth.
 * `screen_fits()` returns the per-group fit diagnostics of a rule as a data
   frame.
 
+* `report_screening()` turns a screen into a Methods paragraph: the rule and
+  its setting, the grouping the criterion was computed within, how much it
+  removed in total and per cell, what it caught, whether it read accuracy, the
+  keep policy, and the references for the criteria used. It separates what the
+  rule excluded from what it never saw, so a missing response time is not
+  counted as an exclusion. The returned object carries every number the
+  paragraph quotes, and `toBibtex()` on it gives the BibTeX entries.
+
 * `rule_cutoff()`, `rule_sd()`, `rule_mad()`, `rule_iqr()`,
   `rule_recursive()`, `rule_ewma()`, and `rule_none()` implement absolute
   cutoffs, the SD and MAD criteria, Tukey's quartile fences, the recursive

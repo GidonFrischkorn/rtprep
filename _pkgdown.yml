@@ -34,6 +34,13 @@ reference:
     contents:
       - rules_compose
       - rule_hierarchical
+  - title: Reporting
+    desc: >
+      The Methods paragraph a screen owes a reader, written from the screen
+      rather than from memory.
+    contents:
+      - report_screening
+      - rtprep_report
   - title: Aggregation and estimation
     desc: From surviving trials to EZ-diffusion inputs and parameters.
     contents:

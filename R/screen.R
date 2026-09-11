@@ -225,6 +225,12 @@ rt_screen <- function(rt, rule, response = NULL, .by = NULL,
   attr(out, "fits") <- fits_table
   attr(out, "policy") <- policy
   attr(out, "threshold") <- threshold
+  # Neither the rule nor the grouping is recoverable from the four columns:
+  # .rule carries a label, not the object, and the fits table carries cell
+  # labels with the values pasted together, not the variable names. Both are
+  # what report_screening() needs to describe the screen rather than count it.
+  attr(out, "rule") <- rule
+  attr(out, "group_names") <- key$names
   # a subclass of data.frame: every data-frame idiom still works, and the class
   # buys a print() that reports the screen instead of listing every trial
   class(out) <- c("rtprep_screen", "data.frame")

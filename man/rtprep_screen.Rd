@@ -47,6 +47,9 @@ and \code{prop_dropped} count rows that are no longer there, and carrying it alo
 would attach a table that quietly disagrees with the object. The class
 survives for as long as the four columns do.
 
+The \code{rule} and \code{group_names} attributes, which \code{\link[=report_screening]{report_screening()}} reads,
+name the screen rather than count it, so they survive row subsetting too.
+
 \code{as.data.frame()} strips the class and the attributes, for when a plain frame
 is wanted.
 }
