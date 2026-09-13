@@ -389,7 +389,7 @@ times, and add 40 guesses uniform between 100 and 200 ms:</p>
 <span></span>
 <span><span class="fu">fast_block</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">exg_core</span>, <span class="va">block</span><span class="op">)</span>, <span class="va">truth</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   distribution converged collapsed contaminant_prop n_dropped sensitivity</span></span>
-<span><span class="co">#&gt; 1   exgaussian      TRUE     FALSE       0.03044122         6           0</span></span>
+<span><span class="co">#&gt; 1   exgaussian      TRUE     FALSE       0.03001629         6           0</span></span>
 <span><span class="co">#&gt; 2    lognormal      TRUE     FALSE       0.16839198        56           1</span></span>
 <span><span class="co">#&gt; 3  invgaussian      TRUE     FALSE       0.16826913        56           1</span></span></code></pre></div>
 <p>The lognormal and inverse Gaussian cores find the block whole. They
@@ -414,7 +414,7 @@ heavier tail:</p>
 <span></span>
 <span><span class="fu">fast_block</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">ddm_core</span>, <span class="va">block</span><span class="op">)</span>, <span class="va">truth</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   distribution converged collapsed contaminant_prop n_dropped sensitivity</span></span>
-<span><span class="co">#&gt; 1   exgaussian      TRUE      TRUE     2.029924e-07         0           0</span></span>
+<span><span class="co">#&gt; 1   exgaussian      TRUE      TRUE     2.031915e-07         0           0</span></span>
 <span><span class="co">#&gt; 2    lognormal      TRUE      TRUE     3.974696e-08         0           0</span></span>
 <span><span class="co">#&gt; 3  invgaussian      TRUE      TRUE     5.355859e-08         0           0</span></span></code></pre></div>
 <p>Every core converges, every core collapses, and the block is
@@ -540,7 +540,7 @@ first:</p>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/transmute.html" class="external-link">transmute</a></span><span class="op">(</span><span class="va">distribution</span>, use_accuracy <span class="op">=</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">p_correct</span><span class="op">)</span>, <span class="va">converged</span>,</span>
 <span>            <span class="va">collapsed</span>, <span class="va">contaminant_prop</span>, <span class="va">n_dropped</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   distribution use_accuracy converged collapsed contaminant_prop n_dropped</span></span>
-<span><span class="co">#&gt; 1   exgaussian        FALSE      TRUE      TRUE     2.205281e-09         0</span></span>
+<span><span class="co">#&gt; 1   exgaussian        FALSE      TRUE      TRUE     2.153722e-09         0</span></span>
 <span><span class="co">#&gt; 2    lognormal        FALSE      TRUE      TRUE     1.657764e-07         0</span></span>
 <span><span class="co">#&gt; 3  invgaussian        FALSE      TRUE      TRUE     6.586266e-06         0</span></span>
 <span><span class="co">#&gt; 4    lognormal         TRUE      TRUE      TRUE     9.981146e-09         0</span></span></code></pre></div>
