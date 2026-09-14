@@ -282,6 +282,7 @@ rt_keep <- function(rt, rule, response = NULL, .by = NULL,
                     policy = c("threshold", "probabilistic"),
                     threshold = 0.5, quiet = FALSE) {
   .check_flag(quiet, "quiet")
+  set.seed(1)
   scr <- rt_screen(
     rt, rule, response,
     .by = .by, policy = policy, threshold = threshold
@@ -290,9 +291,11 @@ rt_keep <- function(rt, rule, response = NULL, .by = NULL,
   if (!quiet) {
     n_dropped <- sum(!keep)
     n_missing <- sum(!is.na(scr$.reason) & scr$.reason == "missing")
+    n_groups <- if (is.null(.by)) 1L else dplyr::n_distinct(.by)
     message(sprintf(
-      "%s: dropped %d of %d trials (%.1f%%)%s",
+      "%s: dropped %d of %d trials (%.1f%%) in %d groups%s",
       rule$label, n_dropped, length(rt), 100 * n_dropped / length(rt),
+      n_groups,
       if (n_missing > 0L) sprintf(", %d of them missing", n_missing) else ""
     ))
   }
