@@ -10,6 +10,7 @@
 
 ## Checklist
 
+- [ ] The pull request targets `develop`, or `main` from a `release/` or `hotfix/` branch
 - [ ] `devtools::check()` is clean — 0 errors, 0 warnings, 0 notes
 - [ ] `devtools::test()` passes, including the `trimr` and `bmm` equivalence tests
 - [ ] New behaviour has tests, and a test was watched to fail before it passed
