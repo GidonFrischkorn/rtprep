@@ -90,7 +90,11 @@ the review and stop.
      completely.
    - Then exactly one summary comment:
      `gh pr comment <N> --repo <repo> --body '<summary>'`, with the summary in
-     single quotes (write a literal single quote as `'\''`).
+     single quotes. The summary must contain no single quote and no line that
+     starts with `#`: the permission check refuses a quoted multi-line argument
+     with such a line, so use the bold heading below, never a Markdown `#`
+     heading. If the command is refused, fix the text and post again; a
+     review that ends without its summary comment counts as not run.
    - Post nothing else: no approval, no request for changes, no further
      comments.
 
@@ -98,7 +102,7 @@ the review and stop.
 
 ```markdown
 <!-- rtprep-claude-review -->
-## Claude review at <first 7 characters of headRefOid>
+**Claude review at <first 7 characters of headRefOid>**
 
 **New findings (<n>)**
 1. `<file>:<line>` <one line>
