@@ -1,3 +1,14 @@
+# Claude Code. The review rules and the review command under .claude/ are
+# shared and committed (see .github/workflows/claude-review.yaml); everything
+# else Claude Code writes there stays local. A root CLAUDE.md or
+# CLAUDE.local.md is a maintainer's private notes and is never committed.
+/CLAUDE.md
+/CLAUDE.local.md
+!/.claude/
+/.claude/*
+!/.claude/CLAUDE.md
+!/.claude/commands/
+
 # R
 .Rproj.user
 .Rhistory

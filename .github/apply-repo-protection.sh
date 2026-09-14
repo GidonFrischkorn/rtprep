@@ -1,25 +1,31 @@
 #!/usr/bin/env bash
 #
-# Apply the repository's branch-protection rulesets and merge settings.
+# Apply the repository's branch model: merge settings, the default branch, the
+# label that requests a Claude review, and the protection rulesets.
 #
-# Run this once, after the first CRAN release, and again whenever a file in
+# Run it once `develop` exists on GitHub, and again whenever a file in
 # .github/rulesets/ changes. It is idempotent: a ruleset whose name already
 # exists on the remote is updated in place rather than duplicated.
 #
-#   ./.github/apply-repo-protection.sh --dry-run     # show what would change
-#   ./.github/apply-repo-protection.sh               # apply main-protection
-#   ./.github/apply-repo-protection.sh .github/rulesets/*.json   # all of them
+#   ./.github/apply-repo-protection.sh --dry-run    # show what would change
+#   ./.github/apply-repo-protection.sh              # apply every ruleset
+#   ./.github/apply-repo-protection.sh .github/rulesets/main-gate.json   # one
 #
 # Requires the `gh` CLI, authenticated with an account that has admin rights
 # on the repository (`gh auth status` must show the `repo` scope).
 #
-# NOTE ON THE BYPASS ACTOR. Each ruleset lists actor_id 5 / RepositoryRole,
-# which is GitHub's base "admin" role. That is what lets the repository owner
-# merge without a second approver while the package has a single developer.
-# The script prints the bypass list back after applying so the resolved role
-# can be read rather than assumed. A repository admin can always edit or
-# delete a ruleset in Settings > Rules regardless of the bypass list, so a
-# wrong value here cannot lock anyone out.
+# WHY EACH BRANCH HAS TWO RULESETS. A bypass actor bypasses everything in a
+# ruleset at once. Nobody can approve their own pull request, so while the
+# package has one developer every merge needs the admin bypass for the
+# approval rule, and in a single ruleset that bypass would also skip the
+# required checks. The "review" ruleset holds only the approval requirement
+# and can be bypassed on a pull request; the "gate" ruleset holds the checks,
+# thread resolution, merge methods and history protection and has no bypass
+# actors at all. Actor 5 / RepositoryRole is GitHub's base "admin" role.
+#
+# A repository admin can always edit or disable a ruleset in Settings > Rules,
+# so nothing here can lock anyone out. That is also the emergency exit when a
+# required check is broken for reasons outside the package.
 
 set -euo pipefail
 
@@ -29,39 +35,66 @@ FILES=()
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
-    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    -h|--help) sed -n '2,29p' "$0" | sed -E 's/^# ?//'; exit 0 ;;
     *) FILES+=("$arg") ;;
   esac
 done
 
 if [ ${#FILES[@]} -eq 0 ]; then
-  FILES=("$(dirname "$0")/rulesets/main-protection.json")
+  FILES=("$(dirname "$0")"/rulesets/*.json)
 fi
 
 command -v gh >/dev/null 2>&1 || { echo "error: the gh CLI is not installed" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "error: jq is not installed" >&2; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "error: gh is not authenticated" >&2; exit 1; }
 
 REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 echo "repository: $REPO"
 echo
 
-# ---------------------------------------------------------------- merge settings
-# Squash-only, so main carries one commit per feature and stays linear; merged
-# branches are deleted automatically; auto-merge lets a pull request be queued
-# to land as soon as the required checks come back green.
-echo "== merge settings =="
+# The develop rulesets and the default branch both need the branch to exist;
+# `develop` is created from `main` by a push, not by this script.
+if ! gh api "repos/$REPO/branches/develop" --silent 2>/dev/null; then
+  echo "error: branch 'develop' does not exist on $REPO; create it first:" >&2
+  echo "       git fetch origin && git push origin origin/main:refs/heads/develop" >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------- repo settings
+# Squash merges keep develop at one commit per unit of work. Merge commits are
+# needed for release/ and hotfix/ branches into main and for sync/ branches
+# into develop, so that develop always contains main. Rebase merges rewrite
+# commits and would break that, so they are off. Which method each branch
+# accepts is narrowed further by its gate ruleset.
+echo "== repository settings =="
 if [ "$DRY_RUN" = true ]; then
-  echo "would set: allow_squash_merge=true allow_merge_commit=false \\"
-  echo "           allow_rebase_merge=false delete_branch_on_merge=true \\"
-  echo "           allow_auto_merge=true"
+  current=$(gh api "repos/$REPO" --jq '"default_branch=\(.default_branch) squash=\(.allow_squash_merge) merge_commit=\(.allow_merge_commit) rebase=\(.allow_rebase_merge) delete_branch=\(.delete_branch_on_merge) update_branch=\(.allow_update_branch) auto_merge=\(.allow_auto_merge)"')
+  echo "current:    $current"
+  echo "would set:  default_branch=develop squash=true merge_commit=true rebase=false delete_branch=true update_branch=true auto_merge=true"
 else
   gh api --method PATCH "repos/$REPO" \
+    -f default_branch=develop \
     -F allow_squash_merge=true \
-    -F allow_merge_commit=false \
+    -F allow_merge_commit=true \
     -F allow_rebase_merge=false \
     -F delete_branch_on_merge=true \
+    -F allow_update_branch=true \
     -F allow_auto_merge=true \
-    --jq '"squash=\(.allow_squash_merge) merge_commit=\(.allow_merge_commit) rebase=\(.allow_rebase_merge) delete_branch=\(.delete_branch_on_merge) auto_merge=\(.allow_auto_merge)"'
+    --jq '"default_branch=\(.default_branch) squash=\(.allow_squash_merge) merge_commit=\(.allow_merge_commit) rebase=\(.allow_rebase_merge) delete_branch=\(.delete_branch_on_merge) update_branch=\(.allow_update_branch) auto_merge=\(.allow_auto_merge)"'
+fi
+echo
+
+# ------------------------------------------------------------------------ label
+echo "== label: claude-review =="
+if [ "$DRY_RUN" = true ]; then
+  if gh label list --repo "$REPO" --search claude-review --json name --jq '.[].name' | grep -qx claude-review; then
+    echo "exists"
+  else
+    echo "would create"
+  fi
+else
+  gh label create claude-review --repo "$REPO" --force \
+    --color 8250DF --description "Request a review from Claude (see CONTRIBUTING)"
 fi
 echo
 
@@ -79,7 +112,15 @@ for file in "${FILES[@]}"; do
     else
       echo "would create a new ruleset"
     fi
-    jq -r '.rules[] | "  rule: \(.type)"' "$file"
+    jq -r '
+      "  applies to:  \(.conditions.ref_name.include | join(", "))",
+      (if (.bypass_actors | length) == 0 then "  bypass:      none"
+       else (.bypass_actors[] | "  bypass:      \(.actor_type) id=\(.actor_id) (\(.bypass_mode))") end),
+      (.rules[] | "  rule:        \(.type)"),
+      (.rules[] | select(.type == "required_status_checks")
+         | .parameters.required_status_checks[]
+         | "  must pass:   \(.context)  [app \(.integration_id // "any")]")' "$file"
+    echo
     continue
   fi
 
@@ -92,26 +133,32 @@ for file in "${FILES[@]}"; do
   fi
 
   # Read the ruleset back rather than trusting the payload: this is where a
-  # wrong bypass actor id or a mistyped status-check context becomes visible.
+  # wrong bypass actor, a dropped bypass mode or a mistyped status-check
+  # context becomes visible.
   gh api "repos/$REPO/rulesets/$id" --jq '
     "  enforcement: \(.enforcement)",
     "  applies to:  \(.conditions.ref_name.include | join(", "))",
-    (.bypass_actors[]? | "  bypass:      \(.actor_type) id=\(.actor_id) (\(.bypass_mode))"),
+    (if ((.bypass_actors // []) | length) == 0 then "  bypass:      none"
+     else (.bypass_actors[] | "  bypass:      \(.actor_type) id=\(.actor_id) (\(.bypass_mode))") end),
     (.rules[] | "  rule:        \(.type)"),
+    (.rules[] | select(.type == "pull_request")
+       | "  merge via:   \(.parameters.allowed_merge_methods | join(", "))  approvals=\(.parameters.required_approving_review_count)"),
     (.rules[] | select(.type == "required_status_checks")
        | .parameters.required_status_checks[]
-       | "  must pass:   \(.context)")'
+       | "  must pass:   \(.context)  [app \(.integration_id // "any")]")'
   echo
 done
 
 if [ "$DRY_RUN" = false ]; then
   cat <<'EOF'
-Done. Two things to confirm by hand in Settings > Rules:
+Done. Confirm by hand:
 
   1. Every "must pass" context above matches a check name that actually runs
-     on pull requests. A context that never reports leaves pull requests
-     waiting for a check that will never arrive.
-  2. The bypass row reads "Repository admin". If it does not, fix actor_id in
-     the JSON and re-run; the ruleset can always be edited in the web UI.
+     on pull requests into that branch. A context that never reports leaves
+     pull requests waiting for a check that will never arrive.
+  2. The review rulesets show a bypass row for RepositoryRole id=5 in
+     pull_request mode; the gate rulesets show "bypass: none".
+  3. `gh api repos/OWNER/REPO/rules/branches/develop` lists the rules of both
+     the review and the gate ruleset.
 EOF
 fi
