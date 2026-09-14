@@ -73,16 +73,52 @@
 </div>
 <div class="section level2">
 <h2 id="the-workflow">The workflow<a class="anchor" aria-label="anchor" href="#the-workflow"></a></h2>
-<p><code>main</code> is protected. Every change arrives as a pull request from a branch, and the merge is a squash, so <code>main</code> keeps one commit per unit of work and stays linear.</p>
-<ol style="list-style-type: decimal"><li>Branch off <code>main</code>. Names like <code>feat/ez-support-screen</code>, <code>fix/mixture-maxit</code>, <code>docs/aggregation-article</code> keep the branch list readable.</li>
-<li>Commit in the repository’s style: a type prefix and a short imperative subject — <code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>test:</code>, <code>perf:</code>, <code>chore:</code>, <code>data:</code>.</li>
-<li>Open a pull request and fill in the template.</li>
-<li>Wait for the required checks (below), get a review, then squash-merge.</li>
-</ol><p>While the package has a single developer, that developer merges using the repository-admin bypass, because GitHub does not let anyone approve their own pull request. That is a stated exception, not the intended state: as soon as a second person has push access, the bypass stops being used and the approval requirement becomes real. Nothing in the ruleset needs to change for that to happen.</p>
+<p>Two branches are long-lived and protected:</p>
+<ul><li>
+<strong><code>main</code></strong> is what is on CRAN. It changes only when a release or a hotfix is merged into it.</li>
+<li>
+<strong><code>develop</code></strong> is the default branch: reviewed work that is not on CRAN yet. Installing from GitHub (<code>remotes::install_github("GidonFrischkorn/rtprep")</code>) gives you this version.</li>
+</ul><p>Everything else is a short-lived branch that arrives through a pull request:</p>
+<table class="table"><colgroup><col width="25%"><col width="25%"><col width="25%"><col width="25%"></colgroup><thead><tr><th>Branch</th>
+<th>Cut from</th>
+<th>Pull request into</th>
+<th>Merged by</th>
+</tr></thead><tbody><tr><td>
+<code>feat/*</code>, <code>fix/*</code>, <code>docs/*</code>, <code>test/*</code>, <code>chore/*</code>
+</td>
+<td><code>develop</code></td>
+<td><code>develop</code></td>
+<td>squash</td>
+</tr><tr><td><code>release/X.Y.Z</code></td>
+<td><code>develop</code></td>
+<td><code>main</code></td>
+<td>merge commit</td>
+</tr><tr><td><code>hotfix/X.Y.Z</code></td>
+<td><code>main</code></td>
+<td><code>main</code></td>
+<td>merge commit</td>
+</tr><tr><td><code>sync/vX.Y.Z</code></td>
+<td>
+<code>develop</code> (then merge <code>main</code> in)</td>
+<td><code>develop</code></td>
+<td>merge commit</td>
+</tr></tbody></table><p>Squash merges keep <code>develop</code> at one commit per unit of work. Merge commits are used wherever <code>main</code> and <code>develop</code> meet, so that <code>develop</code> always contains <code>main</code>: a squashed or rebased release or sync copies the changes without the commits, and every later release then conflicts. The <code>branch-policy</code> check rejects a pull request into <code>main</code> from any other kind of branch.</p>
+<p>For a change to the package:</p>
+<ol style="list-style-type: decimal"><li>Branch off <code>develop</code>. Names like <code>feat/ez-support-screen</code>, <code>fix/mixture-maxit</code>, <code>docs/aggregation-article</code> keep the branch list readable.</li>
+<li>Commit in the repository’s style: a type prefix and a short imperative subject: <code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>test:</code>, <code>perf:</code>, <code>chore:</code>, <code>data:</code>.</li>
+<li>Open a pull request into <code>develop</code> and fill in the template.</li>
+<li>Wait for the required checks (below), resolve every review thread, then squash-merge. The branch is deleted on merge.</li>
+</ol><div class="section level3">
+<h3 id="who-can-merge">Who can merge<a class="anchor" aria-label="anchor" href="#who-can-merge"></a></h3>
+<p>Each protected branch has two rulesets in <code>.github/rulesets/</code>:</p>
+<ul><li>a <strong>gate</strong> (<code>main-gate.json</code>, <code>develop-gate.json</code>): pull request required, required checks passing on an up-to-date branch, review threads resolved, the allowed merge method, no force-push, no deletion. Nobody can bypass it.</li>
+<li>a <strong>review</strong> (<code>main-review.json</code>, <code>develop-review.json</code>): one approving review, from a code owner.</li>
+</ul><p>GitHub does not let anyone approve their own pull request, so while the package has a single developer, that developer merges by bypassing the review ruleset, which the repository-admin role may do on a pull request and nowhere else. The gate still applies to that merge. This is a stated exception, not the intended state: once a second person has push access, the bypass stops being used and the approval requirement becomes real, without any change to the rulesets.</p>
+</div>
 <div class="section level3">
 <h3 id="checks-that-must-pass">Checks that must pass<a class="anchor" aria-label="anchor" href="#checks-that-must-pass"></a></h3>
-<p>Four checks gate a merge:</p>
-<table class="table"><thead><tr><th>Check</th>
+<p>Five checks gate a merge into <code>main</code> or <code>develop</code>:</p>
+<table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>Check</th>
 <th>What it covers</th>
 </tr></thead><tbody><tr><td><code>ubuntu-latest (release)</code></td>
 <td>
@@ -95,8 +131,16 @@
 <code>R CMD check</code> on Windows</td>
 </tr><tr><td><code>test-coverage</code></td>
 <td>the suite under <code>covr</code>, reported to Codecov</td>
-</tr></tbody></table><p>The <code>ubuntu-latest (devel)</code> and <code>ubuntu-latest (oldrel-1)</code> legs run on every pull request but do not block a merge. They are the early warning for the next R release and the trailing one; a failure there is worth an issue, and is often not caused by anything in this package. The R-hub workflow is manual (<code>workflow_dispatch</code>) and is run before a CRAN submission, not per pull request.</p>
-<p><strong>If you change the <code>R-CMD-check</code> matrix, update <code>.github/rulesets/main-protection.json</code> in the same pull request.</strong> The required checks are matched by name — <code>os (r)</code>, e.g. <code>macos-latest (release)</code>. Rename a matrix leg without updating the ruleset and every subsequent pull request waits forever for a check that no longer reports.</p>
+</tr><tr><td><code>branch-policy</code></td>
+<td>the pull request’s source branch is allowed to merge into its target</td>
+</tr></tbody></table><p>The <code>ubuntu-latest (devel)</code> and <code>ubuntu-latest (oldrel-1)</code> legs run on every pull request but do not block a merge. They are the early warning for the next R release and the trailing one; a failure there is worth an issue, and is often not caused by anything in this package. The R-hub workflow is manual (<code>workflow_dispatch</code>) and is run on a release branch before a CRAN submission, not per pull request.</p>
+<p><strong>If you rename a job or a matrix leg that is a required check, update <code>.github/rulesets/main-gate.json</code> and <code>develop-gate.json</code> in the same pull request.</strong> The required checks are matched by name, for <code>R CMD check</code> in the form <code>os (r)</code>, e.g. <code>macos-latest (release)</code>. Rename one without updating the rulesets and every subsequent pull request waits forever for a check that no longer reports.</p>
+</div>
+<div class="section level3">
+<h3 id="requesting-a-claude-review">Requesting a Claude review<a class="anchor" aria-label="anchor" href="#requesting-a-claude-review"></a></h3>
+<p>A pull request can be reviewed by Claude on request: comment <code>@claude review</code> on it (the comment has to start with those words), or add the <code>claude-review</code> label. Only people with write access can start a review. Claude checks the changed code for correctness and against the rules in <code>.claude/CLAUDE.md</code>, posts inline comments on what it finds and one summary comment, and on a repeated request reports only what is new and which earlier findings have been addressed.</p>
+<p>The review is advisory. It is not a required check, but its inline comments are review threads, and the gate requires every thread to be resolved (or answered and resolved) before a merge. The procedure is <code>.claude/commands/review-pr.md</code>; both files are read from <code>develop</code>, never from the pull request under review. A pull request that edits <code>.github/workflows/claude-review.yaml</code> cannot be reviewed this way: the action declines to run a workflow that differs from the default branch’s copy.</p>
+<p>Reviews run on the maintainer’s Claude subscription, which is why they are requested rather than automatic.</p>
 </div>
 </div>
 <div class="section level2">
@@ -121,8 +165,30 @@
 <p>Add a <code>NEWS.md</code> entry under a development heading. Exported functions need roxygen documentation with a runnable <code>@examples</code> block, and a new screening rule needs a reference to the published algorithm it implements — the DOI goes in the roxygen and, if it is a new source, in <code>manuscript/references.bib</code>.</p>
 </div>
 <div class="section level2">
+<h2 id="releasing">Releasing<a class="anchor" aria-label="anchor" href="#releasing"></a></h2>
+<p>A release moves <code>develop</code> onto <code>main</code> and CRAN. The maintainer runs these steps.</p>
+<ol style="list-style-type: decimal"><li><p><strong>Cut the release branch.</strong> <code>git switch -c release/X.Y.Z origin/develop</code>, then <code>usethis::use_version()</code> to set <code>X.Y.Z</code> and the <code>NEWS.md</code> heading. Update <code>cran-comments.md</code>. Run <code>devtools::check(cran = TRUE)</code>, <code>devtools::check_win_devel()</code> and the R-hub workflow on the branch.</p></li>
+<li><p><strong>Merge into <code>main</code>.</strong> Open a pull request from <code>release/X.Y.Z</code> into <code>main</code> and merge it with a merge commit once the checks pass.</p></li>
+<li><p><strong>Submit.</strong> Locally, with <code>main</code> identical to <code>origin/main</code>: <code>devtools::submit_cran()</code>. It writes <code>CRAN-SUBMISSION</code> with the submitted commit; leave any change to that file uncommitted, since <code>main</code> only takes merges.</p></li>
+<li><p><strong>If CRAN asks for changes</strong>, cut <code>hotfix/X.Y.Z</code> from <code>main</code>, fix, merge the pull request into <code>main</code> with a merge commit, and submit again from <code>main</code>.</p></li>
+<li><p><strong>On acceptance</strong>, with <code>main</code> still identical to <code>origin/main</code>: <code>usethis::use_github_release()</code>. It tags <code>vX.Y.Z</code> at the commit recorded in <code>CRAN-SUBMISSION</code>, publishes the GitHub release, and deletes the file.</p></li>
+<li>
+<p><strong>Bring <code>main</code> back into <code>develop</code>.</strong> Keep the deletion of <code>CRAN-SUBMISSION</code> in the working tree and:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">git</span> switch <span class="at">-c</span> sync/vX.Y.Z origin/develop</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">git</span> merge <span class="at">--no-ff</span> origin/main</span></code></pre></div>
+<p>Resolve conflicts in <code>DESCRIPTION</code> to <code>main</code>’s version, run <code>usethis::use_dev_version()</code> so the version reads <code>X.Y.Z.9000</code>, check that <code>NEWS.md</code> starts with a single <code># rtprep (development version)</code> heading, and commit (including the <code>CRAN-SUBMISSION</code> deletion, if that file was tracked). Open a pull request into <code>develop</code> and merge it with a <strong>merge commit</strong>. If it is squashed by mistake, the <code>sync-ancestry</code> workflow fails on the merge; repeat this step with a new <code>sync/</code> branch.</p>
+</li>
+</ol><p>A hotfix follows steps 4 to 6: merge into <code>main</code>, submit, release, sync.</p>
+<p>Tags matching <code>v*</code> cannot be moved or deleted (<code>release-tags.json</code>).</p>
+</div>
+<div class="section level2">
+<h2 id="when-a-required-check-is-broken">When a required check is broken<a class="anchor" aria-label="anchor" href="#when-a-required-check-is-broken"></a></h2>
+<p>If a required check fails for reasons outside the package (a runner image, a CRAN mirror, a Codecov outage) and a merge cannot wait for it to be fixed or re-run, a repository admin sets the gate ruleset’s enforcement to <em>Disabled</em> in Settings → Rules, merges, and sets it back to <em>Active</em> straight away. Say in the pull request that this was done and why.</p>
+</div>
+<div class="section level2">
 <h2 id="repository-administration">Repository administration<a class="anchor" aria-label="anchor" href="#repository-administration"></a></h2>
-<p><code>.github/rulesets/</code> holds the branch and tag protection as JSON, and <code>.github/apply-repo-protection.sh</code> applies it. The remote configuration is therefore reviewable in a diff rather than only clickable in Settings. Run the script after changing a ruleset file; <code>--dry-run</code> shows what would change.</p>
+<p><code>.github/rulesets/</code> holds the branch and tag protection as JSON, and <code>.github/apply-repo-protection.sh</code> applies it, together with the merge settings, the default branch and the <code>claude-review</code> label. The remote configuration is therefore reviewable in a diff rather than only clickable in Settings. Run the script after changing a ruleset file; <code>--dry-run</code> shows what would change.</p>
+<p>The Claude review needs two things that live outside the repository: the Claude GitHub App installed on it, and a repository secret <code>CLAUDE_CODE_OAUTH_TOKEN</code> created with <code>claude setup-token</code>. When the token expires, reviews fail at authentication; generate a new one and replace the secret.</p>
 </div>
 </div>
 
