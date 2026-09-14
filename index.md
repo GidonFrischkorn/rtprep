@@ -125,4 +125,4 @@ Manuscript in preparation. Until it appears, cite the package:
 
 ## License
 
-GPL (\>= 3)
+GPL (\>= 2)
