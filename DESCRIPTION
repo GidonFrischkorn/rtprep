@@ -2,7 +2,7 @@ Package: rtprep
 Title: Screening, Trimming, and Aggregating Response Time Data
 Version: 0.1.0
 Authors@R:
-    person("Gidon T.", "Frischkorn", , "gidon.frischkorn@psychologie.uzh.ch",
+    person("Gidon T.", "Frischkorn", , "gfrischkorn@icould.com",
            role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-5055-9764"))
 Description: A uniform interface to common response time preprocessing decisions
