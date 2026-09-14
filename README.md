@@ -10,6 +10,8 @@ status](https://www.r-pkg.org/badges/version/rtprep)](https://CRAN.R-project.org
 [![R-CMD-check](https://github.com/GidonFrischkorn/rtprep/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/GidonFrischkorn/rtprep/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://github.com/GidonFrischkorn/rtprep/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/GidonFrischkorn/rtprep/actions/workflows/test-coverage.yaml)
 [![downloads](https://cranlogs.r-pkg.org/badges/rtprep)](https://cran.r-project.org/package=rtprep)
+[![R-universe
+version](https://gidonfrischkorn.r-universe.dev/rtprep/badges/version)](https://gidonfrischkorn.r-universe.dev/rtprep)
 <!-- badges: end -->
 
 Screening, trimming, and aggregating response time data before fitting
