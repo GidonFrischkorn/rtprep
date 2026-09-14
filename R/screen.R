@@ -282,7 +282,6 @@ rt_keep <- function(rt, rule, response = NULL, .by = NULL,
                     policy = c("threshold", "probabilistic"),
                     threshold = 0.5, quiet = FALSE) {
   .check_flag(quiet, "quiet")
-  set.seed(1)
   scr <- rt_screen(
     rt, rule, response,
     .by = .by, policy = policy, threshold = threshold
