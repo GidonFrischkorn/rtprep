@@ -21,7 +21,7 @@ Description: A uniform interface to common response time preprocessing decisions
     contaminant mixture Ratcliff and Tuerlinckx (2002)
     <doi:10.3758/BF03196302>, and the EZ-diffusion equations Wagenmakers,
     van der Maas and Grasman (2007) <doi:10.3758/BF03194023>.
-License: GPL (>= 3)
+License: GPL (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:

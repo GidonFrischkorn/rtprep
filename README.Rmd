@@ -111,4 +111,4 @@ Manuscript in preparation. Until it appears, cite the package: `citation("rtprep
 
 ## License
 
-GPL (>= 3)
+GPL (>= 2)
