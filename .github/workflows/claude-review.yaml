@@ -18,8 +18,8 @@
 #   under review, not instructions. (The action also restores .claude/ and
 #   CLAUDE.md at the root from the base branch on its own.)
 # - The action declines to run, and exits successfully, when this file on the
-#   pull request differs from the default branch's copy. The last step turns
-#   that silence into a failure.
+#   pull request differs from the default branch's copy. The last step fails
+#   the job whenever no review summary was posted for the reviewed commit.
 on:
   issue_comment:
     types: [created]
@@ -93,10 +93,20 @@ jobs:
             --add-dir pr-head
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
 
-      - name: Fail when no review ran
-        if: steps.claude.outputs.conclusion != 'success'
+      # The action reports success whenever Claude exits cleanly, including
+      # when it declined to run or ended without posting (a refused command is
+      # not an error). The summary comment for the reviewed commit is the only
+      # evidence that a review happened, so its absence fails the job.
+      - name: Fail when no summary was posted
         env:
-          CONCLUSION: ${{ steps.claude.outputs.conclusion }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
-          echo "::error title=no review ran::The action ended with conclusion '${CONCLUSION}'. If this pull request changes .github/workflows/claude-review.yaml, the action declines to run by design; otherwise read the log of the Review step."
-          exit 1
+          sha=$(git -C pr-head rev-parse --short=7 HEAD)
+          found=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json comments \
+            --jq "[.comments[] | select(.body | contains(\"rtprep-claude-review\") and contains(\"$sha\"))] | length")
+          if [ "$found" -eq 0 ]; then
+            echo "::error title=no review posted::No Claude review summary for commit $sha on #$PR_NUMBER. If this pull request changes .github/workflows/claude-review.yaml the action declines to run by design; otherwise read the log of the Review step."
+            exit 1
+          fi
+          echo "ok: review summary for $sha posted"
