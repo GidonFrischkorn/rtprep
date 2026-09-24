@@ -1,3 +1,13 @@
+## Resubmission
+
+This is a resubmission. In this version I have:
+
+* Removed `:::` from the documentation. The help page `rules_experimental`
+  documents two unexported rules; its examples called them through
+  `rtprep:::` and its description named that route. The examples are removed
+  and the description no longer refers to `:::`. No package code changed; a
+  test now fails if any help page contains `:::`.
+
 ## R CMD check results
 
 0 errors | 0 warnings | 1 note
@@ -35,6 +45,16 @@ own `spelling` test uses and so needs no entry there. That test passes on every
 platform below.
 
 ## Test environments
+
+For this resubmission, 2026-09-24:
+
+* local macOS 26.6.2 (Darwin 25.6.0), R 4.6.1 (2026-06-24),
+  aarch64-apple-darwin23: `devtools::check(cran = TRUE)` 0 errors,
+  0 warnings, 0 notes (47 s)
+
+For the first submission, 2026-09-14. Its package differs from this one only
+in the roxygen comments of `R/rules.R`, in `man/rules_experimental.Rd` and in
+the new test file `tests/testthat/test-documentation.R`:
 
 * local macOS 26.6.2 (Darwin 25.6.0), R 4.6.1 (2026-06-24),
   aarch64-apple-darwin23, 2026-09-14: `devtools::check(cran = TRUE)` 0 errors,
