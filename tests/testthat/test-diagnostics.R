@@ -162,12 +162,12 @@ test_that("credible_mass widens the interval as asked", {
 })
 
 test_that("the Jeffreys categories are cut where they claim", {
-  expect_equal(rtprep:::.categorise_bf(11), "strong_for_guessing")
-  expect_equal(rtprep:::.categorise_bf(5), "moderate_for_guessing")
-  expect_equal(rtprep:::.categorise_bf(2), "anecdotal_for_guessing")
-  expect_equal(rtprep:::.categorise_bf(0.5), "anecdotal_against_guessing")
-  expect_equal(rtprep:::.categorise_bf(0.2), "moderate_against_guessing")
-  expect_equal(rtprep:::.categorise_bf(0.05), "strong_against_guessing")
+  expect_equal(.categorise_bf(11), "strong_for_guessing")
+  expect_equal(.categorise_bf(5), "moderate_for_guessing")
+  expect_equal(.categorise_bf(2), "anecdotal_for_guessing")
+  expect_equal(.categorise_bf(0.5), "anecdotal_against_guessing")
+  expect_equal(.categorise_bf(0.2), "moderate_against_guessing")
+  expect_equal(.categorise_bf(0.05), "strong_against_guessing")
 })
 
 test_that("check_guessing() rejects malformed input", {
@@ -246,11 +246,11 @@ test_that(".categorise_bf() names every band of the Jeffreys scale", {
     "strong_against_guessing"
   )
   bf <- c(30, 5, 2, 0.5, 0.2, 0.05)
-  expect_equal(vapply(bf, rtprep:::.categorise_bf, character(1)), bands)
+  expect_equal(vapply(bf, .categorise_bf, character(1)), bands)
   # the band edges belong to the weaker claim
-  expect_equal(rtprep:::.categorise_bf(10), "moderate_for_guessing")
-  expect_equal(rtprep:::.categorise_bf(3), "anecdotal_for_guessing")
-  expect_equal(rtprep:::.categorise_bf(1), "anecdotal_against_guessing")
-  expect_equal(rtprep:::.categorise_bf(1 / 3), "moderate_against_guessing")
-  expect_equal(rtprep:::.categorise_bf(1 / 10), "strong_against_guessing")
+  expect_equal(.categorise_bf(10), "moderate_for_guessing")
+  expect_equal(.categorise_bf(3), "anecdotal_for_guessing")
+  expect_equal(.categorise_bf(1), "anecdotal_against_guessing")
+  expect_equal(.categorise_bf(1 / 3), "moderate_against_guessing")
+  expect_equal(.categorise_bf(1 / 10), "strong_against_guessing")
 })

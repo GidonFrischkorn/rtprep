@@ -108,7 +108,7 @@ test_that("the fits table pads groups and columns the rule did not report", {
     NULL,
     data.frame(lower = 0.3, upper = 2.1, converged = TRUE)
   )
-  out <- rtprep:::.fill_fits(fits)
+  out <- .fill_fits(fits)
 
   expect_equal(names(out), c("lower", "upper", "converged"))
   expect_equal(out$lower, c(0.2, NA, 0.3))
@@ -118,7 +118,7 @@ test_that("the fits table pads groups and columns the rule did not report", {
 })
 
 test_that("a rule reporting nothing leaves only the bookkeeping columns", {
-  expect_null(rtprep:::.fill_fits(list(NULL, NULL)))
+  expect_null(.fill_fits(list(NULL, NULL)))
 
   scr <- rt_screen(c(0.3, 0.5, 0.9), rule = rule_none(), .by = c(1, 1, 2))
   expect_named(

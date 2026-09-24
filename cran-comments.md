@@ -1,3 +1,27 @@
+## Resubmission
+
+This is a resubmission. In response to the comment on `:::` in
+`man/rules_experimental.Rd`, in this version I have:
+
+* Removed `:::` from the documentation. The help page `rules_experimental`
+  documents two unexported rules; its examples called them through
+  `rtprep:::` and its description named that route. The examples are removed,
+  since the functions are not exported, and the description no longer refers
+  to `:::`. No help page contains `:::` now.
+* Removed `rtprep:::` from the tests, where it was redundant: the tests run
+  inside the package namespace.
+* Added two tests that keep it that way. One reads the installed help pages
+  for `:::`. The other checks the package sources against the reviewer rules
+  that `R CMD check` does not enforce, among them `:::` and examples for
+  unexported functions; it needs the source tree, so it skips under
+  `R CMD check`.
+
+The `:::` left in the sources are in comments, in the test that searches the
+help pages for it, and in nine test calls to unexported functions of 'bmm',
+against which the mixture EM is checked for equivalence; those tests are
+skipped on CRAN. No R code and no documentation
+uses `:::`, and no function's code changed in this version.
+
 ## R CMD check results
 
 0 errors | 0 warnings | 1 note
@@ -5,8 +29,9 @@
 * This is a new release.
 
 The single NOTE comes from the CRAN incoming check and is identical on all
-three win-builder versions (R-devel, R-release, R-oldrelease, 2026-09-14);
-quoted here from the R-devel run:
+three win-builder versions (R-devel, R-release, R-oldrelease), both for the
+first submission (2026-09-14) and for this resubmission (2026-09-24); quoted
+here from the R-devel run of 2026-09-24:
 
 ```text
 Maintainer: 'Gidon T. Frischkorn <gfrischkorn@icloud.com>'
@@ -35,6 +60,26 @@ own `spelling` test uses and so needs no entry there. That test passes on every
 platform below.
 
 ## Test environments
+
+For this resubmission, 2026-09-24:
+
+* local macOS 26.6.2 (Darwin 25.6.0), R 4.6.1 (2026-06-24),
+  aarch64-apple-darwin23: `devtools::check(cran = TRUE)` 0 errors,
+  0 warnings, 0 notes (48 s)
+* win-builder, Windows Server 2022 x64 (build 20348), x86_64-w64-mingw32,
+  each **Status: 1 NOTE** -- the NOTE quoted above, word for word, no other
+  finding; installation clean, examples OK, vignettes re-built OK, PDF and
+  HTML manuals OK. Each reports 0 test failures and 0 warnings over 2167
+  passing expectations, with 29 tests skipped: the 25 `skip_on_cran()` tests
+  of the first submission, the three self-tests of the new source check, and
+  the source check itself, which needs the source tree:
+  * R-devel (2026-09-21 r90579 ucrt): tests OK (118 s)
+  * R-release, R 4.6.1 (2026-06-24 ucrt): tests OK (120 s)
+  * R-oldrelease, R 4.5.3 (2026-03-11 ucrt): tests OK (158 s)
+
+For the first submission, 2026-09-14. Its package differs from this one only
+in documentation, comments, tests and `inst/WORDLIST`; the R code is
+identical:
 
 * local macOS 26.6.2 (Darwin 25.6.0), R 4.6.1 (2026-06-24),
   aarch64-apple-darwin23, 2026-09-14: `devtools::check(cran = TRUE)` 0 errors,

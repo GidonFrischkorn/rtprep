@@ -8,4 +8,14 @@ linters: linters_with_defaults(
     # reports nothing, so that is the authority here.
     object_usage_linter = NULL
   )
+exclusions: list(
+    # Copied unchanged from jatosr, so that the copies can be compared; it
+    # does not follow this package's line length.
+    "tests/testthat/test-cran-policy.R"
+  )
+exclude: c(
+    # A `cran-policy: allow` marker has to share the line it exempts, and with
+    # its reason that line rarely fits in 80 columns: treat it like nolint.
+    "#[[:space:]]*(nolint|cran-policy:[[:space:]]*allow)"
+  )
 encoding: "UTF-8"

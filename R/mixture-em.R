@@ -3,7 +3,8 @@
 #   f(rt)  =  (1 - pi_c) f_RT(rt | theta)  +  pi_c U(rt | a, b)
 #
 # Ratcliff & Tuerlinckx (2002). The loop below is deliberately a copy of
-# bmm:::.fit_rt_mixture(), down to the order of operations, so that the two
+# bmm:::.fit_rt_mixture(). # cran-policy: allow triple-colon names the ported source; not a call
+# The copy goes down to the order of operations, so that the two
 # implementations agree fit for fit (tests/testthat/test-equivalence.R checks
 # it). Two things follow from that and are load-bearing:
 #
@@ -19,9 +20,10 @@
 
 # Resolve the uniform component's support.
 #
-# Port of bmm:::.resolve_contaminant_bounds(). The buffer is the part that
-# matters: an unbuffered uniform over exactly the observed range puts its edges
-# on data points, which leaves the mixture barely identifiable.
+# Port of bmm:::.resolve_contaminant_bounds(). # cran-policy: allow triple-colon names the ported source; not a call
+# The buffer is the part that matters: an unbuffered uniform over exactly the
+# observed range puts its edges on data points, which leaves the mixture barely
+# identifiable.
 #
 # Returns the bounds together with flags for the two conditions worth telling
 # the user about, rather than warning here. Bound resolution happens once per

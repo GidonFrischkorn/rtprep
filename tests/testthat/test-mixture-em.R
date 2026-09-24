@@ -9,7 +9,7 @@
 contaminated <- function(n_core = 400, n_contam = 40, seed = 7) {
   set.seed(seed)
   c(
-    rtprep:::.rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15),
+    .rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15),
     runif(n_contam, 0.10, 2.50)
   )
 }
@@ -18,7 +18,7 @@ contaminated <- function(n_core = 400, n_contam = 40, seed = 7) {
 
 test_that(".resolve_bounds() buffers data-driven bounds outward", {
   x <- c(1.0, 1.4, 1.6, 2.2)
-  r <- rtprep:::.resolve_bounds(c("min", "max"), x)
+  r <- .resolve_bounds(c("min", "max"), x)
 
   buffer <- max(0.5 * diff(range(x)), 0.1)
   expect_equal(r$bound, c(min(x) - buffer, max(x) + buffer))
@@ -33,18 +33,18 @@ test_that(".resolve_bounds() buffers data-driven bounds outward", {
 
 test_that(".resolve_bounds() floors the lower bound above zero", {
   x <- c(0.05, 0.06, 3.0)
-  expect_equal(rtprep:::.resolve_bounds(c("min", "max"), x)$bound[1], 0.001)
+  expect_equal(.resolve_bounds(c("min", "max"), x)$bound[1], 0.001)
 })
 
 test_that(".resolve_bounds() passes user numbers through unbuffered", {
   x <- c(0.2, 0.4, 0.6)
-  expect_equal(rtprep:::.resolve_bounds(c(0.1, 2), x)$bound, c(0.1, 2))
-  expect_equal(rtprep:::.resolve_bounds(c("0.1", "2"), x)$bound, c(0.1, 2))
+  expect_equal(.resolve_bounds(c(0.1, 2), x)$bound, c(0.1, 2))
+  expect_equal(.resolve_bounds(c("0.1", "2"), x)$bound, c(0.1, 2))
 })
 
 test_that(".resolve_bounds() mixes a number with a keyword", {
   x <- c(0.2, 0.4, 0.6)
-  r <- rtprep:::.resolve_bounds(c(0.1, "max"), x)
+  r <- .resolve_bounds(c(0.1, "max"), x)
   expect_equal(r$bound[1], 0.1)
   expect_gt(r$bound[2], max(x))
 })
@@ -53,18 +53,18 @@ test_that(".resolve_bounds() flags bounds that exclude observed trials", {
   # flagged rather than warned: bounds are resolved once per group, so warning
   # here would emit one per subject
   x <- c(0.2, 0.4, 0.6)
-  expect_silent(narrow_lo <- rtprep:::.resolve_bounds(c(0.3, 2), x))
+  expect_silent(narrow_lo <- .resolve_bounds(c(0.3, 2), x))
   expect_true(narrow_lo$excludes_fast)
   expect_false(narrow_lo$excludes_slow)
 
-  expect_silent(narrow_hi <- rtprep:::.resolve_bounds(c(0.1, 0.5), x))
+  expect_silent(narrow_hi <- .resolve_bounds(c(0.1, 0.5), x))
   expect_false(narrow_hi$excludes_fast)
   expect_true(narrow_hi$excludes_slow)
 })
 
 test_that(".resolve_bounds() falls back when the bounds come out inverted", {
   x <- c(0.2, 0.4, 0.6)
-  expect_silent(r <- rtprep:::.resolve_bounds(c("max", "min"), x))
+  expect_silent(r <- .resolve_bounds(c("max", "min"), x))
   expect_true(r$inverted)
   expect_lt(r$bound[1], r$bound[2])
   expect_lte(r$bound[1], min(x))
@@ -75,7 +75,7 @@ test_that("rt_screen() reports bound problems once for the whole call", {
   set.seed(41)
   # each group straddles the bounds below, so every group would warn twice if
   # the warning lived in .resolve_bounds()
-  one <- c(0.15, rtprep:::.rexgauss(38, 0.45, 0.05, 0.15), 2.5)
+  one <- c(0.15, .rexgauss(38, 0.45, 0.05, 0.15), 2.5)
   rt <- rep(one, 5)
   id <- rep(seq_len(5), each = length(one))
 
@@ -97,8 +97,8 @@ test_that("rt_screen() reports bound problems once for the whole call", {
 
 test_that(".fit_rt_mixture() returns the documented structure", {
   x <- contaminated()
-  fit <- rtprep:::.fit_rt_mixture(
-    x, "exgaussian", rtprep:::.resolve_bounds(c("min", "max"), x)$bound,
+  fit <- .fit_rt_mixture(
+    x, "exgaussian", .resolve_bounds(c("min", "max"), x)$bound,
     init = 0.05, max_prop = 0.5, maxit = 100, tol = 1e-6
   )
 
@@ -122,9 +122,9 @@ test_that(".fit_rt_mixture() returns the documented structure", {
 
 test_that(".fit_rt_mixture() finds almost no contamination in clean data", {
   set.seed(11)
-  x <- rtprep:::.rexgauss(500, 0.45, 0.05, 0.15)
-  fit <- rtprep:::.fit_rt_mixture(
-    x, "exgaussian", rtprep:::.resolve_bounds(c("min", "max"), x)$bound,
+  x <- .rexgauss(500, 0.45, 0.05, 0.15)
+  fit <- .fit_rt_mixture(
+    x, "exgaussian", .resolve_bounds(c("min", "max"), x)$bound,
     init = 0.05, max_prop = 0.5, maxit = 100, tol = 1e-6
   )
   expect_true(fit$converged)
@@ -139,27 +139,27 @@ test_that("the M-step strictly improves the weighted likelihood", {
   x <- contaminated()
   w <- runif(length(x), 0.2, 1)
 
-  wll <- function(par, d) sum(w * rtprep:::.rt_density(x, par, d, log = TRUE))
+  wll <- function(par, d) sum(w * .rt_density(x, par, d, log = TRUE))
 
   for (d in c("exgaussian", "lognormal", "invgaussian")) {
-    start <- rtprep:::.init_dist_params(x, d) * 1.3
-    updated <- rtprep:::.m_step(x, d, w, start)
+    start <- .init_dist_params(x, d) * 1.3
+    updated <- .m_step(x, d, w, start)
     expect_gt(wll(updated, d), wll(start, d))
   }
 })
 
 test_that("the EM log-likelihood increases across iterations", {
   x <- contaminated()
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), x)$bound
+  bound <- .resolve_bounds(c("min", "max"), x)$bound
 
   for (d in c("exgaussian", "lognormal", "invgaussian")) {
     # each fit converges at its own tol, so a looser tol must never reach a
     # higher optimum than a tighter one
-    loose <- rtprep:::.fit_rt_mixture(
+    loose <- .fit_rt_mixture(
       x, d, bound,
       init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-3
     )
-    tight <- rtprep:::.fit_rt_mixture(
+    tight <- .fit_rt_mixture(
       x, d, bound,
       init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-10
     )
@@ -172,7 +172,7 @@ test_that("the EM log-likelihood increases across iterations", {
 
 test_that("fewer than five in-bounds trials leaves the fit unconverged", {
   x <- c(0.3, 0.4, 0.5, 0.6)
-  fit <- rtprep:::.fit_rt_mixture(
+  fit <- .fit_rt_mixture(
     x, "exgaussian", c(0.001, 5),
     init = 0.05, max_prop = 0.5, maxit = 100, tol = 1e-6
   )
@@ -184,8 +184,8 @@ test_that("fewer than five in-bounds trials leaves the fit unconverged", {
 })
 
 test_that("only in-bounds trials are fitted", {
-  x <- c(rtprep:::.rexgauss(200, 0.45, 0.05, 0.15), 8, 9)
-  fit <- rtprep:::.fit_rt_mixture(
+  x <- c(.rexgauss(200, 0.45, 0.05, 0.15), 8, 9)
+  fit <- .fit_rt_mixture(
     x, "lognormal", c(0.05, 3),
     init = 0.05, max_prop = 0.5, maxit = 100, tol = 1e-6
   )
@@ -197,11 +197,11 @@ test_that("the contaminant proportion is clipped at max_prop", {
   set.seed(13)
   # a fast block the lognormal core reports at about 0.19 when left alone
   x <- c(
-    rtprep:::.rexgauss(400, 0.45, 0.05, 0.15), runif(40, 0.10, 0.20)
+    .rexgauss(400, 0.45, 0.05, 0.15), runif(40, 0.10, 0.20)
   )
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), x)$bound
+  bound <- .resolve_bounds(c("min", "max"), x)$bound
   fit_at <- function(max_prop) {
-    rtprep:::.fit_rt_mixture(
+    .fit_rt_mixture(
       x, "lognormal", bound,
       init = 0.01, max_prop = max_prop, maxit = 500, tol = 1e-6
     )$contaminant_prop
@@ -214,10 +214,10 @@ test_that("the contaminant proportion is clipped at max_prop", {
 
 test_that("every distribution converges on the same data", {
   x <- contaminated()
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), x)$bound
+  bound <- .resolve_bounds(c("min", "max"), x)$bound
 
   for (d in c("exgaussian", "lognormal", "invgaussian")) {
-    fit <- rtprep:::.fit_rt_mixture(
+    fit <- .fit_rt_mixture(
       x, d, bound,
       init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-6
     )
@@ -236,12 +236,12 @@ test_that("the ex-Gaussian collapses on a tight block of fast contaminants", {
   # reason the roster carries three core distributions rather than one.
   set.seed(7)
   x <- c(
-    rtprep:::.rexgauss(400, 0.45, 0.05, 0.15),
+    .rexgauss(400, 0.45, 0.05, 0.15),
     runif(40, 0.10, 0.20)
   )
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), x)$bound
+  bound <- .resolve_bounds(c("min", "max"), x)$bound
   fit_one <- function(d) {
-    rtprep:::.fit_rt_mixture(
+    .fit_rt_mixture(
       x, d, bound,
       init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-6
     )
@@ -266,13 +266,13 @@ test_that("every failure mode reports the same empty result", {
   # the <5-trial path and the exhausted-loop path must not differ in what they
   # return, or a caller has to know which one it hit
   x <- contaminated()
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), x)$bound
+  bound <- .resolve_bounds(c("min", "max"), x)$bound
 
-  exhausted <- rtprep:::.fit_rt_mixture(
+  exhausted <- .fit_rt_mixture(
     x, "lognormal", bound,
     init = 0.05, max_prop = 0.5, maxit = 1, tol = 1e-6
   )
-  too_few <- rtprep:::.fit_rt_mixture(
+  too_few <- .fit_rt_mixture(
     c(0.3, 0.4, 0.5, 0.6), "lognormal", c(0.001, 5),
     init = 0.05, max_prop = 0.5, maxit = 100, tol = 1e-6
   )
@@ -316,17 +316,17 @@ test_that("the closed-form M-steps maximise the weighted likelihood", {
   # the M-step for a confident contaminant, and where the inverse Gaussian's
   # denominator comes closest to cancelling.
   set.seed(17)
-  x <- rtprep:::.rinvgauss(300, 0.5, 3)
+  x <- .rinvgauss(300, 0.5, 3)
   w <- c(runif(280, 1e-8, 1), rep(1e-12, 20))
 
   for (d in c("lognormal", "invgaussian")) {
-    closed <- rtprep:::.m_step(x, d, w, rtprep:::.init_dist_params(x, d))
+    closed <- .m_step(x, d, w, .init_dist_params(x, d))
     nll <- function(par) {
-      -sum(w * rtprep:::.rt_density(x, par, d, log = TRUE))
+      -sum(w * .rt_density(x, par, d, log = TRUE))
     }
-    bounds <- rtprep:::.param_bounds(d)
+    bounds <- .param_bounds(d)
     numeric_fit <- optim(
-      rtprep:::.init_dist_params(x, d), nll,
+      .init_dist_params(x, d), nll,
       method = "L-BFGS-B", lower = bounds$lower, upper = bounds$upper
     )
     expect_lte(nll(closed), numeric_fit$value + 1e-6, label = d)
@@ -338,8 +338,8 @@ test_that("the M-step hands back its input when no weight remains", {
   # and the previous parameters are the only honest answer
   x <- c(0.3, 0.35, 0.4, 0.45, 0.5)
   for (d in c("exgaussian", "lognormal", "invgaussian")) {
-    init <- rtprep:::.init_dist_params(x, d)
-    expect_identical(rtprep:::.m_step(x, d, rep(0, 5), init), init, info = d)
-    expect_identical(rtprep:::.m_step(x, d, rep(NA_real_, 5), init), init)
+    init <- .init_dist_params(x, d)
+    expect_identical(.m_step(x, d, rep(0, 5), init), init, info = d)
+    expect_identical(.m_step(x, d, rep(NA_real_, 5), init), init)
   }
 })
