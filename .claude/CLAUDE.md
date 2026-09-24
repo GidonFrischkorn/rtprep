@@ -28,9 +28,10 @@ whichever rule produced them.
 - Generated files are regenerated, never hand-edited: `NAMESPACE` and `man/`
   come from `devtools::document()`, `README.md` from `README.Rmd` via
   `devtools::build_readme()`. An edit to a generated file without the matching
-  change in its source is a finding. `DESCRIPTION` pins `RoxygenNote: 7.3.3`;
-  a diff that rewrites unrelated `.Rd` files or adds a `Config/roxygen2`
-  field means `document()` ran under another roxygen2 version.
+  change in its source is a finding. `DESCRIPTION` pins
+  `Config/roxygen2/version: 8.1.0`; a diff that rewrites unrelated `.Rd`
+  files, or replaces that field with `RoxygenNote`, means `document()` ran
+  under another roxygen2 version.
 - Exported functions have roxygen documentation with a runnable `@examples`
   block. A new screening rule cites the published algorithm it implements,
   with the DOI in its roxygen block.
