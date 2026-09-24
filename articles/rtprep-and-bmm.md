@@ -340,7 +340,7 @@ c(
   trimr = if (has_trimr) as.character(packageVersion("trimr")) else "not installed"
 )
 #>  rtprep     bmm   trimr 
-#> "0.1.0" "1.3.1" "1.1.1"
+#> "0.1.0" "1.3.2" "1.1.1"
 ```
 
 A release of `bmm` or `trimr` that changed an algorithm would show here,

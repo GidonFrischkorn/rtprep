@@ -8,15 +8,13 @@
 </script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Experimental screening rules (not exported) — rule_adaptive_trim"><meta name="description" content="Two rules kept out of the exported roster. A function on the package index
 reads as a recommendation, and neither is one. The code, its tests, and
 this page stay so that the rules' behaviour and failure modes can be
-inspected, and so that scripts calling them through rtprep::: keep
-working. Reach them with rtprep:::rule_adaptive_trim() and
-rtprep:::rule_ez_support(); both return a rule object that rt_screen()
+inspected. Neither is part of the supported interface, so either can
+change without notice. Both return a rule object that rt_screen()
 applies like any other."><meta property="og:description" content="Two rules kept out of the exported roster. A function on the package index
 reads as a recommendation, and neither is one. The code, its tests, and
 this page stay so that the rules' behaviour and failure modes can be
-inspected, and so that scripts calling them through rtprep::: keep
-working. Reach them with rtprep:::rule_adaptive_trim() and
-rtprep:::rule_ez_support(); both return a rule object that rt_screen()
+inspected. Neither is part of the supported interface, so either can
+change without notice. Both return a rule object that rt_screen()
 applies like any other."><meta property="og:image" content="https://www.gfrischkorn.org/rtprep/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
@@ -70,9 +68,8 @@ applies like any other."><meta property="og:image" content="https://www.gfrischk
     <p>Two rules kept out of the exported roster. A function on the package index
 reads as a recommendation, and neither is one. The code, its tests, and
 this page stay so that the rules' behaviour and failure modes can be
-inspected, and so that scripts calling them through <code>rtprep:::</code> keep
-working. Reach them with <code>rtprep:::rule_adaptive_trim()</code> and
-<code>rtprep:::rule_ez_support()</code>; both return a rule object that <code><a href="rt_screen.html">rt_screen()</a></code>
+inspected. Neither is part of the supported interface, so either can
+change without notice. Both return a rule object that <code><a href="rt_screen.html">rt_screen()</a></code>
 applies like any other.</p>
     </div>
 
@@ -162,18 +159,6 @@ median while the implied decision-time mean always exceeds it.</p>
 <p>This rule requires <code>response</code>, coded as correct/error.</p>
     </div>
 
-    <div class="section level2">
-    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">rtprep</span><span class="fu">:::</span><span class="fu">rule_adaptive_trim</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; adaptive_trim(0.05, 0.5) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Cut the fastest 5% only when the surviving minimum shifts at least 0.5 of the way to the q10 quantile (experimental).</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu">rtprep</span><span class="fu">:::</span><span class="fu">rule_ez_support</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;rtprep rule&gt; ez_support(1, refit) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Exclude trials below 1 x the closed-form EZ non-decision time, refitted once on the survivors (experimental).</span>
-<span class="r-in"><span></span></span>
-</code></pre></div>
-    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

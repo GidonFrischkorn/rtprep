@@ -3,9 +3,8 @@
 Two rules kept out of the exported roster. A function on the package
 index reads as a recommendation, and neither is one. The code, its
 tests, and this page stay so that the rules' behaviour and failure modes
-can be inspected, and so that scripts calling them through `rtprep:::`
-keep working. Reach them with `rtprep:::rule_adaptive_trim()` and
-`rtprep:::rule_ez_support()`; both return a rule object that
+can be inspected. Neither is part of the supported interface, so either
+can change without notice. Both return a rule object that
 [`rt_screen()`](https://www.gfrischkorn.org/rtprep/reference/rt_screen.md)
 applies like any other.
 
@@ -101,15 +100,3 @@ one standard deviation above the median while the implied decision-time
 mean always exceeds it.
 
 This rule requires `response`, coded as correct/error.
-
-## Examples
-
-``` r
-rtprep:::rule_adaptive_trim()
-#> <rtprep rule> adaptive_trim(0.05, 0.5) 
-#>  Cut the fastest 5% only when the surviving minimum shifts at least 0.5 of the way to the q10 quantile (experimental).
-
-rtprep:::rule_ez_support()
-#> <rtprep rule> ez_support(1, refit) 
-#>  Exclude trials below 1 x the closed-form EZ non-decision time, refitted once on the survivors (experimental).
-```
