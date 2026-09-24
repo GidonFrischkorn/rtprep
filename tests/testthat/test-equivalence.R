@@ -44,12 +44,12 @@ rtprep_recursive_mean <- function(d, type) {
 # --- against the frozen reference (always runs) -----------------------------
 
 test_that("the criterion table matches the one trimr ships", {
-  expect_equal(rtprep:::.vsj_table$moving, reference$vsj_table$moving)
-  expect_equal(rtprep:::.vsj_table$modified, reference$vsj_table$modified)
-  expect_equal(rtprep:::.vsj_criterion(10, "moving"), 2.17)
-  expect_equal(rtprep:::.vsj_criterion(10, "modified"), 4.11)
-  expect_equal(rtprep:::.vsj_criterion(150, "moving"), 2.50)
-  expect_true(is.na(rtprep:::.vsj_criterion(3, "moving")))
+  expect_equal(.vsj_table$moving, reference$vsj_table$moving)
+  expect_equal(.vsj_table$modified, reference$vsj_table$modified)
+  expect_equal(.vsj_criterion(10, "moving"), 2.17)
+  expect_equal(.vsj_criterion(10, "modified"), 4.11)
+  expect_equal(.vsj_criterion(150, "moving"), 2.50)
+  expect_true(is.na(.vsj_criterion(3, "moving")))
 })
 
 test_that("SD trimming reproduces trimr's frozen answers", {
@@ -199,7 +199,7 @@ bmm_seeds <- c(31, 39, 1025, 2019, 3037, 7, 101, 404)
 bmm_fixture <- function(seed) {
   set.seed(seed)
   c(
-    rtprep:::.rexgauss(400, mu = 0.45, sigma = 0.05, tau = 0.15),
+    .rexgauss(400, mu = 0.45, sigma = 0.05, tau = 0.15),
     runif(40, 0.10, 0.20)
   )
 }
@@ -258,11 +258,11 @@ test_that("the exact M-steps never fit worse than bmm's numerical ones", {
     w <- runif(length(x), 1e-8, 1)
 
     for (dist in c("lognormal", "invgaussian")) {
-      init <- rtprep:::.init_dist_params(x, dist)
+      init <- .init_dist_params(x, dist)
       nll <- function(par) {
-        -sum(w * rtprep:::.rt_density(x, par, dist, log = TRUE))
+        -sum(w * .rt_density(x, par, dist, log = TRUE))
       }
-      closed <- rtprep:::.m_step(x, dist, w, init)
+      closed <- .m_step(x, dist, w, init)
       numeric_par <- bmm:::.fit_dist_params(x, dist, w, init)
       expect_lte(nll(closed), nll(numeric_par) + 1e-8,
         label = paste(dist, "seed", seed)
@@ -334,12 +334,12 @@ test_that("the resolved contaminant bounds match bmm's", {
   for (seed in bmm_seeds) {
     rt <- bmm_fixture(seed)
     expect_equal(
-      rtprep:::.resolve_bounds(c("min", "max"), rt)$bound,
+      .resolve_bounds(c("min", "max"), rt)$bound,
       unname(bmm:::.resolve_contaminant_bounds(c("min", "max"), rt)),
       info = paste("seed", seed)
     )
     expect_equal(
-      rtprep:::.resolve_bounds(c(0.05, 3), rt)$bound,
+      .resolve_bounds(c(0.05, 3), rt)$bound,
       unname(suppressWarnings(
         bmm:::.resolve_contaminant_bounds(c(0.05, 3), rt)
       )),
@@ -360,9 +360,9 @@ test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
 
   for (seed in bmm_seeds) {
     rt <- bmm_fixture(seed)
-    bound <- rtprep:::.resolve_bounds(c("min", "max"), rt)$bound
+    bound <- .resolve_bounds(c("min", "max"), rt)$bound
 
-    ours <- rtprep:::.fit_rt_mixture(
+    ours <- .fit_rt_mixture(
       rt, "exgaussian", bound,
       init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-6
     )
@@ -383,8 +383,8 @@ test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
     # rounding, which is a relative difference of order 1 on a parameter of
     # order 1e-6 and means nothing. The moments are what propagate downstream
     # into rt_summary(method = "mixture"), so they are what has to agree.
-    ours_m <- rtprep:::.dist_moments(ours$par, "exgaussian")
-    theirs_m <- rtprep:::.dist_moments(theirs$params, "exgaussian")
+    ours_m <- .dist_moments(ours$par, "exgaussian")
+    theirs_m <- .dist_moments(theirs$params, "exgaussian")
     expect_lt(abs(ours_m$mean - theirs_m$mean), 1e-3, label = label)
     expect_lt(abs(ours_m$var - theirs_m$var), 1e-3, label = label)
   }

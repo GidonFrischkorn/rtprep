@@ -20,7 +20,7 @@ obs_of <- function(d) {
 # ---- closed forms -----------------------------------------------------------
 
 test_that("the EZ forward equations invert ez_ddm() exactly", {
-  fwd <- rtprep:::.ez_forward(drift = 1.5, bound = 1.2, ndt = 0.30)
+  fwd <- .ez_forward(drift = 1.5, bound = 1.2, ndt = 0.30)
   back <- ez_ddm(
     fwd[["mean_rt"]], fwd[["var_rt"]], fwd[["accuracy"]],
     n_trials = 1e6
@@ -32,8 +32,8 @@ test_that("the EZ forward equations invert ez_ddm() exactly", {
 
 test_that("the race decision-time moments integrate to what .r_rdm draws", {
   set.seed(101)
-  mom <- rtprep:::.race_dt_moments(v_correct = 2, v_error = 1, bound = 1.5)
-  d <- rtprep:::.r_rdm(
+  mom <- .race_dt_moments(v_correct = 2, v_error = 1, bound = 1.5)
+  d <- .r_rdm(
     4e4,
     drift = c(2, 1), bound = 1.5, ndt = 0
   )
@@ -47,11 +47,11 @@ test_that("the race decision-time moments integrate to what .r_rdm draws", {
 
 test_that(".r_ddm reproduces the closed-form EZ observables", {
   set.seed(102)
-  d <- rtprep:::.r_ddm(
+  d <- .r_ddm(
     2e4,
     drift = 1.5, bound = 1.2, ndt = 0.30, dt = 5e-4
   )
-  fwd <- rtprep:::.ez_forward(drift = 1.5, bound = 1.2, ndt = 0.30)
+  fwd <- .ez_forward(drift = 1.5, bound = 1.2, ndt = 0.30)
   got <- obs_of(d)
   expect_equal(got[["accuracy"]], fwd[["accuracy"]], tolerance = 0.02)
   expect_equal(got[["mean_rt"]], fwd[["mean_rt"]], tolerance = 0.02)
@@ -63,7 +63,7 @@ test_that(".r_ddm agrees with rtdists", {
   skip_on_cran()
   skip_if_not_installed("rtdists")
   set.seed(103)
-  d <- rtprep:::.r_ddm(
+  d <- .r_ddm(
     2e4,
     drift = 1.5, bound = 1.2, ndt = 0.30, dt = 5e-4
   )
@@ -80,8 +80,8 @@ test_that(".r_ddm agrees with rtdists", {
 
 test_that("st0 smears the leading edge without moving the mean", {
   set.seed(104)
-  smooth <- rtprep:::.r_ddm(2e4, drift = 1.5, bound = 1.2, ndt = 0.30)
-  smeared <- rtprep:::.r_ddm(
+  smooth <- .r_ddm(2e4, drift = 1.5, bound = 1.2, ndt = 0.30)
+  smeared <- .r_ddm(
     2e4,
     drift = 1.5, bound = 1.2, ndt = 0.30, st0 = 0.20
   )
@@ -96,11 +96,11 @@ test_that("st0 smears the leading edge without moving the mean", {
 # ---- observable-space matching ---------------------------------------------
 
 test_that("matching hits the target observables for the ddm", {
-  m <- rtprep:::.match_observables(
+  m <- .match_observables(
     anchor$mean_rt, anchor$var_rt, anchor$accuracy,
     generator = "ddm"
   )
-  fwd <- rtprep:::.ez_forward(
+  fwd <- .ez_forward(
     m$par$drift, m$par$bound, m$par$ndt
   )
   expect_equal(fwd[["mean_rt"]], anchor$mean_rt, tolerance = 1e-6)
@@ -111,7 +111,7 @@ test_that("matching hits the target observables for the ddm", {
   expect_lte(m$par$ndt, 0.942)
 
   set.seed(105)
-  d <- rtprep:::.r_ddm(
+  d <- .r_ddm(
     2e4, m$par$drift, m$par$bound, m$par$ndt,
     dt = 5e-4
   )
@@ -122,7 +122,7 @@ test_that("matching hits the target observables for the ddm", {
 })
 
 test_that("matching hits the target observables for the rdm", {
-  m <- rtprep:::.match_observables(
+  m <- .match_observables(
     anchor$mean_rt, anchor$var_rt, anchor$accuracy,
     generator = "rdm"
   )
@@ -133,7 +133,7 @@ test_that("matching hits the target observables for the rdm", {
   expect_equal(m$observables[["var_rt"]], anchor$var_rt, tolerance = 1e-6)
 
   set.seed(106)
-  d <- rtprep:::.r_rdm(3e4, m$par$drift, m$par$bound, m$par$ndt)
+  d <- .r_rdm(3e4, m$par$drift, m$par$bound, m$par$ndt)
   got <- obs_of(d)
   expect_equal(got[["mean_rt"]], anchor$mean_rt, tolerance = 0.02)
   expect_equal(got[["accuracy"]], anchor$accuracy, tolerance = 0.02)
@@ -144,32 +144,32 @@ test_that("an unattainable target is refused, not silently approximated", {
   # sd(RT) at 50% of a 1 s MRT with Pc .95: the Milestone-0 map shows the race
   # cannot reach this with a plausible non-decision time
   expect_error(
-    rtprep:::.match_observables(1.0, 0.5^2, 0.95, generator = "rdm"),
+    .match_observables(1.0, 0.5^2, 0.95, generator = "rdm"),
     "attainable"
   )
   # MRT 3 s at sd_frac .15: the DDM would need ndt far beyond the published
   # range
   expect_error(
-    rtprep:::.match_observables(3.0, 0.45^2, 0.80, generator = "ddm"),
+    .match_observables(3.0, 0.45^2, 0.80, generator = "ddm"),
     "non-decision"
   )
 })
 
 test_that("matched generators agree on the EZ statistics, differ at the edge", {
-  md <- rtprep:::.match_observables(
+  md <- .match_observables(
     anchor$mean_rt, anchor$var_rt, anchor$accuracy,
     generator = "ddm"
   )
-  mr <- rtprep:::.match_observables(
+  mr <- .match_observables(
     anchor$mean_rt, anchor$var_rt, anchor$accuracy,
     generator = "rdm"
   )
   set.seed(107)
-  dd <- rtprep:::.r_ddm(
+  dd <- .r_ddm(
     3e4, md$par$drift, md$par$bound, md$par$ndt,
     dt = 5e-4
   )
-  dr <- rtprep:::.r_rdm(3e4, mr$par$drift, mr$par$bound, mr$par$ndt)
+  dr <- .r_rdm(3e4, mr$par$drift, mr$par$bound, mr$par$ndt)
   od <- obs_of(dd)
   or <- obs_of(dr)
   # agreement on what EZ sees
@@ -188,38 +188,38 @@ test_that("matched generators agree on the EZ statistics, differ at the edge", {
 test_that("prop = 0 gives chance accuracy with RTs inside the core's range", {
   set.seed(108)
   # for the ddm the lapse sends the drift to zero
-  lp <- rtprep:::.lapse_pars(
+  lp <- .lapse_pars(
     list(drift = 1.5, bound = 1.2, ndt = 0.30, zr = 0.5),
     generator = "ddm", prop = 0
   )
-  d <- rtprep:::.r_ddm(5e3, lp$drift, lp$bound, lp$ndt, dt = 5e-4)
+  d <- .r_ddm(5e3, lp$drift, lp$bound, lp$ndt, dt = 5e-4)
   expect_equal(mean(d$response), 0.5, tolerance = 0.03)
 
-  clean <- rtprep:::.r_ddm(5e3, 1.5, 1.2, 0.30, dt = 5e-4)
+  clean <- .r_ddm(5e3, 1.5, 1.2, 0.30, dt = 5e-4)
   # degraded evidence, intact speed: same order of magnitude, not a runaway
   expect_lt(mean(d$rt), 3 * mean(clean$rt))
   expect_gt(min(d$rt), 0.30)
 
   # race: drifts pulled to their common mean, total processing rate held
-  lr <- rtprep:::.lapse_pars(
+  lr <- .lapse_pars(
     list(drift = c(3, 1.5), bound = 1.5, ndt = 0.30),
     generator = "rdm", prop = 0
   )
   expect_equal(lr$drift[1], lr$drift[2])
   expect_equal(mean(lr$drift), mean(c(3, 1.5)))
-  r <- rtprep:::.r_rdm(5e3, lr$drift, lr$bound, lr$ndt)
+  r <- .r_rdm(5e3, lr$drift, lr$bound, lr$ndt)
   expect_equal(mean(r$response), 0.5, tolerance = 0.03)
-  rc <- rtprep:::.r_rdm(5e3, c(3, 1.5), 1.5, 0.30)
+  rc <- .r_rdm(5e3, c(3, 1.5), 1.5, 0.30)
   expect_lt(mean(r$rt), 3 * mean(rc$rt))
 })
 
 test_that("prop = 1 reproduces the clean process", {
-  lp <- rtprep:::.lapse_pars(
+  lp <- .lapse_pars(
     list(drift = 1.5, bound = 1.2, ndt = 0.30, zr = 0.5),
     generator = "ddm", prop = 1
   )
   expect_identical(lp$drift, 1.5)
-  lr <- rtprep:::.lapse_pars(
+  lr <- .lapse_pars(
     list(drift = c(3, 1.5), bound = 1.5, ndt = 0.30),
     generator = "rdm", prop = 1
   )
@@ -229,11 +229,11 @@ test_that("prop = 1 reproduces the clean process", {
 test_that("intermediate prop is ordered in accuracy", {
   set.seed(109)
   pcs <- vapply(c(0, 0.5, 1), function(p) {
-    lp <- rtprep:::.lapse_pars(
+    lp <- .lapse_pars(
       list(drift = c(3, 1.5), bound = 1.5, ndt = 0.30),
       generator = "rdm", prop = p
     )
-    mean(rtprep:::.r_rdm(1e4, lp$drift, lp$bound, lp$ndt)$response)
+    mean(.r_rdm(1e4, lp$drift, lp$bound, lp$ndt)$response)
   }, numeric(1))
   expect_true(all(diff(pcs) > 0))
 })
@@ -340,7 +340,7 @@ test_that("the mixed process draws all three with the stated weights", {
 test_that(".r_ddm closes out stragglers at the step cap, dropping none", {
   set.seed(109)
   # zero drift and a wide boundary: nothing crosses in three steps
-  d <- rtprep:::.r_ddm(
+  d <- .r_ddm(
     25,
     drift = 0, bound = 4, ndt = 0.3, dt = 0.01, max_steps = 3
   )

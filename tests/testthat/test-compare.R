@@ -7,7 +7,7 @@ compare_fixture <- function(seed = 201) {
   set.seed(seed)
   c(
     runif(15, 0.08, 0.16), # fast contaminants
-    rtprep:::.rexgauss(160, 0.45, 0.05, 0.15),
+    .rexgauss(160, 0.45, 0.05, 0.15),
     runif(15, 2.5, 4.0) # slow contaminants
   )
 }

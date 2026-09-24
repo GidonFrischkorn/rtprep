@@ -8,8 +8,8 @@
 # mistake would agree with itself.
 
 fit_known <- function(rt, distribution, bound = c("min", "max")) {
-  rtprep:::.fit_rt_mixture(
-    rt, distribution, rtprep:::.resolve_bounds(bound, rt)$bound,
+  .fit_rt_mixture(
+    rt, distribution, .resolve_bounds(bound, rt)$bound,
     init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-8
   )
 }
@@ -25,7 +25,7 @@ test_that("the EM recovers ex-Gaussian parameters and the mixing weight", {
   rt <- ifelse(
     is_contam,
     runif(n, 0.10, 2.50),
-    rtprep:::.rexgauss(n, par["mu"], par["sigma"], par["tau"])
+    .rexgauss(n, par["mu"], par["sigma"], par["tau"])
   )
 
   fit <- fit_known(rt, "exgaussian")
@@ -67,7 +67,7 @@ test_that("the EM recovers inverse Gaussian parameters and the mixing weight", {
   rt <- ifelse(
     is_contam,
     runif(n, 0.05, 3.00),
-    rtprep:::.rinvgauss(n, par["mu"], par["lambda"])
+    .rinvgauss(n, par["mu"], par["lambda"])
   )
 
   fit <- fit_known(rt, "invgaussian")
