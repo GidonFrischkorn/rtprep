@@ -11,7 +11,7 @@ help_text <- function() {
   man <- file.path(pkg, "man")
   if (dir.exists(man)) {
     # Read the Rd files as written. Parsing them would expand every \doi{}
-    # into R's own tools:::Rd_expr_doi() call.
+    # into R's own tools:::Rd_expr_doi() call. # cran-policy: allow triple-colon names what parsing produces; not a call
     files <- list.files(man, "\\.Rd$", full.names = TRUE)
     text <- vapply(
       files,

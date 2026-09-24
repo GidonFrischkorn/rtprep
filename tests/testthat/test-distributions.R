@@ -174,15 +174,15 @@ test_that("the densities agree with bmm's", {
 
   expect_equal(
     .dexgauss(grid, 0.4, 0.05, 0.15),
-    bmm:::dexgauss(grid, 0.4, 0.05, 0.15)
+    bmm:::dexgauss(grid, 0.4, 0.05, 0.15) # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
   )
   expect_equal(
     .dinvgauss(grid, 0.5, 3),
-    bmm:::dinvgauss(grid, 0.5, 3)
+    bmm:::dinvgauss(grid, 0.5, 3) # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
   )
   expect_equal(
     .dexgauss(grid, 0.4, 0.05, 0.15, log = TRUE),
-    bmm:::dexgauss(grid, 0.4, 0.05, 0.15, log = TRUE)
+    bmm:::dexgauss(grid, 0.4, 0.05, 0.15, log = TRUE) # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
   )
 })
 
@@ -196,13 +196,13 @@ test_that("the starting values and moments agree with bmm's", {
   for (d in c("exgaussian", "lognormal", "invgaussian")) {
     expect_equal(
       .init_dist_params(x, d),
-      bmm:::.init_dist_params(x, d),
+      bmm:::.init_dist_params(x, d), # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
       info = d
     )
     par <- .init_dist_params(x, d)
     expect_equal(
       .dist_moments(par, d),
-      bmm:::.dist_moments(par, d),
+      bmm:::.dist_moments(par, d), # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
       info = d
     )
   }

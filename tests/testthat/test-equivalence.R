@@ -263,7 +263,7 @@ test_that("the exact M-steps never fit worse than bmm's numerical ones", {
         -sum(w * .rt_density(x, par, dist, log = TRUE))
       }
       closed <- .m_step(x, dist, w, init)
-      numeric_par <- bmm:::.fit_dist_params(x, dist, w, init)
+      numeric_par <- bmm:::.fit_dist_params(x, dist, w, init) # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
       expect_lte(nll(closed), nll(numeric_par) + 1e-8,
         label = paste(dist, "seed", seed)
       )
@@ -335,13 +335,13 @@ test_that("the resolved contaminant bounds match bmm's", {
     rt <- bmm_fixture(seed)
     expect_equal(
       .resolve_bounds(c("min", "max"), rt)$bound,
-      unname(bmm:::.resolve_contaminant_bounds(c("min", "max"), rt)),
+      unname(bmm:::.resolve_contaminant_bounds(c("min", "max"), rt)), # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
       info = paste("seed", seed)
     )
     expect_equal(
       .resolve_bounds(c(0.05, 3), rt)$bound,
       unname(suppressWarnings(
-        bmm:::.resolve_contaminant_bounds(c(0.05, 3), rt)
+        bmm:::.resolve_contaminant_bounds(c(0.05, 3), rt) # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
       )),
       info = paste("seed", seed)
     )
@@ -366,7 +366,7 @@ test_that("the EM iterates almost identically to bmm's for the ex-Gaussian", {
       rt, "exgaussian", bound,
       init = 0.05, max_prop = 0.5, maxit = 500, tol = 1e-6
     )
-    theirs <- bmm:::.fit_rt_mixture(
+    theirs <- bmm:::.fit_rt_mixture( # cran-policy: allow triple-colon compares with bmm internals; skipped on CRAN
       rt, "exgaussian", bound, 0.05, 0.5, 500, 1e-6
     )
     label <- paste("seed", seed)
