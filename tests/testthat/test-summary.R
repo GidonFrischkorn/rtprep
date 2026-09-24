@@ -6,7 +6,7 @@ summary_data <- function(n_core = 300, n_contam = 30, seed = 51) {
   set.seed(seed)
   data.frame(
     rt = c(
-      rtprep:::.rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15),
+      .rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15),
       runif(n_contam, 0.10, 0.20)
     ),
     correct = c(
@@ -103,7 +103,7 @@ test_that("the mixture moments are far less contamination-sensitive", {
   # sample mean does -- the residual shift is the identifiability limit this
   # package exists to measure, not a bug.
   set.seed(53)
-  core <- rtprep:::.rexgauss(400, 0.45, 0.05, 0.15)
+  core <- .rexgauss(400, 0.45, 0.05, 0.15)
   contaminated <- function(n, seed) {
     set.seed(seed)
     c(core, runif(n, 0.05, 0.10)) # well clear of the core
@@ -224,7 +224,7 @@ test_that("too few trials gives NA moments but still counts them", {
 
 test_that("4par lets one sparse boundary be NA without taking the other down", {
   set.seed(57)
-  rt <- rtprep:::.rexgauss(40, 0.45, 0.05, 0.15)
+  rt <- .rexgauss(40, 0.45, 0.05, 0.15)
   correct <- c(rep(1, 37), rep(0, 3))
   out <- rt_summary(rt, correct, version = "4par", min_trials = 10)
 
@@ -238,7 +238,7 @@ test_that("a missing response belongs to neither boundary", {
   # indexing with a logical NA puts an NA into BOTH subsets, so one missing
   # response would otherwise take down the whole 4par summary
   set.seed(59)
-  rt <- rtprep:::.rexgauss(60, 0.45, 0.05, 0.15)
+  rt <- .rexgauss(60, 0.45, 0.05, 0.15)
   correct <- rbinom(60, 1, 0.75)
   correct[c(5, 20)] <- NA
 
@@ -259,7 +259,7 @@ test_that("min_trials counts information, not rows", {
   # information; reporting a variance from it is the failure min_trials exists
   # to prevent
   set.seed(60)
-  rt <- rtprep:::.rexgauss(100, 0.45, 0.05, 0.15)
+  rt <- .rexgauss(100, 0.45, 0.05, 0.15)
   w <- c(1, 1, rep(0, 98))
 
   out <- rt_summary(rt, weights = w, min_trials = 10)
@@ -269,7 +269,7 @@ test_that("min_trials counts information, not rows", {
 
   # Kish's effective n, so a broad shallow down-weighting still counts
   expect_false(is.na(rt_summary(rt, weights = rep(0.2, 100))$mean_rt))
-  expect_equal(rtprep:::.effective_n(rep(0.5, 40)), 40)
+  expect_equal(.effective_n(rep(0.5, 40)), 40)
 })
 
 test_that("weighted moments match a hand computation under unequal weights", {

@@ -107,9 +107,10 @@
   )
 }
 
-# Method-of-moments starting values, matching bmm:::.init_dist_params()
-# exactly. The EM is only reproducible from the same starting point, and the
-# equivalence test rests on that.
+# Method-of-moments starting values, a port of
+# bmm:::.init_dist_params(). # cran-policy: allow triple-colon names the ported source; not a call
+# They match it exactly: the EM is only reproducible from the same starting
+# point, and the equivalence test rests on that.
 .init_dist_params <- function(x, distribution) {
   m <- mean(x)
   v <- stats::var(x)

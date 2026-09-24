@@ -5,8 +5,8 @@
 
 fit_joint <- function(rt, y, chance = 0.5, distribution = "lognormal",
                       maxit = 500) {
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), rt)$bound
-  rtprep:::.fit_rt_mixture(
+  bound <- .resolve_bounds(c("min", "max"), rt)$bound
+  .fit_rt_mixture(
     rt, distribution, bound,
     init = 0.05, max_prop = 0.5, maxit = maxit, tol = 1e-8,
     y = y, chance = chance
@@ -14,8 +14,8 @@ fit_joint <- function(rt, y, chance = 0.5, distribution = "lognormal",
 }
 
 fit_rt_only <- function(rt, distribution = "lognormal", maxit = 500) {
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), rt)$bound
-  rtprep:::.fit_rt_mixture(
+  bound <- .resolve_bounds(c("min", "max"), rt)$bound
+  .fit_rt_mixture(
     rt, distribution, bound,
     init = 0.05, max_prop = 0.5, maxit = maxit, tol = 1e-8
   )
@@ -25,7 +25,7 @@ fit_rt_only <- function(rt, distribution = "lognormal", maxit = 500) {
 guessing_data <- function(n_core = 500, n_contam = 60, p_correct = 0.9,
                           overlap = TRUE, seed = 81) {
   set.seed(seed)
-  core <- rtprep:::.rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15)
+  core <- .rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15)
   contam <- if (overlap) {
     # squarely inside the core's range: RT alone cannot separate these
     runif(n_contam, 0.35, 0.75)
@@ -50,16 +50,16 @@ test_that("p_c equal to chance cancels out of the responsibilities exactly", {
   # round; anything looser would tolerate the factors being applied to the
   # wrong component.
   set.seed(93)
-  x <- rtprep:::.rexgauss(200, 0.45, 0.05, 0.15)
+  x <- .rexgauss(200, 0.45, 0.05, 0.15)
   y <- rbinom(200, 1, 0.7)
-  par <- rtprep:::.init_dist_params(x, "lognormal")
+  par <- .init_dist_params(x, "lognormal")
 
-  rt_only <- rtprep:::.e_step(x, par, "lognormal", 0.95, 0.05, 1 / 2)
+  rt_only <- .e_step(x, par, "lognormal", 0.95, 0.05, 1 / 2)
   # deliberately NOT at 0.5: with p_correct == chance == 0.5 the two factors
   # are numerically identical, so swapping them between the components would be
   # a no-op and this test would be blind to exactly the error it exists to
   # catch. At 0.8 the cancellation is still exact but the factors are not.
-  joint <- rtprep:::.e_step(
+  joint <- .e_step(
     x, par, "lognormal", 0.95, 0.05, 1 / 2,
     y = y, p_correct = 0.8, chance = 0.8
   )
@@ -77,15 +77,15 @@ test_that("the accuracy factors are attached to the right components", {
   # changes the answer. Without this the whole joint likelihood can be fitted
   # backwards with every other test still green.
   set.seed(95)
-  x <- rtprep:::.rexgauss(200, 0.45, 0.05, 0.15)
+  x <- .rexgauss(200, 0.45, 0.05, 0.15)
   y <- rbinom(200, 1, 0.7)
-  par <- rtprep:::.init_dist_params(x, "lognormal")
+  par <- .init_dist_params(x, "lognormal")
 
-  right <- rtprep:::.e_step(
+  right <- .e_step(
     x, par, "lognormal", 0.9, 0.1, 1 / 2,
     y = y, p_correct = 0.9, chance = 0.25
   )
-  swapped <- rtprep:::.e_step(
+  swapped <- .e_step(
     x, par, "lognormal", 0.9, 0.1, 1 / 2,
     y = y, p_correct = 0.25, chance = 0.9
   )
@@ -100,7 +100,7 @@ test_that("the accuracy factors are attached to the right components", {
 test_that(".bernoulli_factor() is p^y (1 - p)^(1 - y)", {
   y <- c(1, 0, 1, 1, 0)
   for (p in c(0.25, 0.5, 0.9)) {
-    expect_equal(rtprep:::.bernoulli_factor(y, p), p^y * (1 - p)^(1 - y))
+    expect_equal(.bernoulli_factor(y, p), p^y * (1 - p)^(1 - y))
   }
 })
 
@@ -129,23 +129,23 @@ test_that("the p_c M-step is the responsibility-weighted mean of accuracy", {
   set.seed(83)
   y <- rbinom(200, 1, 0.8)
   w <- runif(200, 1e-6, 1)
-  expect_equal(rtprep:::.p_correct_step(y, w), sum(w * y) / sum(w))
+  expect_equal(.p_correct_step(y, w), sum(w * y) / sum(w))
 
   # and it is clamped away from the boundaries: all-correct data would send it
   # to exactly 1, where a later error trial has likelihood zero
-  expect_lt(rtprep:::.p_correct_step(rep(1, 50), rep(1, 50)), 1)
-  expect_gt(rtprep:::.p_correct_step(rep(0, 50), rep(1, 50)), 0)
+  expect_lt(.p_correct_step(rep(1, 50), rep(1, 50)), 1)
+  expect_gt(.p_correct_step(rep(0, 50), rep(1, 50)), 0)
 })
 
 test_that("the RT-only path is untouched by the joint machinery", {
   # milestone 2's bmm equivalence rests on this
   d <- guessing_data()
-  bound <- rtprep:::.resolve_bounds(c("min", "max"), d$rt)$bound
-  explicit_null <- rtprep:::.fit_rt_mixture(
+  bound <- .resolve_bounds(c("min", "max"), d$rt)$bound
+  explicit_null <- .fit_rt_mixture(
     d$rt, "lognormal", bound, 0.05, 0.5, 500, 1e-8,
     y = NULL, chance = 0.5
   )
-  default <- rtprep:::.fit_rt_mixture(
+  default <- .fit_rt_mixture(
     d$rt, "lognormal", bound, 0.05, 0.5, 500, 1e-8
   )
   expect_equal(explicit_null, default)
@@ -160,7 +160,7 @@ test_that("the p_c M-step moves p_c away from the observed accuracy", {
   # so the movement itself has to be asserted.
   set.seed(11)
   rt <- c(
-    rtprep:::.rexgauss(800, 0.45, 0.05, 0.15), runif(120, 0.10, 0.20)
+    .rexgauss(800, 0.45, 0.05, 0.15), runif(120, 0.10, 0.20)
   )
   y <- c(rbinom(800, 1, 0.95), rbinom(120, 1, 0.5))
 
@@ -186,9 +186,9 @@ test_that("the joint EM recovers the mixing weight and the valid accuracy", {
 test_that("the joint log-likelihood increases across EM iterations", {
   d <- guessing_data()
   loose <- fit_joint(d$rt, d$correct, maxit = 500)
-  tight <- rtprep:::.fit_rt_mixture(
+  tight <- .fit_rt_mixture(
     d$rt, "lognormal",
-    rtprep:::.resolve_bounds(c("min", "max"), d$rt)$bound,
+    .resolve_bounds(c("min", "max"), d$rt)$bound,
     0.05, 0.5, 500, 1e-12,
     y = d$correct, chance = 0.5
   )
@@ -262,8 +262,8 @@ test_that("accuracy actively hurts when the contaminants' accuracy is intact", {
   set.seed(89)
   n_core <- 1200
   n_contam <- 200
-  core <- rtprep:::.rexgauss(n_core, 0.45, 0.05, 0.15)
-  delayed <- rtprep:::.rexgauss(n_contam, 0.45, 0.05, 0.15) + 0.25
+  core <- .rexgauss(n_core, 0.45, 0.05, 0.15)
+  delayed <- .rexgauss(n_contam, 0.45, 0.05, 0.15) + 0.25
   d <- data.frame(
     rt = c(core, delayed),
     correct = rbinom(n_core + n_contam, 1, 0.9),

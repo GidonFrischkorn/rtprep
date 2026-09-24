@@ -3,7 +3,7 @@
 
 mixture_data <- function(n_core = 400, n_contam = 40, seed = 21) {
   set.seed(seed)
-  core <- rtprep:::.rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15)
+  core <- .rexgauss(n_core, mu = 0.45, sigma = 0.05, tau = 0.15)
   contam <- runif(n_contam, 0.10, 0.20)
   data.frame(
     rt = c(core, contam),
@@ -101,9 +101,9 @@ test_that("the fits table carries the EM diagnostics", {
 
 test_that("groups are fitted independently", {
   set.seed(23)
-  clean <- rtprep:::.rexgauss(300, 0.45, 0.05, 0.15)
+  clean <- .rexgauss(300, 0.45, 0.05, 0.15)
   dirty <- c(
-    rtprep:::.rexgauss(280, 0.45, 0.05, 0.15), runif(30, 0.10, 0.20)
+    .rexgauss(280, 0.45, 0.05, 0.15), runif(30, 0.10, 0.20)
   )
   rt <- c(clean, dirty)
   id <- rep(c("clean", "dirty"), c(length(clean), length(dirty)))
