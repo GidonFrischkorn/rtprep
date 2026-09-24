@@ -25,17 +25,17 @@ test_that("every rule in the roster gets a real phrase and resolvable refs", {
   # would say nothing about what the rule does.
   for (nm in names(.engine_roster())) {
     rule <- .engine_roster()[[nm]]$rule
-    phrase <- rtprep:::.rule_phrase(rule)
+    phrase <- .rule_phrase(rule)
     expect_type(phrase, "character")
     expect_length(phrase, 1L)
     expect_false(is.na(phrase))
     expect_true(nzchar(phrase))
     expect_no_match(phrase, "^the rule \"", info = nm)
 
-    keys <- rtprep:::.rule_reference(rule)
+    keys <- .rule_reference(rule)
     for (key in keys) {
-      expect_s3_class(rtprep:::.ref_entry(key), "bibentry")
-      expect_match(rtprep:::.ref_cite(key), "\\(\\d{4}\\)$")
+      expect_s3_class(.ref_entry(key), "bibentry")
+      expect_match(.ref_cite(key), "\\(\\d{4}\\)$")
     }
   }
 })
@@ -43,17 +43,17 @@ test_that("every rule in the roster gets a real phrase and resolvable refs", {
 test_that("the rules with no published reference are named, not skipped", {
   # Asserted by name so that giving one of them a reference later is a visible
   # test change rather than a silent one.
-  expect_identical(rtprep:::.rule_reference(rule_none()), character())
+  expect_identical(.rule_reference(rule_none()), character())
   expect_identical(
-    rtprep:::.rule_reference(rule_hierarchical(2.5, n0 = 20)), character()
+    .rule_reference(rule_hierarchical(2.5, n0 = 20)), character()
   )
   expect_identical(
-    rtprep:::.rule_reference(rule_oracle(rep(FALSE, 3))), character()
+    .rule_reference(rule_oracle(rep(FALSE, 3))), character()
   )
 })
 
 test_that("an unknown key is an error rather than a silent gap", {
-  expect_error(rtprep:::.ref_entry("nosuchkey"), "No stored reference")
+  expect_error(.ref_entry("nosuchkey"), "No stored reference")
 })
 
 test_that("the counts agree with the fits table", {
@@ -156,7 +156,7 @@ test_that("a rule nested more than two deep falls back to its label", {
     rule_then(rule_all(rule_mad(2.5), rule_iqr()), rule_cutoff(0.2)),
     rule_sd(3)
   )
-  expect_identical(rtprep:::.rule_depth(deep), 3L)
+  expect_identical(.rule_depth(deep), 3L)
 
   rep <- report_screening(screened(deep))
   expect_match(rep$text, 'the rule "all(sd(2.5, median, mad), iqr(1.5))"',
@@ -259,23 +259,23 @@ test_that("the grouping clause says what it can and no more", {
 
 test_that("author-year follows the number of authors", {
   # two authors take "and" in running prose, three or more take et al.
-  expect_identical(rtprep:::.ref_cite("miller1991"), "Miller (1991)")
+  expect_identical(.ref_cite("miller1991"), "Miller (1991)")
   expect_identical(
-    rtprep:::.ref_cite("ulrich1994"), "Ulrich and Miller (1994)"
+    .ref_cite("ulrich1994"), "Ulrich and Miller (1994)"
   )
-  expect_identical(rtprep:::.ref_cite("leys2013"), "Leys et al. (2013)")
+  expect_identical(.ref_cite("leys2013"), "Leys et al. (2013)")
 })
 
 test_that("references are collected over a composite and de-duplicated", {
   # both components cite Miller (1991); it must appear once
   both <- rule_all(rule_sd(2.5), rule_mad(2.5))
-  keys <- rtprep:::.rule_reference(both)
+  keys <- .rule_reference(both)
   expect_identical(sum(keys == "miller1991"), 1L)
   expect_true("leys2013" %in% keys)
 
   # the MAD criterion cites Leys et al., which argues against the SD criterion,
   # so a mean/SD screen must not cite it
-  expect_false("leys2013" %in% rtprep:::.rule_reference(rule_sd(2.5)))
+  expect_false("leys2013" %in% .rule_reference(rule_sd(2.5)))
 
   rep <- report_screening(screened(rule_recursive("modified")))
   expect_match(paste(utils::toBibtex(rep), collapse = " "), "Van Selst")

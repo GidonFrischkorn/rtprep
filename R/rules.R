@@ -344,9 +344,8 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' Two rules kept out of the exported roster. A function on the package index
 #' reads as a recommendation, and neither is one. The code, its tests, and
 #' this page stay so that the rules' behaviour and failure modes can be
-#' inspected, and so that scripts calling them through `rtprep:::` keep
-#' working. Reach them with `rtprep:::rule_adaptive_trim()` and
-#' `rtprep:::rule_ez_support()`; both return a rule object that [rt_screen()]
+#' inspected. Neither is part of the supported interface, so either can
+#' change without notice. Both return a rule object that [rt_screen()]
 #' applies like any other.
 #'
 #' @param q_cut Lower quantile of the tentative cut, in (0, 0.5). The
@@ -386,9 +385,6 @@ rule_ewma <- function(lambda = 0.01, L = 1.5, chance = 0.5) {
 #' exactly such a shallow front, which is the rule's documented false-alarm
 #' mode. Groups with fewer than 20 trials, and groups whose reference quantile
 #' ties the minimum, are left untouched.
-#'
-#' @examples
-#' rtprep:::rule_adaptive_trim()
 #'
 #' @keywords internal
 #' @aliases rules_experimental
@@ -440,9 +436,6 @@ rule_adaptive_trim <- function(q_cut = 0.05, s_accept = 0.5) {
 #' median while the implied decision-time mean always exceeds it.
 #'
 #' This rule requires `response`, coded as correct/error.
-#'
-#' @examples
-#' rtprep:::rule_ez_support()
 #'
 #' @keywords internal
 rule_ez_support <- function(c_ndt = 1, refit = TRUE) {

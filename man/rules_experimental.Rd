@@ -33,9 +33,8 @@ for the exported constructors in \link{rules}.
 Two rules kept out of the exported roster. A function on the package index
 reads as a recommendation, and neither is one. The code, its tests, and
 this page stay so that the rules' behaviour and failure modes can be
-inspected, and so that scripts calling them through \verb{rtprep:::} keep
-working. Reach them with \code{rtprep:::rule_adaptive_trim()} and
-\code{rtprep:::rule_ez_support()}; both return a rule object that \code{\link[=rt_screen]{rt_screen()}}
+inspected. Neither is part of the supported interface, so either can
+change without notice. Both return a rule object that \code{\link[=rt_screen]{rt_screen()}}
 applies like any other.
 }
 \section{Adaptive leading-edge trim}{
@@ -90,10 +89,4 @@ median while the implied decision-time mean always exceeds it.
 This rule requires \code{response}, coded as correct/error.
 }
 
-\examples{
-rtprep:::rule_adaptive_trim()
-
-rtprep:::rule_ez_support()
-
-}
 \keyword{internal}
