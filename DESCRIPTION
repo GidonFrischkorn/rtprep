@@ -50,4 +50,4 @@ Config/Needs/website: rmarkdown, ggplot2, dplyr, tidyr
 VignetteBuilder: knitr
 LazyData: true
 Language: en-GB
-RoxygenNote: 7.3.3
+Config/roxygen2/version: 8.1.0
