@@ -1,12 +1,26 @@
 ## Resubmission
 
-This is a resubmission. In this version I have:
+This is a resubmission. In response to the comment on `:::` in
+`man/rules_experimental.Rd`, in this version I have:
 
 * Removed `:::` from the documentation. The help page `rules_experimental`
   documents two unexported rules; its examples called them through
-  `rtprep:::` and its description named that route. The examples are removed
-  and the description no longer refers to `:::`. No package code changed; a
-  test now fails if any help page contains `:::`.
+  `rtprep:::` and its description named that route. The examples are removed,
+  since the functions are not exported, and the description no longer refers
+  to `:::`. No help page contains `:::` now.
+* Removed `rtprep:::` from the tests, where it was redundant: the tests run
+  inside the package namespace.
+* Added two tests that keep it that way. One reads the installed help pages
+  for `:::`. The other checks the package sources against the reviewer rules
+  that `R CMD check` does not enforce, among them `:::` and examples for
+  unexported functions; it needs the source tree, so it skips under
+  `R CMD check`.
+
+The `:::` left in the sources are in comments, in the test that searches the
+help pages for it, and in nine test calls to unexported functions of 'bmm',
+against which the mixture EM is checked for equivalence; those tests are
+skipped on CRAN. No R code and no documentation
+uses `:::`, and no function's code changed in this version.
 
 ## R CMD check results
 
@@ -50,11 +64,11 @@ For this resubmission, 2026-09-24:
 
 * local macOS 26.6.2 (Darwin 25.6.0), R 4.6.1 (2026-06-24),
   aarch64-apple-darwin23: `devtools::check(cran = TRUE)` 0 errors,
-  0 warnings, 0 notes (47 s)
+  0 warnings, 0 notes (48 s)
 
 For the first submission, 2026-09-14. Its package differs from this one only
-in the roxygen comments of `R/rules.R`, in `man/rules_experimental.Rd` and in
-the new test file `tests/testthat/test-documentation.R`:
+in documentation, comments, tests and `inst/WORDLIST`; the R code is
+identical:
 
 * local macOS 26.6.2 (Darwin 25.6.0), R 4.6.1 (2026-06-24),
   aarch64-apple-darwin23, 2026-09-14: `devtools::check(cran = TRUE)` 0 errors,
