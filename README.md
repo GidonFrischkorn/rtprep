@@ -59,12 +59,12 @@ you thought it did.
 ## Installation
 
 ``` r
+# from CRAN
+install.packages("rtprep")
+
 # the development version, from GitHub
 # install.packages("remotes")
 remotes::install_github("GidonFrischkorn/rtprep")
-
-# from CRAN, once the first release is accepted
-# install.packages("rtprep")
 ```
 
 ## A first look

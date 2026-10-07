@@ -1,6 +1,6 @@
 Package: rtprep
 Title: Screening, Trimming, and Aggregating Response Time Data
-Version: 0.1.0
+Version: 0.1.0.9000
 Authors@R:
     person("Gidon T.", "Frischkorn", , "gfrischkorn@icloud.com",
            role = c("aut", "cre", "cph"),
