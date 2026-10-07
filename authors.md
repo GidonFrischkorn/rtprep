@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/GidonFrischkorn/rtprep/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/GidonFrischkorn/rtprep/blob/v0.1.0/inst/CITATION)
 
 Frischkorn, G. T. (2026). rtprep: Screening, trimming, and aggregating
 response time data. R package version 0.1.0.

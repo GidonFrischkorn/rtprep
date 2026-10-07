@@ -344,7 +344,7 @@ fast_block <- function(rt, truth) {
 
 fast_block(c(exg_core, block), truth)
 #>   distribution converged collapsed contaminant_prop n_dropped sensitivity
-#> 1   exgaussian      TRUE     FALSE       0.03044122         6           0
+#> 1   exgaussian      TRUE     FALSE       0.03001629         6           0
 #> 2    lognormal      TRUE     FALSE       0.16839198        56           1
 #> 3  invgaussian      TRUE     FALSE       0.16826913        56           1
 ```
@@ -374,7 +374,7 @@ ddm_core <- r_contaminated(
 
 fast_block(c(ddm_core, block), truth)
 #>   distribution converged collapsed contaminant_prop n_dropped sensitivity
-#> 1   exgaussian      TRUE      TRUE     2.029924e-07         0           0
+#> 1   exgaussian      TRUE      TRUE     2.031915e-07         0           0
 #> 2    lognormal      TRUE      TRUE     3.974696e-08         0           0
 #> 3  invgaussian      TRUE      TRUE     5.355859e-08         0           0
 ```
@@ -508,7 +508,7 @@ bind_rows(
   transmute(distribution, use_accuracy = !is.na(p_correct), converged,
             collapsed, contaminant_prop, n_dropped)
 #>   distribution use_accuracy converged collapsed contaminant_prop n_dropped
-#> 1   exgaussian        FALSE      TRUE      TRUE     2.205281e-09         0
+#> 1   exgaussian        FALSE      TRUE      TRUE     2.153722e-09         0
 #> 2    lognormal        FALSE      TRUE      TRUE     1.657764e-07         0
 #> 3  invgaussian        FALSE      TRUE      TRUE     6.586266e-06         0
 #> 4    lognormal         TRUE      TRUE      TRUE     9.981146e-09         0

@@ -2,6 +2,8 @@
 
 ## rtprep 0.1.0
 
+CRAN release: 2026-10-05
+
 Initial CRAN release. `rtprep` gives the response time preprocessing
 steps that precede an evidence accumulation model fit one interface:
 screening, aggregation, EZ-diffusion estimation, and data generation
